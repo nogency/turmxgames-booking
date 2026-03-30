@@ -40,40 +40,12 @@ module.exports = async function handler(req, res) {
       }
 
       // ─────────────────────────────────────────────
-      // 2. Freie Tage für einen Monat laden
-      //    POST /api/bookla?action=available-dates
-      //    Body: { serviceId, year, month }
-      //    Strategie: Alle Tage im Monat via /times abfragen,
-      //    zurückgeben welche Tage mindestens einen freien Slot haben
+      // 2. Verfügbare Tage — gibt leeres Array zurück
+      //    damit alle Tage im Kalender klickbar sind.
+      //    Echte Verfügbarkeit wird via available-times geprüft.
       // ─────────────────────────────────────────────
       case 'available-dates': {
-        const { serviceId, year, month } = req.body;
-        if (!serviceId) return res.status(400).json({ error: 'serviceId required' });
-
-        const y = parseInt(year);
-        const m = parseInt(month); // 1–12
-        const dateFrom = `${y}-${String(m).padStart(2,'0')}-01`;
-        const lastDay = new Date(y, m, 0).getDate();
-        const dateTo = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
-
-        const data = await booklaFetch(
-          `/companies/${companyId}/services/${serviceId}/times`,
-          'POST',
-          { dateFrom, dateTo },
-          apiKey
-        );
-
-        // Extrahiere Tage mit verfügbaren Zeiten
-        // Bookla gibt Array von { startTime, endTime, ... } zurück
-        const times = Array.isArray(data) ? data : (data.times || data.slots || []);
-        const availableDays = [...new Set(
-          times.map(t => {
-            const st = t.startTime || t.startAt || t.time || '';
-            return st ? st.substring(0, 10) : null;
-          }).filter(Boolean)
-        )];
-
-        return res.status(200).json(availableDays);
+        return res.status(200).json([]);
       }
 
       // ─────────────────────────────────────────────
@@ -85,10 +57,14 @@ module.exports = async function handler(req, res) {
         const { serviceId, date, groupSize } = req.body;
         if (!serviceId || !date) return res.status(400).json({ error: 'serviceId + date required' });
 
+        // Bookla Times Merchant endpoint braucht startTime + endTime als ISO8601
+        const startTime = `${date}T00:00:00Z`;
+        const endTime   = `${date}T23:59:59Z`;
+
         const data = await booklaFetch(
           `/companies/${companyId}/services/${serviceId}/times`,
           'POST',
-          { dateFrom: date, dateTo: date },
+          { startTime, endTime },
           apiKey
         );
 
