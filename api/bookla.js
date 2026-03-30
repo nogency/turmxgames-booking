@@ -64,7 +64,20 @@ module.exports = async function handler(req, res) {
 
         // Bookla gibt zurück: ["Europe/Berlin", { resourceID: [...dates] }, ...]
         // oder { resourceID: [...dates] }
-       return res.status(200).json([]);
+        let dates;
+        if (Array.isArray(data)) {
+          // Filtere Strings (timezone) raus, merge alle Arrays aus den Objekten
+          const allDates = data
+            .filter(item => typeof item === 'object' && item !== null)
+            .flatMap(obj => Object.values(obj).flat());
+          dates = [...new Set(allDates)].sort();
+        } else if (typeof data === 'object' && data !== null) {
+          const allDates = Object.values(data).flat();
+          dates = [...new Set(allDates)].sort();
+        } else {
+          dates = [];
+        }
+        return res.status(200).json(dates);
       }
 
       // ─────────────────────────────────────────────
@@ -161,57 +174,45 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'serviceId, date, time, email required' });
         }
 
-        // Resource IDs der 3 Spielbereiche (TurmXGames Slot 1-3)
         const RESOURCE_IDS = [
           '8638cf4f-12f7-4e32-bddb-39384bd6f56d', // Slot 1
           '6fbb6c14-bc34-4779-ba39-d588e0146014', // Slot 2
           '3fff2cbd-bac1-409c-adff-491526586916', // Slot 3
         ];
 
-        // Prüfe welcher Slot für diesen Termin noch frei ist
-        let resourceId = null;
-        for (const rid of RESOURCE_IDS) {
-          try {
-            const from = `${date}T${time}:00Z`;
-            const to   = `${date}T${time}:00Z`;
-            const times = await booklaFetch(
-              `/client/companies/${companyId}/services/${serviceId}/times`,
-              'POST', { from, to, spots: parseInt(groupSize) || 1 }, apiKey
-            );
-            const arr = Array.isArray(times) ? times : [];
-            const slot = arr.find(t => {
-              const st = t.startTime || t.startAt || '';
-              return st.startsWith(`${date}T${time}`);
-            });
-            if (slot && slot.available !== false) {
-              resourceId = rid;
-              break;
-            }
-          } catch(e) { /* try next */ }
-        }
+        const startTime = `${date}T${time}:00`;
+        const spots = parseInt(groupSize) || 1;
 
-        // Fallback: ersten Slot nehmen
-        if (!resourceId) resourceId = RESOURCE_IDS[0];
-
-        const startTime = `${date}T${time}:00Z`;
-
-        const payload = {
-          companyID:  companyId,
-          serviceID:  serviceId,
-          resourceID: resourceId,
-          startTime,
-          spots: parseInt(groupSize) || 1,
-          client: {
-            email,
-            firstName,
-            lastName,
-            ...(phone && { phone }),
-          },
-          ...(notes && { metaData: { notes } }),
+        const clientPayload = {
+          email,
+          firstName,
+          lastName,
+          ...(phone && { phone }),
         };
 
-        const data = await booklaFetch('/client/bookings', 'POST', payload, apiKey);
-        return res.status(201).json(data);
+        // Versuche jeden Slot der Reihe nach bis einer klappt
+        let lastError = null;
+        for (const resourceId of RESOURCE_IDS) {
+          try {
+            const data = await booklaFetch('/client/bookings', 'POST', {
+              companyID:  companyId,
+              serviceID:  serviceId,
+              resourceID: resourceId,
+              startTime,
+              spots,
+              client: clientPayload,
+              ...(notes && { metaData: { notes } }),
+            }, apiKey);
+            return res.status(201).json(data);
+          } catch(e) {
+            lastError = e;
+            // Slot belegt oder Fehler → nächsten versuchen
+            continue;
+          }
+        }
+
+        // Alle Slots fehlgeschlagen
+        throw lastError || new Error('No available slot found');
       }
 
       // ─────────────────────────────────────────────
