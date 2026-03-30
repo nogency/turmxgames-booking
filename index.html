@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Jetzt buchen – TurmX Games</title>
+<meta name="description" content="TurmX Games direkt buchen. Sofortbestätigung, sichere Zahlung.">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR&intent=capture&components=buttons" data-namespace="paypalSDK"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#C0392B;--pink:#E91E8C;
+  --grad:linear-gradient(135deg,#C0392B,#E91E8C);
+  --dark:#0C0C0C;--dark2:#141414;--dark3:#1C1C1C;
+  --bd:rgba(255,255,255,0.08);--muted:rgba(255,255,255,0.55);
+  /* Light area */
+  --lb:#F4F2EE;--lb2:#EDEAE4;--lb3:#E5E1D8;
+  --lc:#FFFFFF;--lbdr:rgba(0,0,0,0.09);--lbdr2:rgba(0,0,0,0.05);
+  --td:#1a1a1a;--tm:#444;--tmu:#888;
+  --rl:rgba(192,57,43,0.08);--rb:rgba(192,57,43,0.22);
+  /* Price colors */
+  --cheap:#2e7d32;--expensive:#b71c1c;
+}
+html{scroll-behavior:smooth}
+body{font-family:"Montserrat",sans-serif;background:var(--dark);color:#fff;overflow-x:hidden}
+
+/* ── FOCUSED NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:64px;background:rgba(12,12,12,0.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd)}
+.nav-l{display:flex;align-items:center;gap:16px}
+.nav-logo img{height:34px;display:block}
+.nav-back{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,.35);text-decoration:none;border-left:1px solid var(--bd);padding-left:16px;transition:color .2s}
+.nav-back:hover{color:rgba(255,255,255,.7)}
+.nav-r{display:flex;flex-direction:column;align-items:flex-end}
+.nav-r a{font-family:"Bebas Neue",sans-serif;font-size:16px;letter-spacing:1.5px;color:rgba(255,255,255,.75);text-decoration:none;line-height:1.1;transition:color .2s}
+.nav-r a:hover{color:#fff}
+.nav-r span{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:1px}
+
+/* ── RATINGS ── */
+.rbar{margin-top:64px;background:#161616;border-bottom:1px solid var(--bd);padding:8px 48px;display:flex;align-items:center;gap:18px;overflow-x:auto;scrollbar-width:none}
+.rbar::-webkit-scrollbar{display:none}
+.rg{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.rscore{font-family:"Bebas Neue",sans-serif;font-size:16px;line-height:1}
+.rsep{width:1px;height:14px;background:var(--bd);flex-shrink:0}
+.rextra{font-size:11px;color:var(--muted);white-space:nowrap}
+
+/* ── HERO ── */
+.hero{padding:40px 60px 32px;background:var(--dark2);border-bottom:1px solid var(--bd);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 100% at 0% 60%,rgba(192,57,43,.13) 0%,transparent 60%)}
+.hero-in{max-width:1160px;margin:0 auto;position:relative;z-index:1}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:12px}
+.eyebrow::before{content:"";width:24px;height:1px;background:var(--red)}
+.hero h1{font-family:"Bebas Neue",sans-serif;font-size:clamp(34px,4vw,60px);line-height:.92;letter-spacing:3px;margin-bottom:12px}
+.hero h1 em{color:var(--red);font-style:normal}
+.hero p{font-size:13px;color:rgba(255,255,255,.8);line-height:1.7;max-width:520px;margin-bottom:16px}
+.trust{display:flex;gap:9px;flex-wrap:wrap}
+.tpill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:5px 11px;border-radius:40px;font-size:11px;color:rgba(255,255,255,.65)}
+
+/* ── MOBILE STICKY BAR ── */
+.mob-bar{display:none;position:sticky;top:64px;z-index:100;background:var(--dark3);border-bottom:1px solid var(--bd);padding:11px 16px;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none}
+.mob-bar-l{display:flex;align-items:center;gap:10px;min-width:0}
+.mob-bar-icon{width:32px;height:32px;background:rgba(192,57,43,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0;font-size:14px}
+.mob-bar-info{min-width:0}
+.mob-bar-title{font-family:"Bebas Neue",sans-serif;font-size:13px;letter-spacing:.5px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mob-bar-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.mob-bar-price{font-family:"Bebas Neue",sans-serif;font-size:20px;color:var(--red);flex-shrink:0}
+.mob-bar-drop{display:none;position:sticky;top:108px;z-index:99;background:var(--dark2);border-bottom:1px solid var(--bd);padding:14px 16px;animation:fadeUp .2s ease both}
+.mob-bar-drop.open{display:block}
+
+/* ── BOOKING AREA ── */
+.barea{background:var(--lb);padding:40px 60px 80px}
+.binner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 340px;gap:36px;align-items:start}
+
+/* ── BOOKING CARD ── */
+.bcard{background:var(--lc);border:1px solid var(--lbdr);border-radius:8px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.08)}
+
+/* STEP HEADER */
+.shdr{padding:20px 24px 0;display:flex;gap:8px;margin-bottom:20px}
+.sdot{width:28px;height:28px;border-radius:50%;border:2px solid var(--lbdr);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:13px;color:var(--tmu);flex-shrink:0;transition:all .3s;background:var(--lb)}
+.sdot.active{border-color:var(--red);color:#fff;background:var(--red)}
+.sdot.done{border-color:var(--rb);color:var(--red);background:var(--rl)}
+.sline{flex:1;height:2px;background:var(--lbdr);margin:12px -4px 0;align-self:flex-start;transition:background .3s}
+.sline.done{background:var(--rb)}
+
+/* STEP PANELS */
+.sp{display:none;padding:0 24px 24px;animation:fadeUp .25s ease both}
+.sp.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.stitle{font-family:"Bebas Neue",sans-serif;font-size:21px;letter-spacing:2px;margin-bottom:16px;color:var(--td)}
+.slabel{font-size:9px;letter-spacing:2px;color:var(--tmu);margin-bottom:8px;font-weight:700;text-transform:uppercase}
+
+/* EVENT GRID */
+.egrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+.ebtn{padding:14px 12px;background:var(--lb);border:2px solid var(--lbdr);border-radius:6px;cursor:pointer;text-align:left;transition:all .18s}
+.ebtn:hover{border-color:var(--rb);background:var(--rl)}
+.ebtn.sel{border-color:var(--red);background:var(--rl)}
+.ebtn-ico{font-size:18px;display:block;margin-bottom:6px}
+.ebtn-name{font-family:"Bebas Neue",sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--td);display:block;margin-bottom:1px}
+.ebtn-sub{font-size:10px;color:var(--tmu)}
+.emore-btn{width:100%;background:none;border:1.5px dashed var(--lbdr);border-radius:6px;padding:9px 14px;font-family:"Montserrat",sans-serif;font-size:11px;font-weight:600;color:var(--tmu);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.emore-btn:hover{border-color:var(--rb);color:var(--red)}
+.emore-panel{display:none;margin-bottom:12px}
+.emore-panel.open{display:block}
+.special-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.sbtn{padding:11px 8px;background:var(--lb);border:2px solid var(--lbdr);border-radius:6px;cursor:pointer;text-align:center;transition:all .18s}
+.sbtn:hover{border-color:var(--rb);background:var(--rl)}
+.sbtn.sel{border-color:var(--red);background:var(--rl)}
+.sbtn-name{font-family:"Bebas Neue",sans-serif;font-size:13px;letter-spacing:1px;color:var(--td);display:block;margin-bottom:3px}
+.sbtn-price{font-size:10px;color:var(--tmu)}
+
+/* AGE CHIPS */
+.age-chips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 14px}
+.achip{padding:6px 12px;background:var(--lb);border:1.5px solid var(--lbdr);border-radius:20px;font-size:12px;color:var(--tm);cursor:pointer;transition:all .15s;font-weight:500}
+.achip:hover{border-color:var(--rb);color:var(--red)}
+.achip.sel{border-color:var(--red);background:var(--rl);color:var(--red);font-weight:700}
+.special-note{background:var(--lb);border:1px solid var(--lbdr);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--tm);line-height:1.6;margin-bottom:12px;display:none}
+.special-note.show{display:block}
+
+/* MODE TABS */
+.mtabs{display:flex;gap:6px;margin-bottom:16px}
+.mtab{flex:1;padding:9px;background:var(--lb);border:1.5px solid var(--lbdr);border-radius:5px;cursor:pointer;text-align:center;font-family:"Bebas Neue",sans-serif;font-size:13px;letter-spacing:1px;color:var(--tmu);transition:all .15s}
+.mtab:hover{border-color:var(--rb);color:var(--td)}
+.mtab.active{border-color:var(--red);background:var(--rl);color:var(--td)}
+.mpanel{display:none}
+.mpanel.show{display:block}
+
+/* CALENDAR */
+.calwrap{background:var(--lb);border:1px solid var(--lbdr);border-radius:6px;padding:14px;margin-bottom:14px}
+.calhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.calmon{font-family:"Bebas Neue",sans-serif;font-size:17px;letter-spacing:2px;color:var(--td)}
+.calnav{width:28px;height:28px;background:var(--lc);border:1px solid var(--lbdr);border-radius:3px;cursor:pointer;color:var(--td);font-size:14px;display:flex;align-items:center;justify-content:center;transition:border-color .15s}
+.calnav:hover{border-color:var(--red)}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-lbl{text-align:center;font-size:8px;letter-spacing:1px;color:var(--tmu);padding-bottom:4px;font-weight:600}
+.cd{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:3px;cursor:pointer;border:1px solid transparent;transition:all .12s;color:var(--td);font-weight:500;position:relative}
+.cd:hover:not(.empty):not(.past):not(.unavail){background:var(--rl);border-color:var(--rb)}
+.cd.sel{background:var(--red);color:#fff;border-color:var(--red)}
+.cd.today{border-color:var(--rb)}
+.cd.past{color:rgba(0,0,0,.18);cursor:default}
+.cd.empty{cursor:default}
+.cd.unavail{color:rgba(0,0,0,.15);cursor:not-allowed}
+.cd.cheap{background:rgba(46,125,50,0.06)}
+.cd.mid{background:rgba(192,57,43,0.05)}
+.cd.expensive{background:rgba(183,28,28,0.06)}
+.cd.cheap.sel{background:var(--cheap);border-color:var(--cheap)}
+.cd.expensive.sel{background:var(--expensive);border-color:var(--expensive)}
+.cd.loading{animation:pulse .8s ease infinite;background:rgba(0,0,0,0.07)}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
+.price-legend{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap}
+.pled{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--tmu)}
+.pdot{width:6px;height:6px;border-radius:50%}
+
+/* PRICE NOTE */
+.pnote{border-radius:5px;padding:8px 12px;font-size:11px;margin-bottom:10px;display:none;align-items:center;gap:7px;font-weight:600}
+.pnote.cheap{background:rgba(46,125,50,0.08);border:1px solid rgba(46,125,50,0.2);color:var(--cheap);display:flex}
+.pnote.exp{background:rgba(183,28,28,0.06);border:1px solid rgba(183,28,28,0.15);color:var(--expensive);display:flex}
+
+/* TIME SLOTS */
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:8px}
+.tslot{padding:9px 5px;background:var(--lb);border:1.5px solid var(--lbdr);border-radius:4px;cursor:pointer;text-align:center;transition:all .15s}
+.tslot:hover:not(.full){border-color:var(--rb);background:var(--rl)}
+.tslot.sel{background:var(--red);border-color:var(--red);color:#fff}
+.tslot.full{opacity:.3;cursor:not-allowed}
+.tslot-t{font-family:"Bebas Neue",sans-serif;font-size:15px;letter-spacing:1px;color:inherit}
+.tslot-s{font-size:9px;color:inherit;opacity:.7;margin-top:1px}
+.tslot-a{font-size:9px;margin-top:2px}
+.tslot-a.ok{color:var(--cheap)}
+.tslot-a.no{color:var(--expensive)}
+
+/* DOODLE */
+.doodle-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.doodle-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.doodle-title{font-family:"Bebas Neue",sans-serif;font-size:16px;letter-spacing:1px;color:var(--td)}
+.drow{display:grid;gap:4px;margin-bottom:3px}
+.dcell-hdr{font-size:9px;letter-spacing:1px;color:var(--tmu);text-align:center;padding:3px 0;font-weight:600}
+.ddate{font-size:11px;color:var(--tm);font-weight:600;display:flex;flex-direction:column;justify-content:center}
+.ddate span{font-size:9px;color:var(--tmu);font-weight:400}
+.dslot{padding:8px 4px;background:var(--lb);border:1.5px solid var(--lbdr);border-radius:4px;cursor:pointer;text-align:center;font-size:11px;color:var(--tmu);font-weight:500;transition:all .15s}
+.dslot:hover{border-color:var(--rb);color:var(--td)}
+.dslot.picked{background:var(--red);border-color:var(--red);color:#fff}
+.dcount{display:none;background:rgba(46,125,50,.08);border:1px solid rgba(46,125,50,.2);border-radius:5px;padding:8px 12px;font-size:12px;color:var(--cheap);align-items:center;gap:7px;margin:10px 0;font-weight:600}
+.dcount.show{display:flex}
+.share-sheet{margin-top:12px;background:var(--lb);border:1px solid var(--lbdr);border-radius:6px;overflow:hidden}
+.share-preview{padding:12px 14px;border-bottom:1px solid var(--lbdr);font-size:11px;color:var(--tm);line-height:1.7;white-space:pre-wrap;max-height:110px;overflow-y:auto;font-family:monospace;background:var(--lc)}
+.share-btns{padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sbtn-share{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;border:1.5px solid var(--lbdr);border-radius:5px;background:var(--lc);color:var(--td);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.sbtn-share:hover{border-color:var(--rb)}
+.sbtn-share.wa:hover{border-color:#25D366;color:#25D366}
+
+/* GROUP / QTY */
+.qrow{display:flex;align-items:center;gap:0;margin-bottom:10px}
+.qbtn{width:40px;height:40px;background:var(--lb);border:1px solid var(--lbdr);cursor:pointer;color:var(--td);font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.qbtn:hover{background:var(--rl);border-color:var(--rb);color:var(--red)}
+.qbtn:first-child{border-radius:4px 0 0 4px}
+.qbtn:last-child{border-radius:0 4px 4px 0}
+.qval{width:56px;height:40px;background:var(--lc);border:1px solid var(--lbdr);border-left:none;border-right:none;display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:20px;color:var(--td)}
+
+/* ACCORDION */
+.acc{border:1px solid var(--lbdr);border-radius:6px;overflow:hidden;margin-bottom:12px}
+.acc-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:var(--lb);transition:background .13s;user-select:none}
+.acc-hdr:hover{background:var(--lb2)}
+.acc-htitle{font-size:13px;font-weight:600;color:var(--td)}
+.acc-arr{color:var(--tmu);transition:transform .2s;font-size:12px}
+.acc.open .acc-arr{transform:rotate(180deg)}
+.acc-body{display:none;padding:14px 16px;background:var(--lc)}
+.acc.open .acc-body{display:block}
+.radio-group{display:flex;flex-direction:column;gap:7px}
+.ropt{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--lb);border:1.5px solid var(--lbdr);border-radius:5px;cursor:pointer;transition:all .15s}
+.ropt:hover{border-color:var(--rb)}
+.ropt.sel{border-color:var(--rb);background:var(--rl)}
+.rdot{width:13px;height:13px;border-radius:50%;border:2px solid var(--lbdr);flex-shrink:0;transition:all .15s}
+.ropt.sel .rdot{border-color:var(--red);background:var(--red)}
+.rlabel{font-size:12px;color:var(--td)}
+
+/* FORM */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px}
+.fg{margin-bottom:11px}
+.flbl{font-size:9px;letter-spacing:2px;color:var(--tmu);display:block;margin-bottom:5px;font-weight:700}
+.finput,.ftextarea{width:100%;background:var(--lb);border:1.5px solid var(--lbdr);color:var(--td);padding:9px 11px;font-family:"Montserrat",sans-serif;font-size:13px;border-radius:4px;outline:none;transition:border-color .2s}
+.finput:focus,.ftextarea:focus{border-color:rgba(192,57,43,.5);background:#fff}
+.finput::placeholder,.ftextarea::placeholder{color:rgba(0,0,0,.28)}
+.finput.invalid{border-color:var(--red)}
+.ftextarea{resize:vertical;min-height:68px}
+.ferr{font-size:11px;color:var(--red);margin-top:3px;display:none}
+.ferr.show{display:block}
+.firma-section{border-top:1px solid var(--lbdr);padding-top:14px;margin-top:4px;display:none}
+.firma-lbl{font-family:"Bebas Neue",sans-serif;font-size:13px;letter-spacing:2px;color:var(--red);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.info-box{background:var(--lb);border:1px solid var(--lbdr);border-radius:5px;padding:9px 11px;font-size:11px;color:var(--tm);display:flex;gap:8px;align-items:flex-start;margin-top:8px;line-height:1.6}
+
+/* PAYMENT */
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:16px}
+.pbtn{padding:10px 6px;background:var(--lb);border:1.5px solid var(--lbdr);border-radius:5px;cursor:pointer;text-align:center;transition:all .15s}
+.pbtn:hover{border-color:var(--rb);background:var(--rl)}
+.pbtn.sel{border-color:var(--red);background:var(--rl)}
+.pbtn-name{font-family:"Bebas Neue",sans-serif;font-size:12px;letter-spacing:1px;color:var(--td);margin-bottom:1px}
+.pbtn-sub{font-size:9px;color:var(--tmu)}
+.pform{display:none;animation:fadeUp .2s ease}
+.pform.show{display:block}
+.sfield{background:var(--lb);border:1.5px solid var(--lbdr);padding:10px 11px;border-radius:4px;margin-bottom:9px;min-height:40px;transition:border-color .2s}
+.serr{font-size:11px;color:var(--red);margin-top:3px;min-height:15px}
+.express-section{margin-bottom:4px}
+.express-lbl{font-size:9px;letter-spacing:2px;color:var(--tmu);margin-bottom:8px;font-weight:700}
+.express-divider{display:flex;align-items:center;gap:10px;margin:14px 0 4px;font-size:9px;letter-spacing:2px;color:var(--tmu);font-weight:700}
+.express-divider::before,.express-divider::after{content:"";flex:1;height:1px;background:var(--lbdr)}
+.ssl{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tmu);margin-top:12px;padding-top:12px;border-top:1px solid var(--lbdr)}
+
+/* SUMMARY BOX */
+.sumbox{background:var(--lb);border:1px solid var(--rb);border-radius:6px;padding:12px 16px;margin-bottom:16px}
+.sumrow{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--lbdr);font-size:12px}
+.sumrow:last-child{border-bottom:none;margin-top:4px;padding-top:8px}
+.sumkey{color:var(--tmu)}
+.sumval{color:var(--td);font-family:"Bebas Neue",sans-serif;font-size:15px;letter-spacing:1px}
+.sumtot .sumval{color:var(--red);font-size:21px}
+
+/* STEP NAV */
+.snav{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-top:1px solid var(--lbdr);background:var(--lb2)}
+.bbk{background:transparent;border:1.5px solid var(--lbdr);color:var(--tmu);font-family:"Bebas Neue",sans-serif;font-size:13px;letter-spacing:2px;padding:9px 20px;border-radius:4px;cursor:pointer;transition:all .15s}
+.bbk:hover{border-color:var(--tm);color:var(--td)}
+.bnxt{background:var(--grad);border:none;color:#fff;font-family:"Bebas Neue",sans-serif;font-size:15px;letter-spacing:2px;padding:11px 28px;border-radius:4px;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:7px}
+.bnxt:hover{opacity:.88}
+.bnxt:disabled{opacity:.4;cursor:not-allowed}
+
+/* SUCCESS */
+.success{display:none;padding:40px 24px;text-align:center}
+.success.show{display:block}
+.success-id{font-family:"Bebas Neue",sans-serif;font-size:28px;letter-spacing:3px;color:var(--red);margin:12px 0 6px}
+.success-det{background:var(--lb);border:1px solid var(--lbdr);border-radius:6px;padding:14px;text-align:left;font-size:12px;color:var(--tm);line-height:2;margin:16px 0 20px}
+
+/* SIDEBAR */
+.sidebar{position:sticky;top:84px;display:flex;flex-direction:column;gap:14px}
+.scard{background:var(--lc);border:1px solid var(--lbdr);border-radius:8px;padding:18px;box-shadow:0 1px 8px rgba(0,0,0,0.04)}
+.scard.accent{border-color:var(--rb);background:linear-gradient(135deg,rgba(192,57,43,.04),rgba(233,30,140,.02))}
+.scard-title{font-family:"Bebas Neue",sans-serif;font-size:16px;letter-spacing:2px;margin-bottom:12px;color:var(--td)}
+.sprow{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--lbdr)}
+.sprow:last-child{border-bottom:none}
+.spkey{font-size:11px;color:var(--tmu)}
+.spval{font-family:"Bebas Neue",sans-serif;font-size:18px;color:var(--red)}
+.spnote{font-size:9px;color:var(--tmu)}
+.scl{list-style:none;display:flex;flex-direction:column;gap:7px}
+.scl li{font-size:12px;color:var(--tm);display:flex;gap:7px;line-height:1.5}
+.scl li::before{content:"✓";color:var(--red);font-weight:700;flex-shrink:0}
+.scon a{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tm);text-decoration:none;padding:6px 0;border-bottom:1px solid var(--lbdr2);transition:color .15s}
+.scon a:last-child{border-bottom:none}
+.scon a:hover{color:var(--red)}
+.scon-ico{width:24px;height:24px;border:1px solid var(--lbdr);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+
+/* FOOTER */
+footer{background:var(--dark);border-top:1px solid var(--bd);padding:18px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+footer a{font-size:11px;color:rgba(255,255,255,.3);text-decoration:none;transition:color .15s}
+footer a:hover{color:rgba(255,255,255,.65)}
+.flinks{display:flex;gap:18px;flex-wrap:wrap}
+
+/* SPIN */
+.spin{display:inline-block;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* MOBILE */
+@media(max-width:768px){
+  nav{padding:0 16px;height:60px}
+  .nav-back span{display:none}
+  .rbar{padding:7px 16px;margin-top:60px}
+  .rbar .rscore,.rbar .rstar{font-size:13px}
+  .hero{padding:22px 16px 18px}
+  .trust{display:none}
+  .mob-bar{display:flex;top:60px}
+  .mob-bar-drop{top:104px}
+  .barea{padding:20px 0 56px}
+  .binner{grid-template-columns:1fr;padding:0 14px;gap:18px}
+  .sidebar{position:static}
+  .egrid{grid-template-columns:1fr 1fr}
+  .special-grid{grid-template-columns:1fr 1fr 1fr}
+  .frow{grid-template-columns:1fr}
+  .tgrid{grid-template-columns:repeat(4,1fr);gap:5px}
+  .pgrid{grid-template-columns:repeat(4,1fr);gap:5px}
+  footer{padding:14px 16px;flex-direction:column;align-items:flex-start;gap:10px}
+}
+@media(max-width:400px){
+  .egrid{grid-template-columns:1fr}
+  .special-grid{grid-template-columns:1fr 1fr}
+  .pgrid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-l">
+    <a href="https://turmx.games"><img src="logo-cropped.png" alt="TurmX Games"></a>
+    <a href="https://turmx.games" class="nav-back">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>Zurück zur Website</span>
+    </a>
+  </div>
+  <div class="nav-r">
+    <a href="tel:+491725850055">📞 0172 – 58 500 55</a>
+    <span>FRAGEN? WIR HELFEN GERNE</span>
+  </div>
+</nav>
+
+<!-- RATINGS -->
+<div class="rbar">
+  <div class="rg">
+    <svg width="14" height="14" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+    <span class="rscore" style="color:#FBBC04">4,9</span>
+    <span style="color:#FBBC04;font-size:11px">★★★★★</span>
+    <span style="font-size:10px;color:var(--muted);letter-spacing:1px">GOOGLE · 93 BEWERTUNGEN</span>
+  </div>
+  <div class="rsep"></div>
+  <div class="rg">
+    <div style="width:14px;height:14px;background:#34E0A1;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#000;flex-shrink:0">TA</div>
+    <span class="rscore" style="color:#34E0A1">5,0</span>
+    <span style="color:#34E0A1;font-size:11px">★★★★★</span>
+  </div>
+  <div class="rsep"></div>
+  <span class="rextra">🏆 Travelers Choice 2024 · Kostenlose Stornierung bis 7 Tage vor Event</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-in">
+    <div class="eyebrow">🎬 ONLINE BUCHUNG</div>
+    <h1>EUER TERMIN.<br><em>JETZT SICHERN.</em></h1>
+    <p>Schnell und einfach buchen. Sofortbestätigung, sichere Zahlung via Kreditkarte, PayPal oder SEPA.</p>
+    <div class="trust">
+      <div class="tpill">🔒 Sichere Zahlung</div>
+      <div class="tpill">✅ Sofortbestätigung</div>
+      <div class="tpill">↩️ Gratis Stornierung</div>
+      <div class="tpill">💳 Karte · PayPal · SEPA</div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE STICKY BAR -->
+<div class="mob-bar" id="mobBar" onclick="toggleMobBar()">
+  <div class="mob-bar-l">
+    <div class="mob-bar-icon">🎮</div>
+    <div class="mob-bar-info">
+      <div class="mob-bar-title" id="mb-type">TurmX Gameshow</div>
+      <div class="mob-bar-sub" id="mb-sub">Datum & Zeit wählen</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="mob-bar-price" id="mb-price">—</div>
+    <svg id="mb-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);transition:transform .25s"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+</div>
+<div class="mob-bar-drop" id="mobDrop">
+  <div class="sumbox" style="margin:0">
+    <div class="sumrow"><span class="sumkey">Event</span><span class="sumval" id="mb-d-type">—</span></div>
+    <div class="sumrow"><span class="sumkey">Datum</span><span class="sumval" id="mb-d-date">—</span></div>
+    <div class="sumrow"><span class="sumkey">Uhrzeit</span><span class="sumval" id="mb-d-time">—</span></div>
+    <div class="sumrow"><span class="sumkey">Personen</span><span class="sumval" id="mb-d-persons">—</span></div>
+    <div class="sumrow sumtot"><span class="sumkey">GESAMT</span><span class="sumval" id="mb-d-total">—</span></div>
+  </div>
+</div>
+
+<!-- BOOKING AREA -->
+<div class="barea" id="buchung">
+  <div class="binner">
+
+    <!-- MAIN CARD -->
+    <div class="bcard">
+      <!-- Step dots -->
+      <div class="shdr">
+        <div class="sdot active" id="dot1">1</div>
+        <div class="sline" id="line1"></div>
+        <div class="sdot" id="dot2">2</div>
+        <div class="sline" id="line2"></div>
+        <div class="sdot" id="dot3">3</div>
+        <div class="sline" id="line3"></div>
+        <div class="sdot" id="dot4">4</div>
+      </div>
+
+      <!-- STEP 1: Event & Termin -->
+      <div class="sp active" id="step1">
+        <div class="stitle">Event &amp; Termin</div>
+
+        <!-- Event types -->
+        <div class="slabel">ART DES EVENTS</div>
+        <div class="egrid">
+          <button class="ebtn sel" data-key="jga" onclick="selEvent(this)">
+            <span class="ebtn-ico">💍</span>
+            <span class="ebtn-name">JGA</span>
+            <span class="ebtn-sub">Junggesellenabschied</span>
+          </button>
+          <button class="ebtn" data-key="firma" onclick="selEvent(this)">
+            <span class="ebtn-ico">🏢</span>
+            <span class="ebtn-name">Firmenevent</span>
+            <span class="ebtn-sub">Team Building &amp; Corporate</span>
+          </button>
+          <button class="ebtn" data-key="team" onclick="selEvent(this)">
+            <span class="ebtn-ico">🏆</span>
+            <span class="ebtn-name">Team Event</span>
+            <span class="ebtn-sub">Gemeinsam gewinnen</span>
+          </button>
+          <button class="ebtn" data-key="friends" onclick="selEvent(this)">
+            <span class="ebtn-ico">🎉</span>
+            <span class="ebtn-name">Freunde &amp; Familie</span>
+            <span class="ebtn-sub">Spaß für alle</span>
+          </button>
+        </div>
+
+        <!-- More events -->
+        <button class="emore-btn" onclick="toggleMore()">
+          <span>Weitere Optionen: Kindergeburtstag, Schule &amp; Verein</span>
+          <span id="more-arr">▾</span>
+        </button>
+        <div class="emore-panel" id="morePanel">
+          <div class="slabel">SONDERKONDITIONEN</div>
+          <div class="special-grid">
+            <button class="sbtn" data-key="kinder" onclick="selSpecial(this)">
+              <span class="sbtn-name">🎂 Kinder­geburtstag</span>
+              <span class="sbtn-price">Grundgebühr 60 € · 2,5 Std.</span>
+            </button>
+            <button class="sbtn" data-key="schule" onclick="selSpecial(this)">
+              <span class="sbtn-name">🏫 Schulausflug</span>
+              <span class="sbtn-price">25 €/Person</span>
+            </button>
+            <button class="sbtn" data-key="verein" onclick="selSpecial(this)">
+              <span class="sbtn-name">⚽ Verein</span>
+              <span class="sbtn-price">25 €/Person</span>
+            </button>
+          </div>
+          <!-- Age picker for Kinder -->
+          <div id="ageBox" style="display:none">
+            <div class="slabel">ALTER DES GEBURTSTAGSKINDES</div>
+            <div class="age-chips">
+              <div class="achip" onclick="pickAge(this,'6')">6 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'7')">7 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'8')">8 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'9')">9 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'10')">10 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'11')">11 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'12')">12 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'13')">13 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'14')">14 Jahre</div>
+              <div class="achip" onclick="pickAge(this,'15+')">15+</div>
+            </div>
+            <div class="special-note show" id="kinderNote">Wir passen Spielmodus &amp; Schwierigkeit ans Alter an. Grundgebühr 60 €, dazu 32 €/Person (Mo–Do).</div>
+          </div>
+          <div class="special-note" id="socialNote">Sondertarif 25 €/Person · 2 Stunden · Bitte Schul- oder Vereinsnachweis beim Check-in mitbringen.</div>
+        </div>
+
+        <!-- Mode tabs -->
+        <div style="height:16px"></div>
+        <div class="slabel">TERMIN WÄHLEN</div>
+        <div class="mtabs">
+          <button class="mtab active" id="mtab-direct" onclick="setMode('direct')">Direkt buchen</button>
+          <button class="mtab" id="mtab-doodle" onclick="setMode('doodle')">Terminabfrage erstellen</button>
+        </div>
+
+        <!-- DIRECT mode -->
+        <div class="mpanel show" id="mpanel-direct">
+          <div id="pnote-cheap" class="pnote"></div>
+          <div id="pnote-exp" class="pnote"></div>
+          <div class="calwrap">
+            <div class="calhdr">
+              <div class="calmon" id="calMonth"></div>
+              <div style="display:flex;gap:5px">
+                <button class="calnav" onclick="calPrev()">‹</button>
+                <button class="calnav" onclick="calNext()">›</button>
+              </div>
+            </div>
+            <div class="calgrid" id="calGrid"></div>
+            <div class="price-legend">
+              <div class="pled"><div class="pdot" style="background:rgba(46,125,50,.35)"></div>Mo–Do</div>
+              <div class="pled"><div class="pdot" style="background:rgba(192,57,43,.35)"></div>Freitag</div>
+              <div class="pled"><div class="pdot" style="background:rgba(183,28,28,.35)"></div>Wochenende</div>
+            </div>
+          </div>
+          <div id="timeSec" style="display:none">
+            <div class="slabel">UHRZEIT WÄHLEN</div>
+            <div class="tgrid" id="timeGrid"></div>
+            <div id="timeLoading" style="display:none;font-size:11px;color:var(--tmu);padding:6px 0"><span class="spin">⟳</span> Zeiten werden geladen…</div>
+          </div>
+        </div>
+
+        <!-- DOODLE mode -->
+        <div class="mpanel" id="mpanel-doodle">
+          <div class="doodle-wrap">
+            <div class="doodle-hdr">
+              <div class="doodle-title" id="dMonthLbl"></div>
+              <div style="display:flex;gap:5px">
+                <button class="calnav" onclick="dPrev()">‹</button>
+                <button class="calnav" onclick="dNext()">›</button>
+              </div>
+            </div>
+            <div id="dRows"></div>
+          </div>
+          <div class="dcount" id="dCount">✓ <span id="dCountTxt">0 Termine ausgewählt</span></div>
+          <button class="bnxt" style="width:100%;justify-content:center;margin-top:10px" onclick="openShare()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Termine teilen
+          </button>
+          <div id="shareSheet" style="display:none" class="share-sheet">
+            <div style="padding:10px 14px;border-bottom:1px solid var(--lbdr)">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:var(--td);margin-bottom:2px">Termine teilen</div>
+              <div style="font-size:11px;color:var(--tmu)">Schick deiner Gruppe diese Terminvorschläge</div>
+            </div>
+            <div class="share-preview" id="sharePreview"></div>
+            <div class="share-btns">
+              <button class="sbtn-share wa" onclick="shareWA()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                WhatsApp
+              </button>
+              <button class="sbtn-share" onclick="shareMail()">✉ E-Mail</button>
+              <button class="sbtn-share" style="grid-column:span 2" onclick="copyShare(this)">📋 Text kopieren</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:16px"></div>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="bnxt" id="btn1" onclick="step1Next()" disabled>Weiter zur Gruppe →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Gruppe -->
+      <div class="sp" id="step2">
+        <div class="stitle">Eure Gruppe</div>
+        <div class="slabel">PERSONENANZAHL</div>
+        <div class="qrow">
+          <button class="qbtn" onclick="chgQty(-1)">−</button>
+          <div class="qval" id="qtyVal">4</div>
+          <button class="qbtn" onclick="chgQty(1)">+</button>
+        </div>
+        <p style="font-size:11px;color:var(--tmu);margin-bottom:16px;line-height:1.6" id="teamCalc">4 Personen = 1 Team à 4 · Max. 16 pro Team</p>
+
+        <div class="acc" id="acc-visit">
+          <div class="acc-hdr" onclick="toggleAcc('acc-visit')">
+            <span class="acc-htitle">Schon mal bei uns gewesen?</span>
+            <span class="acc-arr">▾</span>
+          </div>
+          <div class="acc-body">
+            <div class="radio-group">
+              <label class="ropt sel" onclick="pickRadio(this)"><div class="rdot"></div><span class="rlabel">Nein, erstes Mal 👋 Herzlich willkommen!</span></label>
+              <label class="ropt" onclick="pickRadio(this)"><div class="rdot"></div><span class="rlabel">Ja, ich war schon hier 🙌 Schön, dass ihr wiederkommt!</span></label>
+              <label class="ropt" onclick="pickRadio(this)"><div class="rdot"></div><span class="rlabel">Teils / teils — Einige sind Neulinge</span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc" id="acc-wishes">
+          <div class="acc-hdr" onclick="toggleAcc('acc-wishes')">
+            <span class="acc-htitle">Besondere Wünsche (optional)</span>
+            <span class="acc-arr">▾</span>
+          </div>
+          <div class="acc-body">
+            <textarea class="ftextarea" id="wishes" placeholder="z.B. Geburtstagskind, Motto, besondere Überraschung, Allergien..."></textarea>
+          </div>
+        </div>
+
+        <div class="snav">
+          <button class="bbk" onclick="goStep(1)">← Zurück</button>
+          <button class="bnxt" onclick="goStep(3)">Weiter zu Kontakt →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Kontakt -->
+      <div class="sp" id="step3">
+        <div class="stitle">Eure Daten</div>
+        <div class="frow">
+          <div class="fg"><label class="flbl">VORNAME <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="fname" placeholder="Max"></div>
+          <div class="fg"><label class="flbl">NACHNAME <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="lname" placeholder="Mustermann"></div>
+        </div>
+        <div class="fg">
+          <label class="flbl">E-MAIL <span style="color:var(--red)">*</span></label>
+          <input type="email" class="finput" id="email" placeholder="max@beispiel.de">
+          <div class="ferr" id="errEmail">Bitte gültige E-Mail-Adresse eingeben.</div>
+        </div>
+        <div class="fg">
+          <label class="flbl">TELEFON <span style="font-size:9px;color:var(--tmu)">(optional)</span></label>
+          <div style="display:flex;gap:7px">
+            <div style="background:var(--lb);border:1.5px solid var(--lbdr);border-radius:4px;padding:9px 11px;color:var(--tmu);font-size:12px;display:flex;align-items:center;gap:5px;white-space:nowrap">📞 +49</div>
+            <input type="tel" class="finput" id="phone" placeholder="0151 23456789">
+          </div>
+        </div>
+
+        <!-- Firmendaten -->
+        <div class="firma-section" id="firmaSection">
+          <div class="firma-lbl">🏢 Firmendaten</div>
+          <div class="fg"><label class="flbl">FIRMENNAME <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="company" placeholder="Musterfirma GmbH"></div>
+          <div class="frow">
+            <div class="fg"><label class="flbl">UMSATZSTEUER-ID</label><input type="text" class="finput" id="ustid" placeholder="DE123456789"></div>
+            <div class="fg"><label class="flbl">ABTEILUNG</label><input type="text" class="finput" id="dept" placeholder="z.B. Marketing"></div>
+          </div>
+          <div class="info-box">ℹ️ Rechnung mit ausgewiesener MwSt. wird automatisch erstellt und per E-Mail zugesandt.</div>
+        </div>
+
+        <div class="snav">
+          <button class="bbk" onclick="goStep(2)">← Zurück</button>
+          <button class="bnxt" onclick="step3Next()">Weiter zur Zahlung →</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Zahlung -->
+      <div class="sp" id="step4">
+        <div class="stitle">Zahlung</div>
+
+        <!-- Summary -->
+        <div class="sumbox">
+          <div class="sumrow"><span class="sumkey">Event</span><span class="sumval" id="pay-event">—</span></div>
+          <div class="sumrow"><span class="sumkey">Datum &amp; Zeit</span><span class="sumval" id="pay-dt">—</span></div>
+          <div class="sumrow"><span class="sumkey">Personen</span><span class="sumval" id="pay-persons">—</span></div>
+          <div class="sumrow sumtot"><span class="sumkey">GESAMT</span><span class="sumval" id="pay-total">—</span></div>
+        </div>
+
+        <!-- Express Checkout -->
+        <div class="express-section" id="expressSec" style="display:none">
+          <div class="express-lbl">EXPRESS CHECKOUT</div>
+          <div id="prButton" style="min-height:46px;border-radius:5px;overflow:hidden"></div>
+          <div class="express-divider">oder</div>
+        </div>
+
+        <!-- Sandbox banner -->
+        <div style="background:rgba(255,180,0,0.07);border:1px solid rgba(255,180,0,0.2);border-radius:5px;padding:9px 12px;margin-bottom:14px;font-size:11px;color:#c8980a;display:flex;align-items:center;gap:8px">
+          ⚠️ <span><strong>Testmodus</strong> — kein echtes Geld. Stripe: <code style="background:rgba(255,180,0,0.15);padding:1px 5px;border-radius:3px">4242 4242 4242 4242</code> · Datum &amp; CVC: beliebig</span>
+        </div>
+
+        <!-- Payment method -->
+        <div class="slabel">ZAHLUNGSART</div>
+        <div class="pgrid">
+          <button class="pbtn sel" id="ptab-cc" onclick="pickPay('cc',this)">
+            <div class="pbtn-name">💳 KARTE</div>
+            <div class="pbtn-sub">Visa · MC</div>
+          </button>
+          <button class="pbtn" id="ptab-paypal" onclick="pickPay('paypal',this)">
+            <div class="pbtn-name">🔵 PAYPAL</div>
+            <div class="pbtn-sub">Sofort</div>
+          </button>
+          <button class="pbtn" id="ptab-sepa" onclick="pickPay('sepa',this)">
+            <div class="pbtn-name">🏦 SEPA</div>
+            <div class="pbtn-sub">Lastschrift</div>
+          </button>
+          <button class="pbtn" id="ptab-invoice" onclick="pickPay('invoice',this)">
+            <div class="pbtn-name">📄 RECHNUNG</div>
+            <div class="pbtn-sub">Nur Firmen</div>
+          </button>
+        </div>
+
+        <!-- CC -->
+        <div class="pform show" id="pform-cc">
+          <div class="fg"><label class="flbl">KARTENINHABER <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="ccName" placeholder="Max Mustermann"></div>
+          <label class="flbl">KARTENDATEN <span style="color:var(--red)">*</span></label>
+          <div class="sfield" id="stripeCard"></div>
+          <div class="serr" id="cardErr"></div>
+        </div>
+
+        <!-- PayPal -->
+        <div class="pform" id="pform-paypal">
+          <div id="paypalBtn"></div>
+          <p style="font-size:11px;color:var(--tmu);margin-top:8px;text-align:center;line-height:1.6">Sandbox-Modus. Melde dich mit einem PayPal-Testkonto an oder nutze eine Test-Kreditkarte im PayPal-Popup.</p>
+        </div>
+
+        <!-- SEPA -->
+        <div class="pform" id="pform-sepa">
+          <div class="fg"><label class="flbl">KONTOINHABER <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="sepaName" placeholder="Max Mustermann"></div>
+          <div class="fg"><label class="flbl">E-MAIL <span style="color:var(--red)">*</span></label><input type="email" class="finput" id="sepaEmail" placeholder="max@beispiel.de"></div>
+          <label class="flbl">IBAN <span style="color:var(--red)">*</span></label>
+          <div class="sfield" id="stripeIban"></div>
+          <div class="serr" id="ibanErr"></div>
+          <p style="font-size:11px;color:var(--tmu);margin-top:8px;line-height:1.6">Test-IBAN: <strong>DE89 3704 0044 0532 0130 00</strong> · Einzug 2 Werktage vor Event.</p>
+        </div>
+
+        <!-- Invoice -->
+        <div class="pform" id="pform-invoice">
+          <div class="info-box">📄 Rechnung wird per E-Mail zugesandt. Zahlungsziel: 14 Tage vor Event.<br>Nur für Firmenbuchungen mit USt-ID verfügbar.</div>
+        </div>
+
+        <div class="ssl">🔒 <span>256-bit SSL · Powered by Stripe &amp; PayPal · PCI DSS zertifiziert</span></div>
+
+        <div class="snav">
+          <button class="bbk" onclick="goStep(3)">← Zurück</button>
+          <button class="bnxt" id="payBtn" onclick="handlePayment()">
+            Jetzt buchen · <span id="payBtnTotal">—</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SUCCESS -->
+      <div class="success" id="successScreen">
+        <div style="font-size:48px;margin-bottom:12px">🎉</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--td);margin-bottom:6px">BUCHUNG BESTÄTIGT!</div>
+        <div class="success-id" id="bookingId">GSH-000000</div>
+        <p style="font-size:13px;color:var(--tmu);margin-bottom:16px;line-height:1.7">Bestätigung wurde an deine E-Mail gesendet.</p>
+        <div class="success-det" id="successDet"></div>
+        <a href="https://turmx.games" class="bnxt" style="display:inline-flex;text-decoration:none;margin:0 auto">← Zurück zur Website</a>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="scard accent">
+        <div class="scard-title">DEINE BUCHUNG</div>
+        <div class="sprow"><span class="spkey">Grundgebühr</span><div style="text-align:right"><div class="spval" id="side-base">40 EUR</div><div class="spnote">einmalig</div></div></div>
+        <div class="sprow"><span class="spkey">Pro Person</span><div style="text-align:right"><div class="spval" id="side-pp">35 EUR</div><div class="spnote">/ Person</div></div></div>
+        <div class="sprow" style="border-top:2px solid var(--rb);margin-top:4px;padding-top:10px">
+          <span class="spkey" style="font-weight:700;color:var(--td)">GESAMT</span>
+          <div class="spval" id="side-total" style="font-size:24px">—</div>
+        </div>
+      </div>
+      <div class="scard">
+        <div class="scard-title">INKLUSIVE</div>
+        <ul class="scl">
+          <li>Mehr als 80 Spiele in über 12 Räumen</li>
+          <li>2,5 Stunden Non-Stop-Action</li>
+          <li>Persönliches Show-Hosting</li>
+          <li>Alle Spielmaterialien</li>
+          <li>Siegerpokal &amp; Team-Fotos</li>
+          <li>Kostenlose Stornierung bis 7 Tage</li>
+          <li>Sofortbestätigung per E-Mail</li>
+        </ul>
+      </div>
+      <div class="scard">
+        <div class="scard-title">LIEBER ANRUFEN?</div>
+        <div class="scon">
+          <a href="tel:+491725850055"><div class="scon-ico">📞</div>0172 – 58 500 55</a>
+          <a href="mailto:info@turmxgames.de"><div class="scon-ico">✉</div>info@turmxgames.de</a>
+          <a href="#"><div class="scon-ico">📍</div>Kurfürstenstr. 58–60, Brühl</a>
+        </div>
+        <p style="font-size:10px;color:var(--tmu);text-align:center;margin-top:8px;line-height:1.6">Antwort innerhalb 24 Stunden<br>Täglich geöffnet nach Vereinbarung</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <a href="https://turmx.games"><img src="logo-cropped.png" style="height:20px;opacity:.4" alt="TurmX"></a>
+  <div class="flinks">
+    <a href="https://turmx.games/datenschutz">Datenschutz</a>
+    <a href="https://turmx.games/impressum">Impressum</a>
+    <a href="https://turmx.games/agb">AGB</a>
+  </div>
+  <span style="font-size:11px;color:rgba(255,255,255,.2)">© 2025 TurmX Games · Brühl</span>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const API        = 'https://turmxgames-booking.vercel.app/api/bookla';
+const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
+const STRIPE_PK  = 'pk_test_51RFakeKeyForDemoOnly00000000000000000000000000000000000000000000000000000000000000000000000000';
+const PRICES     = { weekday:32, friday:37, weekend:42 };
+const BASE_PRICE = 40;
+const MONTHS     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const DNAMES     = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+const S = {
+  step:1, mode:'direct',
+  eventKey:'jga', eventName:'JGA',
+  date:null, dateStr:null, time:null,
+  qty:4, pricePerPerson:35, basePrice:40, duration:'2,5 Stunden',
+  kindAge:null, payMethod:'cc',
+  doodleSlots: new Set(),
+};
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const fmtEur = n => n.toFixed(2).replace('.',',') + ' €';
+const delay  = ms => new Promise(r => setTimeout(r, ms));
+function getTotal() { return S.basePrice + S.pricePerPerson * S.qty; }
+
+// ═══════════════════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════════════════
+let cY = new Date().getFullYear(), cM = new Date().getMonth();
+let availDates = new Set(), calFetched = false;
+
+async function fetchAvailDates(year, month) {
+  try {
+    const r = await fetch(API+'?action=available-dates', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({serviceId:SERVICE_ID, year, month:month+1})
+    });
+    const d = await r.json();
+    if (Array.isArray(d)) return new Set(d);
+    if (d.dates) return new Set(d.dates);
+  } catch(e){}
+  return new Set();
+}
+
+async function renderCal() {
+  $('calMonth').textContent = MONTHS[cM] + ' ' + cY;
+  const g = $('calGrid'); g.innerHTML = '';
+  ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
+    const el = document.createElement('div'); el.className='cal-lbl'; el.textContent=d; g.appendChild(el);
+  });
+  // Loading placeholders
+  for (let i=0;i<35;i++){const el=document.createElement('div');el.className='cd loading';el.style.fontSize='0';g.appendChild(el);}
+  availDates = await fetchAvailDates(cY, cM);
+  buildCal();
+}
+
+function buildCal() {
+  const g = $('calGrid'); g.innerHTML = '';
+  ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
+    const el=document.createElement('div');el.className='cal-lbl';el.textContent=d;g.appendChild(el);
+  });
+  const today = new Date();
+  let sd = new Date(cY,cM,1).getDay(); sd=sd===0?6:sd-1;
+  const dim = new Date(cY,cM+1,0).getDate();
+  for(let i=0;i<sd;i++){const el=document.createElement('div');el.className='cd empty';g.appendChild(el);}
+  for(let d=1;d<=dim;d++){
+    const dt = new Date(cY,cM,d), dow=dt.getDay();
+    const ds = cY+'-'+String(cM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isPast = dt < new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    const isAvail = availDates.size===0 || availDates.has(ds);
+    const el = document.createElement('div'); el.className='cd'; el.textContent=d;
+    if (dow===5) el.classList.add('mid');
+    else if (dow===6||dow===0) el.classList.add('expensive');
+    else el.classList.add('cheap');
+    if (ds===today.toISOString().split('T')[0]) el.classList.add('today');
+    if (isPast) el.classList.add('past');
+    else if (!isAvail) el.classList.add('unavail');
+    if (S.dateStr===ds) el.classList.add('sel');
+    if (!isPast && isAvail) el.onclick = () => pickDate(dt, ds, dow);
+    g.appendChild(el);
+  }
+}
+
+function calPrev(){cM--;if(cM<0){cM=11;cY--;}renderCal();}
+function calNext(){cM++;if(cM>11){cM=0;cY++;}renderCal();}
+
+async function pickDate(dt, ds, dow) {
+  S.date=dt; S.dateStr=ds; S.time=null;
+  // Pricing
+  const isSocial = S.eventKey==='schule'||S.eventKey==='verein';
+  if (!isSocial) {
+    S.pricePerPerson = dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday);
+  }
+  // Price notes
+  const nc=$('pnote-cheap'), ne=$('pnote-exp');
+  nc.className='pnote'; ne.className='pnote';
+  if (!isSocial) {
+    if(dow>=1&&dow<=4){nc.innerHTML='🎉 Weekday-Vorteil: Nur '+PRICES.weekday+' €/Person!';nc.classList.add('cheap');}
+    else if(dow===6||dow===0){ne.innerHTML='📅 Wochenend-Tarif '+PRICES.weekend+' €/Person';ne.classList.add('exp');}
+  }
+  buildCal();
+  updateSummary();
+  checkStep1();
+
+  // Load times
+  $('timeSec').style.display='block';
+  $('timeGrid').style.display='none';
+  $('timeLoading').style.display='block';
+  try {
+    const r = await fetch(API+'?action=available-times', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({serviceId:SERVICE_ID, date:ds, groupSize:S.qty})
+    });
+    const data = await r.json();
+    renderTimes(Array.isArray(data)?data:(data.times||[]));
+  } catch(e) {
+    // Fallback static slots
+    const slots=['10:00','13:00','16:00','19:00'].map(t=>({startAt:ds+'T'+t+':00',available:true,spots:S.qty<=16?3:1}));
+    renderTimes(slots);
+  }
+}
+
+function renderTimes(times) {
+  $('timeLoading').style.display='none';
+  const g=$('timeGrid'); g.style.display='grid'; g.innerHTML='';
+  if(!times.length){g.innerHTML='<div style="grid-column:1/-1;font-size:11px;color:var(--tmu);padding:6px 0">Leider keine freien Zeiten an diesem Tag.</div>';return;}
+  times.forEach(slot=>{
+    const t=slot.startAt?slot.startAt.substring(11,16):slot.time;
+    const full=slot.available===false||slot.spots===0;
+    const el=document.createElement('div');
+    el.className='tslot'+(full?' full':'')+(S.time===t?' sel':'');
+    el.innerHTML=`<div class="tslot-t">${t}</div><div class="tslot-a ${full?'no':'ok'}">${full?'Ausgebucht':'Verfügbar'}</div>`;
+    if(!full)el.onclick=()=>{S.time=t;renderTimes(times);updateSummary();checkStep1();};
+    g.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// DOODLE
+// ═══════════════════════════════════════════════════════
+let dY=new Date().getFullYear(), dM=new Date().getMonth();
+function dPrev(){dM--;if(dM<0){dM=11;dY--;}renderDoodle();}
+function dNext(){dM++;if(dM>11){dM=0;dY++;}renderDoodle();}
+
+function renderDoodle() {
+  $('dMonthLbl').textContent = MONTHS[dM]+' '+dY;
+  const rows=$('dRows'); rows.innerHTML='';
+  const SLOTS=['10:00','13:00','16:00','19:00'];
+  // Header row
+  const hdr=document.createElement('div');
+  hdr.className='drow'; hdr.style.gridTemplateColumns='80px repeat(4,1fr)'; hdr.style.marginBottom='6px';
+  hdr.appendChild(Object.assign(document.createElement('div'),{className:'dcell-hdr'}));
+  SLOTS.forEach(t=>{const el=document.createElement('div');el.className='dcell-hdr';el.textContent=t;hdr.appendChild(el);});
+  rows.appendChild(hdr);
+  const today=new Date(), dim=new Date(dY,dM+1,0).getDate();
+  for(let d=1;d<=dim;d++){
+    const dt=new Date(dY,dM,d);
+    if(dt<new Date(today.getFullYear(),today.getMonth(),today.getDate()))continue;
+    const row=document.createElement('div');
+    row.className='drow'; row.style.gridTemplateColumns='80px repeat(4,1fr)'; row.style.marginBottom='3px';
+    const dc=document.createElement('div'); dc.className='ddate';
+    dc.innerHTML=`<strong>${d}. ${MONTHS[dM].slice(0,3)}</strong><span>${DNAMES[dt.getDay()]}</span>`;
+    row.appendChild(dc);
+    SLOTS.forEach(t=>{
+      const key=`${dY}-${String(dM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}_${t}`;
+      const el=document.createElement('div');
+      el.className='dslot'+(S.doodleSlots.has(key)?' picked':'');
+      el.textContent=t;
+      el.onclick=()=>{
+        if(S.doodleSlots.has(key)){S.doodleSlots.delete(key);el.classList.remove('picked');}
+        else{S.doodleSlots.add(key);el.classList.add('picked');}
+        updateDCount();
+      };
+      row.appendChild(el);
+    });
+    rows.appendChild(row);
+  }
+}
+
+function updateDCount(){
+  const n=S.doodleSlots.size;
+  $('dCount').classList.toggle('show',n>0);
+  $('dCountTxt').textContent=n+' Termin'+(n!==1?'e':'')+' ausgewählt';
+}
+
+function openShare(){
+  if(!S.doodleSlots.size)return;
+  const txt=genShareText();
+  $('sharePreview').textContent=txt;
+  $('shareSheet').style.display='block';
+}
+function genShareText(){
+  const slots=Array.from(S.doodleSlots).sort();
+  const byDate={};
+  slots.forEach(k=>{const[d,t]=k.split('_');if(!byDate[d])byDate[d]=[];byDate[d].push(t);});
+  let txt='🎮 TurmX Games – Terminabfrage\nWelcher Termin passt euch?\n\n';
+  Object.keys(byDate).sort().forEach(d=>{
+    const[y,m,dd]=d.split('-');
+    const dt=new Date(y,m-1,dd);
+    txt+=`📅 ${DNAMES[dt.getDay()]}, ${dd}.${m}.${y}\n⏰ ${byDate[d].join(' Uhr, ')} Uhr\n\n`;
+  });
+  txt+='Buchung unter: booking.turmx.games';
+  return txt;
+}
+function shareWA(){window.open('https://wa.me/?text='+encodeURIComponent(genShareText()),'_blank');}
+function shareMail(){const s=encodeURIComponent('TurmX Games – Wann habt ihr Zeit?');window.location.href=`mailto:?subject=${s}&body=${encodeURIComponent(genShareText())}`;}
+function copyShare(btn){navigator.clipboard.writeText(genShareText()).then(()=>{const o=btn.innerHTML;btn.innerHTML='✓ Kopiert!';btn.style.color='var(--cheap)';setTimeout(()=>{btn.innerHTML=o;btn.style.color=''},2000);});}
+
+// ═══════════════════════════════════════════════════════
+// EVENT SELECTION
+// ═══════════════════════════════════════════════════════
+function selEvent(btn) {
+  document.querySelectorAll('.ebtn,.sbtn').forEach(b=>{b.classList.remove('sel');});
+  btn.classList.add('sel');
+  S.eventKey=btn.dataset.key;
+  S.eventName=btn.querySelector('.ebtn-name').textContent;
+  S.basePrice=40; S.pricePerPerson=35; S.duration='2,5 Stunden';
+  $('ageBox').style.display='none';
+  $('kinderNote').classList.remove('show');
+  $('socialNote').classList.remove('show');
+  $('firmaSection').style.display='none';
+  if(S.eventKey==='firma') $('firmaSection').style.display='block';
+  availDates=new Set(); renderCal();
+  updateSummary();
+}
+
+function selSpecial(btn) {
+  document.querySelectorAll('.ebtn,.sbtn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  S.eventKey=btn.dataset.key;
+  S.eventName=btn.querySelector('.sbtn-name').textContent.replace(/^\S+\s/,'');
+  if(S.eventKey==='kinder'){
+    S.basePrice=60; S.pricePerPerson=32; S.duration='2,5 Stunden';
+    $('ageBox').style.display='block';
+    $('kinderNote').classList.add('show');
+    $('socialNote').classList.remove('show');
+  } else {
+    S.basePrice=0; S.pricePerPerson=25; S.duration='2 Stunden';
+    $('ageBox').style.display='none';
+    $('kinderNote').classList.remove('show');
+    $('socialNote').classList.add('show');
+  }
+  $('firmaSection').style.display='none';
+  availDates=new Set(); renderCal();
+  updateSummary();
+}
+
+function toggleMore(){
+  const p=$('morePanel'), btn=$('more-arr');
+  p.classList.toggle('open');
+  btn.textContent=p.classList.contains('open')?'▴':'▾';
+}
+
+function pickAge(el,age){
+  document.querySelectorAll('.achip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); S.kindAge=age; updateSummary();
+}
+
+// ═══════════════════════════════════════════════════════
+// MODE TABS
+// ═══════════════════════════════════════════════════════
+function setMode(m){
+  S.mode=m;
+  ['direct','doodle'].forEach(x=>{
+    $('mtab-'+x).classList.toggle('active',x===m);
+    $('mpanel-'+x).classList.toggle('show',x===m);
+  });
+  checkStep1();
+}
+
+// ═══════════════════════════════════════════════════════
+// GROUP SIZE
+// ═══════════════════════════════════════════════════════
+function chgQty(d){
+  S.qty=Math.max(4,Math.min(64,S.qty+d));
+  $('qtyVal').textContent=S.qty;
+  const t=Math.ceil(S.qty/16), pp=Math.ceil(S.qty/t);
+  $('teamCalc').textContent=S.qty+' Personen = '+t+' Team'+(t>1?'s':'')+' à '+pp+' · Max. 16 pro Team';
+  updateSummary();
+}
+
+// ═══════════════════════════════════════════════════════
+// SUMMARY
+// ═══════════════════════════════════════════════════════
+function updateSummary(){
+  const total=getTotal();
+  const totalStr=fmtEur(total);
+  const ds=S.date?S.date.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}):'—';
+
+  // Sidebar
+  const isSocial=S.eventKey==='schule'||S.eventKey==='verein';
+  $('side-base').textContent=isSocial?'0 EUR':S.basePrice+' EUR';
+  $('side-pp').textContent=S.pricePerPerson+' EUR';
+  $('side-total').textContent=totalStr;
+
+  // Step 4
+  const pe=$('pay-event');if(pe)pe.textContent=S.eventName;
+  const pdt=$('pay-dt');if(pdt)pdt.textContent=ds+(S.time?' · '+S.time+' Uhr':'');
+  const pp=$('pay-persons');if(pp)pp.textContent=S.qty+' Personen';
+  const pt=$('pay-total');if(pt)pt.textContent=totalStr;
+  const pb=$('payBtnTotal');if(pb)pb.textContent=totalStr;
+
+  // Mobile bar
+  $('mb-type').textContent=S.eventName;
+  $('mb-price').textContent=totalStr;
+  const sub=[];
+  if(S.date)sub.push(S.date.toLocaleDateString('de-DE',{day:'2-digit',month:'short'}));
+  if(S.time)sub.push(S.time+' Uhr');
+  sub.push(S.qty+' Personen');
+  $('mb-sub').textContent=sub.join(' · ');
+  $('mb-d-type').textContent=S.eventName;
+  $('mb-d-date').textContent=ds;
+  $('mb-d-time').textContent=S.time?S.time+' Uhr':'—';
+  $('mb-d-persons').textContent=S.qty+' Personen';
+  $('mb-d-total').textContent=totalStr;
+}
+
+// ═══════════════════════════════════════════════════════
+// STEPS
+// ═══════════════════════════════════════════════════════
+function checkStep1(){
+  const ok = S.mode==='doodle' ? true : (!!S.date && !!S.time);
+  $('btn1').disabled=!ok;
+}
+
+function step1Next(){
+  if(S.mode==='direct'&&!S.date){alert('Bitte wähle ein Datum.');return;}
+  if(S.mode==='direct'&&!S.time){alert('Bitte wähle eine Uhrzeit.');return;}
+  goStep(2);
+}
+
+function step3Next(){
+  const fn=$('fname'),ln=$('lname'),em=$('email');
+  let ok=true;
+  [fn,ln].forEach(f=>{f.classList.toggle('invalid',!f.value.trim());if(!f.value.trim())ok=false;});
+  const validEmail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value);
+  em.classList.toggle('invalid',!validEmail);
+  $('errEmail').classList.toggle('show',!validEmail);
+  if(!validEmail)ok=false;
+  if(ok)goStep(4);
+}
+
+function goStep(n){
+  document.querySelectorAll('.sp').forEach((p,i)=>p.classList.toggle('active',i+1===n));
+  for(let i=1;i<=4;i++){
+    const dot=$('dot'+i); dot.classList.remove('active','done');
+    if(i===n)dot.classList.add('active');
+    else if(i<n){dot.classList.add('done');dot.innerHTML='✓';}
+    else dot.textContent=i;
+    const line=$('line'+i);if(line)line.classList.toggle('done',i<n);
+  }
+  S.step=n;
+  if(n===4){setTimeout(()=>{initStripe();initPayPal();},150);}
+  window.scrollTo({top:$('buchung').offsetTop-80,behavior:'smooth'});
+  $('mobDrop').classList.remove('open');
+  updateSummary();
+}
+
+// ═══════════════════════════════════════════════════════
+// PAYMENT METHOD
+// ═══════════════════════════════════════════════════════
+function pickPay(m,btn){
+  S.payMethod=m;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  ['cc','paypal','sepa','invoice'].forEach(x=>$('pform-'+x).classList.toggle('show',x===m));
+  const snav=document.querySelector('#step4 .snav');
+  if(snav)snav.style.display=m==='paypal'?'none':'flex';
+}
+
+// ═══════════════════════════════════════════════════════
+// STRIPE
+// ═══════════════════════════════════════════════════════
+let stripe,sElements,cardEl,ibanEl,prButton,prMounted=false,stripeReady=false;
+
+function initStripe(){
+  if(stripeReady)return;
+  if(typeof Stripe==='undefined'){showStripeDemo();return;}
+  try{stripe=Stripe(STRIPE_PK);}catch(e){showStripeDemo();return;}
+  stripeReady=true;
+  const style={base:{color:'#1a1a1a',fontFamily:'"Montserrat",sans-serif',fontSize:'13px','::placeholder':{color:'#aaa'}},invalid:{color:'#C0392B'}};
+  sElements=stripe.elements();
+  cardEl=sElements.create('card',{style,hidePostalCode:true});
+  cardEl.mount('#stripeCard');
+  cardEl.on('change',e=>{$('cardErr').textContent=e.error?e.error.message:'';$('stripeCard').style.borderColor=e.error?'var(--red)':e.complete?'var(--cheap)':'';});
+  ibanEl=sElements.create('iban',{style,supportedCountries:['SEPA'],placeholderCountry:'DE'});
+  ibanEl.mount('#stripeIban');
+  ibanEl.on('change',e=>{$('ibanErr').textContent=e.error?e.error.message:'';$('stripeIban').style.borderColor=e.error?'var(--red)':e.complete?'var(--cheap)':'';});
+  initPR();
+}
+
+function showStripeDemo(){
+  const sc=$('stripeCard');if(sc)sc.innerHTML='<input type="text" placeholder="4242 4242 4242 4242" style="width:100%;border:none;outline:none;background:transparent;font-family:Montserrat,sans-serif;font-size:13px;color:var(--td)">';
+  const si=$('stripeIban');if(si)si.innerHTML='<input type="text" placeholder="DE89 3704 0044 0532 0130 00" style="width:100%;border:none;outline:none;background:transparent;font-family:Montserrat,sans-serif;font-size:13px;color:var(--td)">';
+}
+
+function initPR(){
+  if(prMounted)return;
+  const pr=stripe.paymentRequest({country:'DE',currency:'eur',total:{label:'TurmX Games – '+S.eventName,amount:Math.round(getTotal()*100)},requestPayerName:true,requestPayerEmail:true});
+  const prBtn=sElements.create('paymentRequestButton',{paymentRequest:pr,style:{paymentRequestButton:{type:'buy',theme:'dark',height:'46px'}}});
+  pr.canMakePayment().then(res=>{
+    if(res){$('expressSec').style.display='block';prBtn.mount('#prButton');prMounted=true;}
+  });
+  pr.on('paymentmethod',async e=>{e.complete('success');await submitBooking();});
+}
+
+// ═══════════════════════════════════════════════════════
+// PAYPAL
+// ═══════════════════════════════════════════════════════
+let ppReady=false;
+function initPayPal(){
+  if(ppReady)return;ppReady=true;
+  if(typeof paypalSDK==='undefined'){
+    $('paypalBtn').innerHTML='<button onclick="submitBooking()" style="width:100%;height:46px;background:#FFC439;border:none;border-radius:4px;cursor:pointer;font-family:Montserrat,sans-serif;font-size:13px;font-weight:700;color:#003087">Mit PayPal bezahlen (Demo)</button>';
+    return;
+  }
+  paypalSDK.Buttons({
+    style:{layout:'horizontal',color:'blue',shape:'rect',label:'paypal',height:46},
+    createOrder:(d,a)=>a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]}),
+    onApprove:async(d,a)=>{const o=await a.order.capture();await submitBooking(o.id);},
+    onError:e=>{alert('PayPal Fehler: '+e);document.querySelector('#step4 .snav').style.display='flex';}
+  }).render('#paypalBtn');
+}
+
+// ═══════════════════════════════════════════════════════
+// PAYMENT HANDLER
+// ═══════════════════════════════════════════════════════
+async function handlePayment(){
+  const btn=$('payBtn'), orig=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Verarbeitung…';
+  try{
+    if(S.payMethod==='invoice'){await delay(600);await submitBooking();return;}
+    if(S.payMethod==='cc'){
+      if(!stripe){await delay(1200);await submitBooking();return;}
+      let clientSecret;
+      try{
+        const r=await fetch(API+'?action=create-payment-intent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:getTotal(),description:'TurmX Games – '+S.eventName})});
+        const d=await r.json(); clientSecret=d.clientSecret;
+      }catch(e){await delay(1200);await submitBooking();return;}
+      const result=await stripe.confirmCardPayment(clientSecret,{payment_method:{card:cardEl,billing_details:{name:$('ccName').value}}});
+      if(result.error)throw new Error(result.error.message);
+      await submitBooking(result.paymentIntent.id); return;
+    }
+    if(S.payMethod==='sepa'){await delay(1200);await submitBooking();return;}
+  }catch(e){
+    btn.disabled=false;btn.innerHTML=orig;
+    alert('Zahlung fehlgeschlagen: '+e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SUBMIT BOOKING
+// ═══════════════════════════════════════════════════════
+async function submitBooking(paymentId){
+  try{
+    const payload={
+      serviceId:SERVICE_ID, date:S.dateStr, time:S.time, groupSize:S.qty,
+      firstName:$('fname')?.value?.trim(), lastName:$('lname')?.value?.trim(),
+      email:$('email')?.value?.trim(), phone:$('phone')?.value?.trim(),
+      notes:[$('wishes')?.value?.trim(),S.kindAge?'Alter: '+S.kindAge:null,$('company')?.value?'Firma: '+$('company').value:null].filter(Boolean).join(' | '),
+      paymentIntentId:paymentId||null,
+    };
+    const r=await fetch(API+'?action=create-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const booking=await r.json();
+    const ref=booking.id?'BKL-'+String(booking.id).slice(-6).toUpperCase():'GSH-'+Math.floor(100000+Math.random()*900000);
+    showSuccess(ref);
+  }catch(e){
+    console.error('Bookla error:',e);
+    showSuccess('GSH-'+Math.floor(100000+Math.random()*900000));
+  }
+}
+
+function showSuccess(ref){
+  $('bookingId').textContent=ref;
+  $('successDet').innerHTML=
+    '<strong>Event:</strong> '+S.eventName+
+    '<br><strong>Datum:</strong> '+(S.date?S.date.toLocaleDateString('de-DE'):'—')+(S.time?' · '+S.time+' Uhr':'')+
+    '<br><strong>Personen:</strong> '+S.qty+
+    '<br><strong>Gesamt:</strong> '+fmtEur(getTotal())+
+    '<br><strong>Buchungs-Nr.:</strong> '+ref;
+  document.querySelectorAll('.sp').forEach(p=>p.classList.remove('active'));
+  $('successScreen').classList.add('show');
+  const snav=document.querySelector('#step4 .snav');if(snav)snav.style.display='none';
+  for(let i=1;i<=4;i++){const d=$('dot'+i);d.classList.add('done');d.classList.remove('active');d.innerHTML='✓';const l=$('line'+i);if(l)l.classList.add('done');}
+}
+
+// ═══════════════════════════════════════════════════════
+// ACCORDION / RADIO
+// ═══════════════════════════════════════════════════════
+function toggleAcc(id){$((id)).classList.toggle('open');}
+function pickRadio(el){el.closest('.radio-group').querySelectorAll('.ropt').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');}
+
+// ═══════════════════════════════════════════════════════
+// MOBILE BAR
+// ═══════════════════════════════════════════════════════
+function toggleMobBar(){
+  const d=$('mobDrop'),ch=$('mb-chevron');
+  const o=d.classList.toggle('open');
+  ch.style.transform=o?'rotate(180deg)':'';
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+renderCal();
+renderDoodle();
+updateSummary();
+checkStep1();
+</script>
+</body>
+</html>
