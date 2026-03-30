@@ -62,16 +62,13 @@ module.exports = async function handler(req, res) {
           apiKey
         );
 
-        // Bookla gibt zurück: ["Europe/Berlin", { resourceID: [...dates] }, ...]
-        // oder { resourceID: [...dates] }
+        // Bookla gibt { resourceID: ["2026-04-01", ...], ... } zurück
+        // Wir nehmen die Union aller Tage über alle Slots
         let dates;
         if (Array.isArray(data)) {
-          // Filtere Strings (timezone) raus, merge alle Arrays aus den Objekten
-          const allDates = data
-            .filter(item => typeof item === 'object' && item !== null)
-            .flatMap(obj => Object.values(obj).flat());
-          dates = [...new Set(allDates)].sort();
+          dates = data;
         } else if (typeof data === 'object' && data !== null) {
+          // Merge alle Arrays aus allen Resource-Keys, deduplizieren
           const allDates = Object.values(data).flat();
           dates = [...new Set(allDates)].sort();
         } else {
