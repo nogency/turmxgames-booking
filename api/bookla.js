@@ -62,8 +62,18 @@ module.exports = async function handler(req, res) {
           apiKey
         );
 
-        // Bookla gibt Array von Datum-Strings zurück z.B. ["2026-04-05", ...]
-        const dates = Array.isArray(data) ? data : (data.dates || []);
+        // Bookla gibt { resourceID: ["2026-04-01", ...], ... } zurück
+        // Wir nehmen die Union aller Tage über alle Slots
+        let dates;
+        if (Array.isArray(data)) {
+          dates = data;
+        } else if (typeof data === 'object' && data !== null) {
+          // Merge alle Arrays aus allen Resource-Keys, deduplizieren
+          const allDates = Object.values(data).flat();
+          dates = [...new Set(allDates)].sort();
+        } else {
+          dates = [];
+        }
         return res.status(200).json(dates);
       }
 
