@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
         };
 
         const data = await booklaFetch(
-          `/companies/${companyId}/services/${serviceId}/available-dates`,
+          `/client/companies/${companyId}/services/${serviceId}/available-dates`,
           'POST', payload, apiKey
         );
         return res.status(200).json(data);
@@ -77,7 +77,7 @@ module.exports = async function handler(req, res) {
         };
 
         const data = await booklaFetch(
-          `/companies/${companyId}/services/${serviceId}/available-times`,
+          `/client/companies/${companyId}/services/${serviceId}/available-times`,
           'POST', payload, apiKey
         );
         return res.status(200).json(data);
@@ -101,12 +101,13 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'serviceId, date, time, email required' });
         }
 
-        // Bookla erwartet ISO datetime: "2025-06-15T14:00:00"
-        const startAt = `${date}T${time}:00`;
+        // Bookla erwartet ISO datetime: "2025-06-15T14:00:00Z"
+        const startAt = `${date}T${time}:00Z`;
 
         const payload = {
+          companyID:  companyId,
           serviceID:  serviceId,
-          startAt,
+          startTime:  startAt,
           spots:      parseInt(groupSize) || 1,
           ...(resourceId && { resourceID: resourceId }),
           client: {
@@ -115,15 +116,11 @@ module.exports = async function handler(req, res) {
             email,
             ...(phone && { phone }),
           },
-          ...(notes && { notes }),
-          // Zahlungsreferenz als Note speichern (optional)
-          ...(paymentIntentId && {
-            notes: [notes, `Payment: ${paymentIntentId}`].filter(Boolean).join(' | ')
-          }),
+          ...(notes && { metaData: { notes } }),
         };
 
         const data = await booklaFetch(
-          `/companies/${companyId}/bookings`,
+          `/client/companies/${companyId}/bookings`,
           'POST', payload, apiKey
         );
         return res.status(201).json(data);
