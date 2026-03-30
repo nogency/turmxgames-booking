@@ -57,7 +57,7 @@ module.exports = async function handler(req, res) {
           {
             from,
             to,
-            ...(spots && { spots: parseInt(spots) }),
+            spots: parseInt(spots) || 1,
           },
           apiKey
         );
