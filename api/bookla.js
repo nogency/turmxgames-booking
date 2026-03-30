@@ -64,20 +64,7 @@ module.exports = async function handler(req, res) {
 
         // Bookla gibt zurück: ["Europe/Berlin", { resourceID: [...dates] }, ...]
         // oder { resourceID: [...dates] }
-        let dates;
-        if (Array.isArray(data)) {
-          // Filtere Strings (timezone) raus, merge alle Arrays aus den Objekten
-          const allDates = data
-            .filter(item => typeof item === 'object' && item !== null)
-            .flatMap(obj => Object.values(obj).flat());
-          dates = [...new Set(allDates)].sort();
-        } else if (typeof data === 'object' && data !== null) {
-          const allDates = Object.values(data).flat();
-          dates = [...new Set(allDates)].sort();
-        } else {
-          dates = [];
-        }
-        return res.status(200).json(dates);
+       return res.status(200).json([]);
       }
 
       // ─────────────────────────────────────────────
