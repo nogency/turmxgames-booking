@@ -10,7 +10,7 @@
 
 const BOOKLA_BASE = 'https://eu.bookla.com/api/v1';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS — nur deine Domain erlauben (in Produktion anpassen)
   res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
