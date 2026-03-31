@@ -159,7 +159,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 /* TIME SLOTS */
 .tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:8px}
 .tslot{padding:9px 5px;background:var(--lc);border:1.5px solid var(--lbdr);border-radius:4px;cursor:pointer;text-align:center;transition:all .15s}
-.tslot:hover:not(.full){border-color:var(--rb);background:var(--rl)}
+.tslot:hover:not(.full):not(.sel){border-color:var(--rb);background:var(--rl)}
 .tslot.sel{background:var(--red);border-color:var(--red);color:#fff}
 .tslot.sel .tslot-t{color:#fff}
 .tslot.sel .tslot-a{color:rgba(255,255,255,.8)}
