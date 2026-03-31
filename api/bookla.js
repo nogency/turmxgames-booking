@@ -50,8 +50,8 @@ module.exports = async function handler(req, res) {
         const m = parseInt(month) || (new Date().getMonth() + 1);
         const lastDay = new Date(y, m, 0).getDate();
 
-        const from = `${y}-${String(m).padStart(2,'0')}-01T00:00:00Z`;
-        const to   = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}T23:59:59Z`;
+        const from = `${y}-${String(m).padStart(2,'0')}-01T00:00:00`;
+        const to   = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}T23:59:59`;
 
         try {
           const data = await booklaFetch(
@@ -86,8 +86,8 @@ module.exports = async function handler(req, res) {
         const { serviceId, date, groupSize } = req.body || {};
         if (!serviceId || !date) return res.status(400).json({ error: 'serviceId + date required' });
 
-        const from  = `${date}T00:00:00Z`;
-        const to    = `${date}T23:59:59Z`;
+        const from  = `${date}T00:00:00`;
+        const to    = `${date}T23:59:59`;
         const spots = parseInt(groupSize) || 1;
 
         // Alle 3 Slots parallel abfragen
