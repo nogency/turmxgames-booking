@@ -5,12 +5,16 @@
 
 const BOOKLA_BASE = 'https://eu.bookla.com/api/v1';
 
+const RESOURCE_IDS = [
+  '8638cf4f-12f7-4e32-bddb-39384bd6f56d', // TurmXGames Slot 1
+  '6fbb6c14-bc34-4779-ba39-d588e0146014', // TurmXGames Slot 2
+  '3fff2cbd-bac1-409c-adff-491526586916', // TurmXGames Slot 3
+];
+
 module.exports = async function handler(req, res) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Api-Key');
-  
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const apiKey    = process.env.BOOKLA_API_KEY;
@@ -25,50 +29,68 @@ module.exports = async function handler(req, res) {
   try {
     switch (action) {
 
+      // ─────────────────────────────────────────────
       // 1. Services laden
+      // ─────────────────────────────────────────────
       case 'services': {
         const data = await booklaFetch(`/companies/${companyId}/services`, 'GET', null, apiKey);
         return res.status(200).json(data);
       }
 
+      // ─────────────────────────────────────────────
       // 2. Verfügbare Tage für Monat
+      //    Bookla gibt zurück: ["Europe/Berlin", { resourceID: [...dates] }, ...]
+      //    Wir parsen das zu einem flachen Array von Datums-Strings
+      // ─────────────────────────────────────────────
       case 'available-dates': {
-        const { serviceId, year, month, spots } = req.body || {};
+        const { serviceId, year, month } = req.body || {};
         if (!serviceId) return res.status(400).json({ error: 'serviceId required' });
 
         const y = parseInt(year) || new Date().getFullYear();
         const m = parseInt(month) || (new Date().getMonth() + 1);
         const lastDay = new Date(y, m, 0).getDate();
 
-        // RFC3339 Format sicherstellen
         const from = `${y}-${String(m).padStart(2,'0')}-01T00:00:00Z`;
         const to   = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}T23:59:59Z`;
 
-        const data = await booklaFetch(
-          `/client/companies/${companyId}/services/${serviceId}/dates`,
-          'POST',
-          { from, to, spots: parseInt(spots) || 1 },
-          apiKey
-        );
+        try {
+          const data = await booklaFetch(
+            `/client/companies/${companyId}/services/${serviceId}/dates`,
+            'POST',
+            { from, to, spots: 1 },
+            apiKey
+          );
 
-        return res.status(200).json(data); // Korrigiert: Daten zurückgeben statt leerem Array
+          // Bookla Format: ["Europe/Berlin", { "resourceID": ["2026-04-01", ...] }, ...]
+          let dates = [];
+          if (Array.isArray(data)) {
+            dates = data
+              .filter(item => typeof item === 'object' && item !== null)
+              .flatMap(obj => Object.values(obj).flat())
+              .filter(d => typeof d === 'string' && d.match(/^\d{4}-\d{2}-\d{2}$/));
+            dates = [...new Set(dates)].sort();
+          }
+          return res.status(200).json(dates);
+        } catch(e) {
+          // Fallback: leeres Array → alle Tage klickbar
+          return res.status(200).json([]);
+        }
       }
 
-      // 3. Verfügbare Uhrzeiten für Datum (mit Slot-Logik)
+      // ─────────────────────────────────────────────
+      // 3. Verfügbare Uhrzeiten für Datum
+      //    Alle 3 Slots parallel abfragen
+      //    Eine Zeit ist "ausgebucht" wenn ALLE Slots voll sind
+      // ─────────────────────────────────────────────
       case 'available-times': {
         const { serviceId, date, groupSize } = req.body || {};
         if (!serviceId || !date) return res.status(400).json({ error: 'serviceId + date required' });
 
-        const RESOURCE_IDS = [
-          '8638cf4f-12f7-4e32-bddb-39384bd6f56d',
-          '6fbb6c14-bc34-4779-ba39-d588e0146014',
-          '3fff2cbd-bac1-409c-adff-491526586916',
-        ];
-
-        const from = `${date}T00:00:00Z`;
-        const to   = `${date}T23:59:59Z`;
+        const from  = `${date}T00:00:00Z`;
+        const to    = `${date}T23:59:59Z`;
         const spots = parseInt(groupSize) || 1;
 
+        // Alle 3 Slots parallel abfragen
         const slotResults = await Promise.all(
           RESOURCE_IDS.map(rid =>
             booklaFetch(
@@ -80,48 +102,50 @@ module.exports = async function handler(req, res) {
           )
         );
 
-        const baseTimes = Array.isArray(slotResults[0]) ? slotResults[0] : [];
+        // Alle gefundenen Zeiten zusammenführen
+        const allSlots = slotResults.flat().filter(Boolean);
 
-        if (baseTimes.length === 0) {
-          // Fallback falls API keine Zeiten liefert
-          return res.status(200).json([
-            { startAt: `${date}T10:00:00Z`, available: true, spots: 48, freeSlots: 3 },
-            { startAt: `${date}T13:00:00Z`, available: true, spots: 48, freeSlots: 3 },
-            { startAt: `${date}T16:00:00Z`, available: true, spots: 48, freeSlots: 3 },
-            { startAt: `${date}T19:00:00Z`, available: true, spots: 48, freeSlots: 3 },
-          ]);
+        if (allSlots.length === 0) {
+          // Kein Slot hat Zeiten → leeres Array zurückgeben
+          return res.status(200).json([]);
         }
 
-        const normalized = baseTimes.map(baseSlot => {
-          const st = baseSlot.startTime || ""; 
-          const timeKey = st.substring(0, 16); 
+        // Einzigartige Startzeiten finden
+        const uniqueStartTimes = [...new Set(
+          allSlots.map(s => s.startTime).filter(Boolean)
+        )].sort();
 
-          let freeSlotsCount = 0;
-          let totalSpotsAvailable = 0;
+        // Für jede Zeit: wie viele Slots sind noch frei?
+        const normalized = uniqueStartTimes.map(st => {
+          const timeKey = st.substring(0, 16); // "YYYY-MM-DDTHH:MM"
+          let freeSlotsCount    = 0;
+          let totalSpotsAvail   = 0;
 
           slotResults.forEach(slotArr => {
-            const arr = Array.isArray(slotArr) ? slotArr : [];
-            const match = arr.find(t => (t.startTime || "").substring(0, 16) === timeKey);
-            
+            const match = (Array.isArray(slotArr) ? slotArr : [])
+              .find(t => (t.startTime || '').substring(0, 16) === timeKey);
             if (match) {
               const sp = match.spotsAvailable || 0;
               if (sp >= spots) freeSlotsCount++;
-              totalSpotsAvailable += sp;
+              totalSpotsAvail += sp;
             }
           });
 
           return {
-            startAt: st,
-            available: freeSlotsCount > 0,
-            spots: totalSpotsAvailable,
-            freeSlots: freeSlotsCount
+            startAt:   st,
+            available: freeSlotsCount > 0,  // true wenn min. 1 Slot frei
+            spots:     totalSpotsAvail,
+            freeSlots: freeSlotsCount,       // 0–3
           };
         });
 
         return res.status(200).json(normalized);
       }
 
+      // ─────────────────────────────────────────────
       // 4. Buchung anlegen
+      //    Versucht alle 3 Slots bis einer klappt
+      // ─────────────────────────────────────────────
       case 'create-booking': {
         const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes } = req.body || {};
 
@@ -129,15 +153,9 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'serviceId, date, time, email required' });
         }
 
-        const RESOURCE_IDS = [
-          '8638cf4f-12f7-4e32-bddb-39384bd6f56d',
-          '6fbb6c14-bc34-4779-ba39-d588e0146014',
-          '3fff2cbd-bac1-409c-adff-491526586916',
-        ];
-
-        // Zeitstempel für RFC3339 (Z hinzufügen für UTC)
-        const startTime = time.includes('Z') ? time : `${date}T${time}${time.length === 5 ? ':00' : ''}Z`;
-        const spots = parseInt(groupSize) || 1;
+        // Lokale Zeit ohne Z — Bookla nutzt Europe/Berlin
+        const startTime = `${date}T${time}:00`;
+        const spots     = parseInt(groupSize) || 1;
 
         const clientPayload = {
           email,
@@ -161,23 +179,25 @@ module.exports = async function handler(req, res) {
             return res.status(201).json(data);
           } catch(e) {
             lastError = e;
-            continue; 
+            continue;
           }
         }
 
-        throw lastError || new Error('No available slot found');
+        throw lastError || new Error('Alle Slots belegt');
       }
 
+      // ─────────────────────────────────────────────
       // 5. Stripe Payment Intent
+      // ─────────────────────────────────────────────
       case 'create-payment-intent': {
         const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
         const { amount, description } = req.body || {};
         if (!amount) return res.status(400).json({ error: 'amount required' });
 
         const paymentIntent = await stripe.paymentIntents.create({
-          amount: Math.round(parseFloat(amount) * 100),
+          amount:   Math.round(parseFloat(amount) * 100),
           currency: 'eur',
-          description: description || 'Bookla Booking',
+          description: description || 'TurmX Games Booking',
           automatic_payment_methods: { enabled: true },
         });
 
@@ -191,7 +211,7 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     console.error('[Bookla Proxy Error]', err);
     return res.status(err.status || 500).json({
-      error: err.message || 'Internal server error',
+      error:   err.message || 'Internal server error',
       details: err.details || null,
     });
   }
@@ -204,22 +224,18 @@ async function booklaFetch(path, method, body, apiKey) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'X-Api-Key': apiKey,
+      'X-Api-Key':    apiKey,
     },
     ...(body && { body: JSON.stringify(body) }),
   });
 
   const text = await response.text();
   let data;
-  try { 
-    data = JSON.parse(text); 
-  } catch { 
-    data = { raw: text }; 
-  }
+  try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
   if (!response.ok) {
     const err = new Error(data?.message || `Bookla API error ${response.status}`);
-    err.status = response.status;
+    err.status  = response.status;
     err.details = data;
     throw err;
   }
