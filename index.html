@@ -1218,7 +1218,27 @@ function chgQty(d){
   $('qtyVal').textContent=S.qty;
   const t=Math.ceil(S.qty/16), pp=Math.ceil(S.qty/t);
   $('teamCalc').textContent=S.qty+' Personen = '+t+' Team'+(t>1?'s':'')+' à '+pp+' · Max. 16 pro Team';
-  updateSummary();
+  if (promoState.code && S.dateStr && S.time) {
+    // Preis neu von Bookla holen mit aktuellem groupSize
+    fetch(API+'?action=validate-code', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({code:promoState.code, serviceId:SERVICE_ID, date:S.dateStr, time:S.time, groupSize:S.qty})
+    })
+    .then(r=>r.json())
+    .then(d=>{
+      if (d.canApply) {
+        const originalPrice = (S.basePrice + S.pricePerPerson * S.qty) * 100;
+        const discount = Math.max(0, originalPrice - (d.price || 0));
+        promoState.discountAmount = discount / 100;
+        promoState.newPrice = (d.price || 0) / 100;
+        $('promoMsg').textContent = '✓ Code angewendet! Du sparst '+fmtEur(promoState.discountAmount)+'.';
+      }
+      updateSummary();
+    })
+    .catch(()=>updateSummary());
+  } else {
+    updateSummary();
+  }
 }
 
 // ═══════════════════════════════════════════════════════
