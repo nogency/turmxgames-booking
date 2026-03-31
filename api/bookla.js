@@ -75,6 +75,8 @@ module.exports = async function handler(req, res) {
 
       // ─────────────────────────────────────────────
       // 3. Verfügbare Uhrzeiten für Datum
+      //    EXKLUSIV: Ein Slot gilt als voll sobald
+      //    irgendeine Buchung drin ist (spotsAvailable < totalSpots)
       // ─────────────────────────────────────────────
       case 'available-times': {
         const { serviceId, date, groupSize } = req.body || {};
@@ -122,9 +124,12 @@ module.exports = async function handler(req, res) {
           slotArrays.forEach(slotArr => {
             const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === timeKey);
             if (match) {
-              const sp = match.spotsAvailable || 0;
-              if (sp >= spots) freeSlotsCount++;
-              totalSpotsAvail += sp;
+              const available = match.spotsAvailable || 0;
+              const total     = match.totalSpots || 0;
+              // EXKLUSIV: Slot ist nur frei wenn KEINE einzige Buchung drin ist
+              // d.h. spotsAvailable muss gleich totalSpots sein
+              if (available === total && total > 0) freeSlotsCount++;
+              totalSpotsAvail += available;
             }
           });
 
