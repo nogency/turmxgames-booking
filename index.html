@@ -1256,6 +1256,7 @@ async function submitBooking(paymentId){
     };
     const r=await fetch(API+'?action=create-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const booking=await r.json();
+if(!r.ok) throw new Error(booking.error||'Buchung fehlgeschlagen');
     const ref=booking.id?'BKL-'+String(booking.id).slice(-6).toUpperCase():'GSH-'+Math.floor(100000+Math.random()*900000);
     showSuccess(ref);
   }catch(e){
