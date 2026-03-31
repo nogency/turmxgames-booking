@@ -122,7 +122,6 @@ module.exports = async function handler(req, res) {
             if (match) {
               const available = match.spotsAvailable || 0;
               const total     = match.totalSpots || 0;
-              // Exklusiv: nur frei wenn noch keine einzige Buchung vorhanden
               if (available === total && total > 0) freeSlotsCount++;
               totalSpotsAvail += available;
             }
@@ -143,10 +142,9 @@ module.exports = async function handler(req, res) {
       // 4. Buchung anlegen
       //    Erst prüfen ob Slot noch wirklich frei ist,
       //    dann nur auf einem freien Slot buchen.
-      //    Verhindert Doppelbuchungen auf demselben Slot.
       // ─────────────────────────────────────────────
       case 'create-booking': {
-        const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes } = req.body || {};
+        const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode } = req.body || {};
 
         if (!serviceId || !date || !time || !email) {
           return res.status(400).json({ error: 'serviceId, date, time, email required' });
@@ -176,7 +174,6 @@ module.exports = async function handler(req, res) {
         );
 
         // Freie Ressourcen für die gewählte Uhrzeit finden
-        // Uhrzeit aus dem startTime ableiten (Berlin → UTC: -2h im Sommer)
         const offsetHours = isSummerTime ? 2 : 1;
         const [h, m2] = time.split(':').map(Number);
         const utcH = h - offsetHours;
@@ -208,15 +205,17 @@ module.exports = async function handler(req, res) {
         let lastError = null;
         for (const resourceId of freeResourceIds) {
           try {
-            const data = await booklaFetch('/client/bookings', 'POST', {
+            const bookingBody = {
               companyID:  companyId,
               serviceID:  serviceId,
               resourceID: resourceId,
               startTime,
               spots,
               client: clientPayload,
-              ...(notes && { metaData: { notes } }),
-            }, apiKey);
+              ...(notes     && { metaData: { notes } }),
+              ...(promoCode && { code: promoCode }),
+            };
+            const data = await booklaFetch('/client/bookings', 'POST', bookingBody, apiKey);
             return res.status(201).json(data);
           } catch(e) {
             lastError = e;
@@ -228,7 +227,43 @@ module.exports = async function handler(req, res) {
       }
 
       // ─────────────────────────────────────────────
-      // 5. Stripe Payment Intent
+      // 5. Promo Code validieren
+      //    Gibt zurück: { canApply, price, discountAmount }
+      // ─────────────────────────────────────────────
+      case 'validate-code': {
+        const { code, serviceId, date, time, groupSize } = req.body || {};
+        if (!code || !serviceId || !date || !time) {
+          return res.status(400).json({ error: 'code, serviceId, date, time required' });
+        }
+
+        const spots = parseInt(groupSize) || 1;
+        const month = new Date(date).getMonth();
+        const isSummerTime = month >= 2 && month <= 9;
+        const tzOffset  = isSummerTime ? '+02:00' : '+01:00';
+        const startTime = `${date}T${time}:00${tzOffset}`;
+
+        // Ersten verfügbaren Slot für die Validierung nutzen
+        const resourceId = RESOURCE_IDS[0];
+
+        const data = await booklaFetch(
+          `/client/codes/${encodeURIComponent(code)}/validate`,
+          'POST',
+          {
+            code,
+            companyID:  companyId,
+            serviceID:  serviceId,
+            resourceID: resourceId,
+            startTime,
+            spots,
+          },
+          apiKey
+        );
+
+        return res.status(200).json(data);
+      }
+
+      // ─────────────────────────────────────────────
+      // 6. Stripe Payment Intent
       // ─────────────────────────────────────────────
       case 'create-payment-intent': {
         const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
