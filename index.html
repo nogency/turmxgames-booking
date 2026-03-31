@@ -157,15 +157,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .pnote.exp{background:rgba(183,28,28,0.06);border:1px solid rgba(183,28,28,0.15);color:var(--expensive);display:flex}
 
 /* TIME SLOTS */
-.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:8px}
-.tslot{padding:9px 5px;background:var(--lb);border:1.5px solid var(--lbdr);border-radius:4px;cursor:pointer;text-align:center;transition:all .15s}
+.tslot{padding:9px 5px;background:var(--lc);border:1.5px solid var(--lbdr);border-radius:4px;cursor:pointer;text-align:center;transition:all .15s}
 .tslot:hover:not(.full){border-color:var(--rb);background:var(--rl)}
 .tslot.sel{background:var(--red);border-color:var(--red);color:#fff}
 .tslot.full{opacity:.3;cursor:not-allowed}
-.tslot-t{font-family:"Bebas Neue",sans-serif;font-size:15px;letter-spacing:1px;color:inherit}
-.tslot-s{font-size:9px;color:inherit;opacity:.7;margin-top:1px}
-.tslot-a{font-size:9px;margin-top:2px}
+.tslot-t{font-family:"Bebas Neue",sans-serif;font-size:17px;letter-spacing:1px;color:var(--td)}
+.tslot.sel .tslot-t{color:#fff}
+.tslot.full .tslot-t{color:var(--td)}
+.tslot-a{font-size:9px;margin-top:3px;font-weight:600}
 .tslot-a.ok{color:var(--cheap)}
+.tslot-a.last{color:var(--expensive)}
 .tslot-a.no{color:var(--expensive)}
 
 /* DOODLE */
@@ -912,11 +913,14 @@ function renderTimes(times) {
   const g=$('timeGrid'); g.style.display='grid'; g.innerHTML='';
   if(!times.length){g.innerHTML='<div style="grid-column:1/-1;font-size:11px;color:var(--tmu);padding:6px 0">Leider keine freien Zeiten an diesem Tag.</div>';return;}
   times.forEach(slot=>{
-    const t=slot.startAt?utcToBerlin(slot.startAt):slot.time;
+    const t=slot.startAt?new Date(slot.startAt).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',hour12:false}):slot.time;
     const full=slot.available===false||slot.spots===0;
+    const lastOne=!full && slot.freeSlots===1;
     const el=document.createElement('div');
     el.className='tslot'+(full?' full':'')+(S.time===t?' sel':'');
-    el.innerHTML=`<div class="tslot-t">${t}</div><div class="tslot-a ${full?'no':'ok'}">${full?'Ausgebucht':'Verfügbar'}</div>`;
+    const label=full?'Ausgebucht':lastOne?'⚡ Letzter Slot!':'Verfügbar';
+    const cls=full?'no':lastOne?'last':'ok';
+    el.innerHTML=`<div class="tslot-t">${t}</div><div class="tslot-a ${cls}">${label}</div>`;
     if(!full)el.onclick=()=>{S.time=t;renderTimes(times);updateSummary();checkStep1();};
     g.appendChild(el);
   });
