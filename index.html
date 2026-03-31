@@ -322,6 +322,15 @@ footer a:hover{color:rgba(255,255,255,.65)}
   .special-grid{grid-template-columns:1fr 1fr}
   .pgrid{grid-template-columns:1fr 1fr}
 }
+
+  /* COUNTDOWN */
+#cdBox{display:none;background:linear-gradient(135deg,rgba(192,57,43,.08),rgba(233,30,140,.08));border:1.5px solid var(--rb);border-radius:6px;padding:12px 14px;margin-bottom:12px}
+#cdBox.show{display:block}
+.cd-label{font-size:9px;letter-spacing:2px;color:var(--tmu);font-weight:700;margin-bottom:4px}
+.cd-timer{font-family:"Bebas Neue",sans-serif;font-size:28px;letter-spacing:3px;color:var(--red);line-height:1}
+.cd-sub{font-size:10px;color:var(--tmu);margin-top:3px;line-height:1.5}
+#cdBox.urgent .cd-timer{color:#b71c1c;animation:pulse .8s ease infinite}
+  
 </style>
 </head>
 <body>
@@ -734,6 +743,12 @@ footer a:hover{color:rgba(255,255,255,.65)}
 
     <!-- SIDEBAR -->
     <div class="sidebar">
+      <!-- COUNTDOWN -->
+<div id="cdBox">
+  <div class="cd-label">⏱ TERMIN RESERVIERT FÜR</div>
+  <div class="cd-timer" id="cdTimer">10:00</div>
+  <div class="cd-sub">Bitte Buchung jetzt abschließen.<br>Danach wird der Slot wieder freigegeben.</div>
+</div>
       <div class="scard accent">
         <div class="scard-title">DEINE BUCHUNG</div>
         <div class="sprow"><span class="spkey">Grundgebühr</span><div style="text-align:right"><div class="spval" id="side-base">40 EUR</div><div class="spnote">einmalig</div></div></div>
@@ -810,7 +825,40 @@ const $ = id => document.getElementById(id);
 const fmtEur = n => n.toFixed(2).replace('.',',') + ' €';
 const delay  = ms => new Promise(r => setTimeout(r, ms));
 function utcToBerlin(isoStr){const d=new Date(isoStr);return d.toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',hour12:false});}
-function getTotal() { return S.basePrice + S.pricePerPerson * S.qty; }
+
+// ═══════════════════════════════════════════════════════
+// COUNTDOWN
+// ═══════════════════════════════════════════════════════
+let cdInterval = null;
+function startCountdown() {
+  if (cdInterval) clearInterval(cdInterval);
+  let secs = 10 * 60;
+  $('cdBox').className = 'show';
+  function tick() {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    $('cdTimer').textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    if (secs <= 60) $('cdBox').classList.add('urgent');
+    if (secs <= 0) {
+      clearInterval(cdInterval);
+      $('cdBox').className = '';
+      alert('Deine Reservierung ist abgelaufen. Bitte wähle einen neuen Termin.');
+      S.time = null; S.date = null; S.dateStr = null;
+      goStep(1);
+      renderCal();
+      $('timeSec').style.display = 'none';
+    }
+    secs--;
+  }
+  tick();
+  cdInterval = setInterval(tick, 1000);
+}
+function stopCountdown() {
+  if (cdInterval) clearInterval(cdInterval);
+  $('cdBox').className = '';
+}
+  
+  function getTotal() { return S.basePrice + S.pricePerPerson * S.qty; }
 
 // ═══════════════════════════════════════════════════════
 // CALENDAR
@@ -922,7 +970,7 @@ function renderTimes(times) {
     const label=full?'Ausgebucht':lastOne?'⚡ Letzter Slot!':'Verfügbar';
     const cls=full?'no':lastOne?'last':'ok';
     el.innerHTML=`<div class="tslot-t">${t}</div><div class="tslot-a ${cls}">${label}</div>`;
-    if(!full)el.onclick=()=>{S.time=t;renderTimes(times);updateSummary();checkStep1();};
+   if(!full)el.onclick=()=>{S.time=t;renderTimes(times);updateSummary();checkStep1();startCountdown();};
     g.appendChild(el);
   });
   // Smooth scroll zu den Uhrzeiten
@@ -1276,6 +1324,7 @@ if(!r.ok) throw new Error(booking.error||'Buchung fehlgeschlagen');
 }
 
 function showSuccess(ref){
+  stopCountdown();
   $('bookingId').textContent=ref;
   $('successDet').innerHTML=
     '<strong>Event:</strong> '+S.eventName+
