@@ -39,8 +39,6 @@ module.exports = async function handler(req, res) {
 
       // ─────────────────────────────────────────────
       // 2. Verfügbare Tage für Monat
-      //    Bookla gibt zurück: ["Europe/Berlin", { resourceID: [...dates] }, ...]
-      //    Wir parsen das zu einem flachen Array von Datums-Strings
       // ─────────────────────────────────────────────
       case 'available-dates': {
         const { serviceId, year, month } = req.body || {};
@@ -61,7 +59,6 @@ module.exports = async function handler(req, res) {
             apiKey
           );
 
-          // Bookla Format: ["Europe/Berlin", { "resourceID": ["2026-04-01", ...] }, ...]
           let dates = [];
           if (Array.isArray(data)) {
             dates = data
@@ -72,30 +69,21 @@ module.exports = async function handler(req, res) {
           }
           return res.status(200).json(dates);
         } catch(e) {
-          // Fallback: leeres Array → alle Tage klickbar
           return res.status(200).json([]);
         }
       }
 
       // ─────────────────────────────────────────────
       // 3. Verfügbare Uhrzeiten für Datum
-      //    Alle 3 Slots parallel abfragen
-      //    Eine Zeit ist "ausgebucht" wenn ALLE Slots voll sind
-      //
-      //    FIX 1: Timestamps jetzt mit Z (RFC3339 konform)
-      //    FIX 2: TimesResponse = { timeZone, times: { resourceID: [TimeSlot] } }
-      //           vorher wurde das Objekt direkt als Array behandelt
       // ─────────────────────────────────────────────
       case 'available-times': {
         const { serviceId, date, groupSize } = req.body || {};
         if (!serviceId || !date) return res.status(400).json({ error: 'serviceId + date required' });
 
-        // FIX 1: Z anhängen für gültiges RFC3339
         const from  = `${date}T00:00:00Z`;
         const to    = `${date}T23:59:59Z`;
         const spots = parseInt(groupSize) || 1;
 
-        // Alle 3 Slots parallel abfragen
         const slotResults = await Promise.all(
           RESOURCE_IDS.map(rid =>
             booklaFetch(
@@ -109,11 +97,10 @@ module.exports = async function handler(req, res) {
           )
         );
 
-        // FIX 2: TimesResponse = { timeZone: "...", times: { "resourceID": [TimeSlot, ...] } }
+        // TimesResponse = { timeZone: "...", times: { "resourceID": [TimeSlot, ...] } }
         const slotArrays = slotResults.map((data, i) => {
           if (!data || !data.times) return [];
           const rid = RESOURCE_IDS[i];
-          // Erst direkt per resourceId suchen, sonst alle Werte zusammenführen
           return data.times[rid] || Object.values(data.times).flat() || [];
         });
 
@@ -123,14 +110,12 @@ module.exports = async function handler(req, res) {
           return res.status(200).json([]);
         }
 
-        // Einzigartige Startzeiten finden
         const uniqueStartTimes = [...new Set(
           allSlots.map(s => s.startTime).filter(Boolean)
         )].sort();
 
-        // Für jede Zeit: wie viele Slots sind noch frei?
         const normalized = uniqueStartTimes.map(st => {
-          const timeKey = st.substring(0, 16); // "YYYY-MM-DDTHH:MM"
+          const timeKey = st.substring(0, 16);
           let freeSlotsCount  = 0;
           let totalSpotsAvail = 0;
 
@@ -165,9 +150,13 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'serviceId, date, time, email required' });
         }
 
-        // Lokale Zeit ohne Z — Bookla nutzt Europe/Berlin
-        const startTime = `${date}T${time}:00`;
-        const spots     = parseInt(groupSize) || 1;
+        // Europe/Berlin: Sommerzeit (März–Oktober) = +02:00, Winterzeit = +01:00
+        const month = new Date(date).getMonth(); // 0 = Januar, 11 = Dezember
+        const isSummerTime = month >= 2 && month <= 9;
+        const tzOffset = isSummerTime ? '+02:00' : '+01:00';
+        const startTime = `${date}T${time}:00${tzOffset}`;
+
+        const spots = parseInt(groupSize) || 1;
 
         const clientPayload = {
           email,
