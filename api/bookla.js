@@ -3,6 +3,8 @@
  * Verified against Bookla OpenAPI spec (plugin-redoc-0.yaml)
  */
 
+const { DateTime } = require('luxon');
+
 const BOOKLA_BASE = 'https://eu.bookla.com/api/v1';
 
 const RESOURCE_IDS = [
@@ -152,11 +154,9 @@ module.exports = async function handler(req, res) {
 
         const spots = parseInt(groupSize) || 1;
 
-        // Europe/Berlin: Sommerzeit (März–Oktober) = +02:00, Winterzeit = +01:00
-        const month = new Date(date).getMonth();
-        const isSummerTime = month >= 2 && month <= 9;
-        const tzOffset  = isSummerTime ? '+02:00' : '+01:00';
-        const startTime = `${date}T${time}:00${tzOffset}`;
+        const berlinDt  = DateTime.fromISO(`${date}T${time}:00`, { zone: 'Europe/Berlin' });
+        const startTime = berlinDt.toISO();
+        const utcTimeKey = berlinDt.toUTC().toISO().substring(0, 16);
 
         // ── Schritt 1: Aktuelle Verfügbarkeit pro Ressource prüfen ──
         const from = `${date}T00:00:00Z`;
@@ -174,10 +174,6 @@ module.exports = async function handler(req, res) {
         );
 
         // Freie Ressourcen für die gewählte Uhrzeit finden
-        const offsetHours = isSummerTime ? 2 : 1;
-        const [h, m2] = time.split(':').map(Number);
-        const utcH = h - offsetHours;
-        const utcTimeKey = `${date}T${String(utcH).padStart(2,'0')}:${String(m2).padStart(2,'0')}`;
 
         const freeResourceIds = [];
         currentAvailability.forEach((data, i) => {
@@ -237,10 +233,7 @@ module.exports = async function handler(req, res) {
         }
 
         const spots = parseInt(groupSize) || 1;
-        const month = new Date(date).getMonth();
-        const isSummerTime = month >= 2 && month <= 9;
-        const tzOffset  = isSummerTime ? '+02:00' : '+01:00';
-        const startTime = `${date}T${time}:00${tzOffset}`;
+        const startTime = DateTime.fromISO(`${date}T${time}:00`, { zone: 'Europe/Berlin' }).toISO();
 
         // Ersten verfügbaren Slot für die Validierung nutzen
         const resourceId = RESOURCE_IDS[0];
