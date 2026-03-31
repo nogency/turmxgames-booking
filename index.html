@@ -1251,7 +1251,17 @@ async function submitBooking(paymentId){
       serviceId:SERVICE_ID, date:S.dateStr, time:S.time, groupSize:S.qty,
       firstName:$('fname')?.value?.trim(), lastName:$('lname')?.value?.trim(),
       email:$('email')?.value?.trim(), phone:$('phone')?.value?.trim(),
-      notes:[$('wishes')?.value?.trim(),S.kindAge?'Alter: '+S.kindAge:null,$('company')?.value?'Firma: '+$('company').value:null].filter(Boolean).join(' | '),
+      notes:[
+  'Event: '+S.eventName,
+  'Datum: '+S.dateStr+' '+S.time+' Uhr',
+  'Personen: '+S.qty,
+  'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
+  'Zahlung: '+S.payMethod,
+  S.kindAge?'Alter: '+S.kindAge:null,
+  $('company')?.value?'Firma: '+$('company').value:null,
+  document.querySelector('#acc-visit .ropt.sel .rlabel')?.textContent?.trim()||null,
+  $('wishes')?.value?.trim()||null,
+].filter(Boolean).join(' | '),
       paymentIntentId:paymentId||null,
     };
     const r=await fetch(API+'?action=create-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
