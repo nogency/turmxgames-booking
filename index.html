@@ -770,7 +770,11 @@ footer a:hover{color:rgba(255,255,255,.65)}
         <div class="scard-title">DEINE BUCHUNG</div>
         <div class="sprow"><span class="spkey">Grundgebühr</span><div style="text-align:right"><div class="spval" id="side-base">40 EUR</div><div class="spnote">einmalig</div></div></div>
         <div class="sprow"><span class="spkey">Pro Person</span><div style="text-align:right"><div class="spval" id="side-pp">35 EUR</div><div class="spnote">/ Person</div></div></div>
-        <div class="sprow" style="border-top:2px solid var(--rb);margin-top:4px;padding-top:10px">
+        <div class="sprow promo-discount" id="side-promo-row">
+  <span class="spkey" style="color:var(--cheap)">RABATT</span>
+  <div class="spval" id="side-discount" style="font-size:18px;color:var(--cheap)">—</div>
+</div>
+<div class="sprow" style="border-top:2px solid var(--rb);margin-top:4px;padding-top:10px">
           <span class="spkey" style="font-weight:700;color:var(--td)">GESAMT</span>
           <div class="spval" id="side-total" style="font-size:24px">—</div>
         </div>
@@ -1230,6 +1234,13 @@ function updateSummary(){
   $('side-base').textContent=isSocial?'0 EUR':S.basePrice+' EUR';
   $('side-pp').textContent=S.pricePerPerson+' EUR';
   $('side-total').textContent=totalStr;
+const promoRow = $('side-promo-row');
+if (promoState && promoState.discountAmount > 0) {
+  promoRow.classList.add('show');
+  $('side-discount').textContent = '− ' + fmtEur(promoState.discountAmount);
+} else {
+  promoRow.classList.remove('show');
+}
 
   // Step 4
   const pe=$('pay-event');if(pe)pe.textContent=S.eventName;
