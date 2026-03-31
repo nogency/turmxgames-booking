@@ -50,8 +50,8 @@ module.exports = async function handler(req, res) {
         const m = parseInt(month) || (new Date().getMonth() + 1);
         const lastDay = new Date(y, m, 0).getDate();
 
-        const from = `${y}-${String(m).padStart(2,'0')}-01T00:00:00`;
-        const to   = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}T23:59:59`;
+        const from = `${y}-${String(m).padStart(2,'0')}-01T00:00:00Z`;
+        const to   = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}T23:59:59Z`;
 
         try {
           const data = await booklaFetch(
@@ -81,13 +81,18 @@ module.exports = async function handler(req, res) {
       // 3. Verfügbare Uhrzeiten für Datum
       //    Alle 3 Slots parallel abfragen
       //    Eine Zeit ist "ausgebucht" wenn ALLE Slots voll sind
+      //
+      //    FIX 1: Timestamps jetzt mit Z (RFC3339 konform)
+      //    FIX 2: TimesResponse = { timeZone, times: { resourceID: [TimeSlot] } }
+      //           vorher wurde das Objekt direkt als Array behandelt
       // ─────────────────────────────────────────────
       case 'available-times': {
         const { serviceId, date, groupSize } = req.body || {};
         if (!serviceId || !date) return res.status(400).json({ error: 'serviceId + date required' });
 
-        const from  = `${date}T00:00:00`;
-        const to    = `${date}T23:59:59`;
+        // FIX 1: Z anhängen für gültiges RFC3339
+        const from  = `${date}T00:00:00Z`;
+        const to    = `${date}T23:59:59Z`;
         const spots = parseInt(groupSize) || 1;
 
         // Alle 3 Slots parallel abfragen
@@ -98,15 +103,23 @@ module.exports = async function handler(req, res) {
               'POST',
               { from, to, spots, resourceIDs: [rid] },
               apiKey
-            ).catch(() => [])
+            )
+            .then(data => { console.log('[BOOKLA RAW]', JSON.stringify(data)); return data; })
+            .catch(e  => { console.error('[BOOKLA ERR]', e.message, e.details); return null; })
           )
         );
 
-        // Alle gefundenen Zeiten zusammenführen
-        const allSlots = slotResults.flat().filter(Boolean);
+        // FIX 2: TimesResponse = { timeZone: "...", times: { "resourceID": [TimeSlot, ...] } }
+        const slotArrays = slotResults.map((data, i) => {
+          if (!data || !data.times) return [];
+          const rid = RESOURCE_IDS[i];
+          // Erst direkt per resourceId suchen, sonst alle Werte zusammenführen
+          return data.times[rid] || Object.values(data.times).flat() || [];
+        });
+
+        const allSlots = slotArrays.flat().filter(Boolean);
 
         if (allSlots.length === 0) {
-          // Kein Slot hat Zeiten → leeres Array zurückgeben
           return res.status(200).json([]);
         }
 
@@ -118,12 +131,11 @@ module.exports = async function handler(req, res) {
         // Für jede Zeit: wie viele Slots sind noch frei?
         const normalized = uniqueStartTimes.map(st => {
           const timeKey = st.substring(0, 16); // "YYYY-MM-DDTHH:MM"
-          let freeSlotsCount    = 0;
-          let totalSpotsAvail   = 0;
+          let freeSlotsCount  = 0;
+          let totalSpotsAvail = 0;
 
-          slotResults.forEach(slotArr => {
-            const match = (Array.isArray(slotArr) ? slotArr : [])
-              .find(t => (t.startTime || '').substring(0, 16) === timeKey);
+          slotArrays.forEach(slotArr => {
+            const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === timeKey);
             if (match) {
               const sp = match.spotsAvailable || 0;
               if (sp >= spots) freeSlotsCount++;
@@ -133,9 +145,9 @@ module.exports = async function handler(req, res) {
 
           return {
             startAt:   st,
-            available: freeSlotsCount > 0,  // true wenn min. 1 Slot frei
+            available: freeSlotsCount > 0,
             spots:     totalSpotsAvail,
-            freeSlots: freeSlotsCount,       // 0–3
+            freeSlots: freeSlotsCount,
           };
         });
 
