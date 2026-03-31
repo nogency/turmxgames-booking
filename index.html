@@ -157,13 +157,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .pnote.exp{background:rgba(183,28,28,0.06);border:1px solid rgba(183,28,28,0.15);color:var(--expensive);display:flex}
 
 /* TIME SLOTS */
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:8px}
 .tslot{padding:9px 5px;background:var(--lc);border:1.5px solid var(--lbdr);border-radius:4px;cursor:pointer;text-align:center;transition:all .15s}
 .tslot:hover:not(.full){border-color:var(--rb);background:var(--rl)}
 .tslot.sel{background:var(--red);border-color:var(--red);color:#fff}
+.tslot.sel .tslot-t{color:#fff}
+.tslot.sel .tslot-a{color:rgba(255,255,255,.8)}
 .tslot.full{opacity:.3;cursor:not-allowed}
 .tslot-t{font-family:"Bebas Neue",sans-serif;font-size:17px;letter-spacing:1px;color:var(--td)}
-.tslot.sel .tslot-t{color:#fff}
-.tslot.full .tslot-t{color:var(--td)}
 .tslot-a{font-size:9px;margin-top:3px;font-weight:600}
 .tslot-a.ok{color:var(--cheap)}
 .tslot-a.last{color:var(--expensive)}
@@ -915,7 +916,7 @@ function renderTimes(times) {
   times.forEach(slot=>{
     const t=slot.startAt?new Date(slot.startAt).toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',hour12:false}):slot.time;
     const full=slot.available===false||slot.spots===0;
-    const lastOne=!full && slot.freeSlots===1;
+    const lastOne=!full&&slot.freeSlots===1;
     const el=document.createElement('div');
     el.className='tslot'+(full?' full':'')+(S.time===t?' sel':'');
     const label=full?'Ausgebucht':lastOne?'⚡ Letzter Slot!':'Verfügbar';
@@ -924,6 +925,8 @@ function renderTimes(times) {
     if(!full)el.onclick=()=>{S.time=t;renderTimes(times);updateSummary();checkStep1();};
     g.appendChild(el);
   });
+  // Smooth scroll zu den Uhrzeiten
+  $('timeSec').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 // ═══════════════════════════════════════════════════════
