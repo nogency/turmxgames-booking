@@ -807,6 +807,7 @@ const S = {
 const $ = id => document.getElementById(id);
 const fmtEur = n => n.toFixed(2).replace('.',',') + ' €';
 const delay  = ms => new Promise(r => setTimeout(r, ms));
+function utcToBerlin(isoStr){const d=new Date(isoStr);return d.toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',hour12:false});}
 function getTotal() { return S.basePrice + S.pricePerPerson * S.qty; }
 
 // ═══════════════════════════════════════════════════════
@@ -911,7 +912,7 @@ function renderTimes(times) {
   const g=$('timeGrid'); g.style.display='grid'; g.innerHTML='';
   if(!times.length){g.innerHTML='<div style="grid-column:1/-1;font-size:11px;color:var(--tmu);padding:6px 0">Leider keine freien Zeiten an diesem Tag.</div>';return;}
   times.forEach(slot=>{
-    const t=slot.startAt?slot.startAt.substring(11,16):slot.time;
+    const t=slot.startAt?utcToBerlin(slot.startAt):slot.time;
     const full=slot.available===false||slot.spots===0;
     const el=document.createElement('div');
     el.className='tslot'+(full?' full':'')+(S.time===t?' sel':'');
