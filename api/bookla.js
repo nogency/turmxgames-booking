@@ -75,8 +75,8 @@ module.exports = async function handler(req, res) {
 
       // ─────────────────────────────────────────────
       // 3. Verfügbare Uhrzeiten für Datum
-      //    EXKLUSIV: Ein Slot gilt als voll sobald
-      //    irgendeine Buchung drin ist (spotsAvailable < totalSpots)
+      //    EXKLUSIV: Slot ist nur frei wenn KEINE
+      //    einzige Buchung drin ist (spotsAvailable === totalSpots)
       // ─────────────────────────────────────────────
       case 'available-times': {
         const { serviceId, date, groupSize } = req.body || {};
@@ -99,7 +99,6 @@ module.exports = async function handler(req, res) {
           )
         );
 
-        // TimesResponse = { timeZone: "...", times: { "resourceID": [TimeSlot, ...] } }
         const slotArrays = slotResults.map((data, i) => {
           if (!data || !data.times) return [];
           const rid = RESOURCE_IDS[i];
@@ -107,10 +106,7 @@ module.exports = async function handler(req, res) {
         });
 
         const allSlots = slotArrays.flat().filter(Boolean);
-
-        if (allSlots.length === 0) {
-          return res.status(200).json([]);
-        }
+        if (allSlots.length === 0) return res.status(200).json([]);
 
         const uniqueStartTimes = [...new Set(
           allSlots.map(s => s.startTime).filter(Boolean)
@@ -126,8 +122,7 @@ module.exports = async function handler(req, res) {
             if (match) {
               const available = match.spotsAvailable || 0;
               const total     = match.totalSpots || 0;
-              // EXKLUSIV: Slot ist nur frei wenn KEINE einzige Buchung drin ist
-              // d.h. spotsAvailable muss gleich totalSpots sein
+              // Exklusiv: nur frei wenn noch keine einzige Buchung vorhanden
               if (available === total && total > 0) freeSlotsCount++;
               totalSpotsAvail += available;
             }
@@ -146,7 +141,9 @@ module.exports = async function handler(req, res) {
 
       // ─────────────────────────────────────────────
       // 4. Buchung anlegen
-      //    Versucht alle 3 Slots bis einer klappt
+      //    Erst prüfen ob Slot noch wirklich frei ist,
+      //    dann nur auf einem freien Slot buchen.
+      //    Verhindert Doppelbuchungen auf demselben Slot.
       // ─────────────────────────────────────────────
       case 'create-booking': {
         const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes } = req.body || {};
@@ -155,14 +152,52 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'serviceId, date, time, email required' });
         }
 
-        // Europe/Berlin: Sommerzeit (März–Oktober) = +02:00, Winterzeit = +01:00
-        const month = new Date(date).getMonth(); // 0 = Januar, 11 = Dezember
-        const isSummerTime = month >= 2 && month <= 9;
-        const tzOffset = isSummerTime ? '+02:00' : '+01:00';
-        const startTime = `${date}T${time}:00${tzOffset}`;
-
         const spots = parseInt(groupSize) || 1;
 
+        // Europe/Berlin: Sommerzeit (März–Oktober) = +02:00, Winterzeit = +01:00
+        const month = new Date(date).getMonth();
+        const isSummerTime = month >= 2 && month <= 9;
+        const tzOffset  = isSummerTime ? '+02:00' : '+01:00';
+        const startTime = `${date}T${time}:00${tzOffset}`;
+
+        // ── Schritt 1: Aktuelle Verfügbarkeit pro Ressource prüfen ──
+        const from = `${date}T00:00:00Z`;
+        const to   = `${date}T23:59:59Z`;
+
+        const currentAvailability = await Promise.all(
+          RESOURCE_IDS.map(rid =>
+            booklaFetch(
+              `/client/companies/${companyId}/services/${serviceId}/times`,
+              'POST',
+              { from, to, spots, resourceIDs: [rid] },
+              apiKey
+            ).catch(() => null)
+          )
+        );
+
+        // Freie Ressourcen für die gewählte Uhrzeit finden
+        // Uhrzeit aus dem startTime ableiten (Berlin → UTC: -2h im Sommer)
+        const offsetHours = isSummerTime ? 2 : 1;
+        const [h, m2] = time.split(':').map(Number);
+        const utcH = h - offsetHours;
+        const utcTimeKey = `${date}T${String(utcH).padStart(2,'0')}:${String(m2).padStart(2,'0')}`;
+
+        const freeResourceIds = [];
+        currentAvailability.forEach((data, i) => {
+          if (!data || !data.times) return;
+          const rid = RESOURCE_IDS[i];
+          const slotArr = data.times[rid] || Object.values(data.times).flat() || [];
+          const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === utcTimeKey);
+          if (match && match.spotsAvailable === match.totalSpots && match.totalSpots > 0) {
+            freeResourceIds.push(rid);
+          }
+        });
+
+        if (freeResourceIds.length === 0) {
+          return res.status(409).json({ error: 'Dieser Slot ist leider nicht mehr verfügbar.' });
+        }
+
+        // ── Schritt 2: Auf erstem freien Slot buchen ──
         const clientPayload = {
           email,
           firstName,
@@ -171,7 +206,7 @@ module.exports = async function handler(req, res) {
         };
 
         let lastError = null;
-        for (const resourceId of RESOURCE_IDS) {
+        for (const resourceId of freeResourceIds) {
           try {
             const data = await booklaFetch('/client/bookings', 'POST', {
               companyID:  companyId,
