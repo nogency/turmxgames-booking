@@ -330,6 +330,19 @@ footer a:hover{color:rgba(255,255,255,.65)}
 .cd-timer{font-family:"Bebas Neue",sans-serif;font-size:28px;letter-spacing:3px;color:var(--red);line-height:1}
 .cd-sub{font-size:10px;color:var(--tmu);margin-top:3px;line-height:1.5}
 #cdBox.urgent .cd-timer{color:#b71c1c;animation:pulse .8s ease infinite}
+
+/* PROMO CODE */
+.promo-wrap{display:flex;gap:6px;margin-bottom:8px}
+.promo-input{flex:1;background:var(--lb);border:1.5px solid var(--lbdr);color:var(--td);padding:8px 10px;font-family:"Montserrat",sans-serif;font-size:12px;border-radius:4px;outline:none;transition:border-color .2s;text-transform:uppercase;letter-spacing:1px}
+.promo-input:focus{border-color:rgba(192,57,43,.5);background:#fff}
+.promo-btn{background:var(--grad);border:none;color:#fff;font-family:"Bebas Neue",sans-serif;font-size:13px;letter-spacing:1px;padding:8px 14px;border-radius:4px;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.promo-btn:hover{opacity:.85}
+.promo-btn:disabled{opacity:.4;cursor:not-allowed}
+.promo-msg{font-size:11px;margin-top:4px;line-height:1.5;min-height:16px}
+.promo-msg.ok{color:var(--cheap);font-weight:600}
+.promo-msg.err{color:var(--expensive)}
+.promo-discount{display:none;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--lbdr)}
+.promo-discount.show{display:flex}
   
 </style>
 </head>
@@ -745,6 +758,14 @@ footer a:hover{color:rgba(255,255,255,.65)}
   <div class="cd-timer" id="cdTimer">10:00</div>
   <div class="cd-sub">Bitte Buchung jetzt abschließen.<br>Danach wird der Slot wieder freigegeben.</div>
 </div>
+      <div class="scard">
+  <div class="scard-title">PROMO-CODE</div>
+  <div class="promo-wrap">
+    <input class="promo-input" id="promoInput" placeholder="CODE EINGEBEN" maxlength="30">
+    <button class="promo-btn" id="promoBtn" onclick="applyPromo()">OK</button>
+  </div>
+  <div class="promo-msg" id="promoMsg"></div>
+</div>
       <div class="scard accent">
         <div class="scard-title">DEINE BUCHUNG</div>
         <div class="sprow"><span class="spkey">Grundgebühr</span><div style="text-align:right"><div class="spval" id="side-base">40 EUR</div><div class="spnote">einmalig</div></div></div>
@@ -849,12 +870,91 @@ function startCountdown() {
   tick();
   cdInterval = setInterval(tick, 1000);
 }
+
+  // ═══════════════════════════════════════════════════════
+// PROMO CODE
+// ═══════════════════════════════════════════════════════
+let promoState = { code: null, discountAmount: 0, newPrice: null };
+
+async function applyPromo() {
+  const input = $('promoInput');
+  const btn   = $('promoBtn');
+  const msg   = $('promoMsg');
+  const code  = input.value.trim().toUpperCase();
+  if (!code) return;
+
+  if (!S.dateStr || !S.time) {
+    msg.className = 'promo-msg err';
+    msg.textContent = 'Bitte zuerst Datum und Uhrzeit wählen.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '...';
+  msg.className = 'promo-msg';
+  msg.textContent = '';
+
+  try {
+    const r = await fetch(API + '?action=validate-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        serviceId: SERVICE_ID,
+        date:      S.dateStr,
+        time:      S.time,
+        groupSize: S.qty,
+      }),
+    });
+    const d = await r.json();
+
+    if (!r.ok || !d.canApply) {
+      msg.className = 'promo-msg err';
+      msg.textContent = '❌ Code ungültig oder nicht anwendbar.';
+      promoState = { code: null, discountAmount: 0, newPrice: null };
+    } else {
+      const originalPrice = getTotal() * 100; // in cents
+      const newPriceCents = d.price || 0;
+      const discount      = Math.max(0, originalPrice - newPriceCents);
+      promoState = {
+        code:           code,
+        discountAmount: discount / 100,
+        newPrice:       newPriceCents / 100,
+      };
+      msg.className = 'promo-msg ok';
+      msg.textContent = '✓ Code angewendet! Du sparst ' + fmtEur(promoState.discountAmount) + '.';
+      input.disabled = true;
+      btn.textContent = '✓';
+      btn.style.background = 'var(--cheap)';
+      updateSummary();
+    }
+  } catch(e) {
+    msg.className = 'promo-msg err';
+    msg.textContent = '❌ Fehler beim Prüfen. Bitte erneut versuchen.';
+  }
+
+  btn.disabled = false;
+}
+
+function resetPromo() {
+  promoState = { code: null, discountAmount: 0, newPrice: null };
+  const input = $('promoInput');
+  const btn   = $('promoBtn');
+  if (input) { input.value = ''; input.disabled = false; }
+  if (btn)   { btn.textContent = 'OK'; btn.style.background = ''; btn.disabled = false; }
+  const msg = $('promoMsg');
+  if (msg)   { msg.className = 'promo-msg'; msg.textContent = ''; }
+}
 function stopCountdown() {
   if (cdInterval) clearInterval(cdInterval);
   $('cdBox').className = '';
 }
   
-  function getTotal() { return S.basePrice + S.pricePerPerson * S.qty; }
+  function getTotal() {
+  const base = S.basePrice + S.pricePerPerson * S.qty;
+  if (promoState && promoState.newPrice !== null) return promoState.newPrice;
+  return base;
+}
 
 // ═══════════════════════════════════════════════════════
 // CALENDAR
@@ -966,7 +1066,7 @@ function renderTimes(times) {
     const label=full?'Ausgebucht':lastOne?'⚡ Letzter Slot!':'Verfügbar';
     const cls=full?'no':lastOne?'last':'ok';
     el.innerHTML=`<div class="tslot-t">${t}</div><div class="tslot-a ${cls}">${label}</div>`;
-   if(!full)el.onclick=()=>{S.time=t;renderTimes(times);updateSummary();checkStep1();startCountdown();};
+   if(!full)el.onclick=()=>{S.time=t;resetPromo();renderTimes(times);updateSummary();checkStep1();startCountdown();};
     g.appendChild(el);
   });
   // Smooth scroll zu den Uhrzeiten
@@ -1307,6 +1407,7 @@ async function submitBooking(paymentId){
   $('wishes')?.value?.trim()||null,
 ].filter(Boolean).join(' | '),
       paymentIntentId:paymentId||null,
+promoCode: promoState.code || null,
     };
     const r=await fetch(API+'?action=create-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const booking=await r.json();
