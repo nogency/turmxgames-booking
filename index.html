@@ -7,7 +7,7 @@
 <meta name="description" content="TurmX Games direkt buchen. Sofortbestätigung, sichere Zahlung.">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://js.stripe.com/v3/"></script>
-<script src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR&intent=capture&components=buttons" data-namespace="paypalSDK"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=ATc7akW1Csi69YWANOArQJei3kR9tNStjiMJYq6Few2Q331_0d0edWs8sbEq9Rm75ZfEzUZeUZdZjUpg&currency=EUR&intent=capture&components=buttons" data-namespace="paypalSDK"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -667,8 +667,7 @@ footer a:hover{color:rgba(255,255,255,.65)}
 
         <!-- Sandbox banner -->
         <div style="background:rgba(255,180,0,0.07);border:1px solid rgba(255,180,0,0.2);border-radius:5px;padding:9px 12px;margin-bottom:14px;font-size:11px;color:#c8980a;display:flex;align-items:center;gap:8px">
-          ⚠️ <span><strong>Testmodus</strong> — kein echtes Geld. Stripe: <code style="background:rgba(255,180,0,0.15);padding:1px 5px;border-radius:3px">4242 4242 4242 4242</code> · Datum &amp; CVC: beliebig</span>
-        </div>
+        
 
         <!-- Payment method -->
         <div class="slabel">ZAHLUNGSART</div>
@@ -800,7 +799,7 @@ footer a:hover{color:rgba(255,255,255,.65)}
 // ═══════════════════════════════════════════════════════
 const API        = 'https://turmxgames-booking.vercel.app/api/bookla';
 const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
-const STRIPE_PK  = 'pk_test_51RFakeKeyForDemoOnly00000000000000000000000000000000000000000000000000000000000000000000000000';
+const STRIPE_PK  = 'pk_live_51Sb05pLQ7RS9xJM0Td2s7GgG4DL8ZHlV1SsU2HLOLyALciNiwhgil8b5jSTA16Wifd5BKqzTXHiC3WFFTMqTj7Dj00vX5XklJw';
 const PRICES     = { weekday:32, friday:37, weekend:42 };
 const BASE_PRICE = 40;
 const MONTHS     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
