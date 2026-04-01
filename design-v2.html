@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TurmX Games | Jetzt Buchen</title>
+
+<!-- Barlow Condensed (display) + Plus Jakarta Sans (body) -->
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        display: ["Barlow Condensed", "sans-serif"],
+        body: ["Plus Jakarta Sans", "sans-serif"],
+      },
+      colors: {
+        cream: "#fbf9f5",
+        "cream-low": "#f5f3ef",
+        "cream-mid": "#f0eeea",
+        "cream-high": "#eae8e4",
+        border: "#e4e2de",
+        ink: "#1b1c1a",
+        "ink-muted": "#594048",
+        rose: "#b30069",
+        "rose-dark": "#880050",
+        "rose-vivid": "#df0e84",
+        "rose-soft": "#ffd9e4",
+        "rose-pale": "#fff0f6",
+      },
+    },
+  },
+}
+</script>
+
+<style>
+* { box-sizing: border-box; }
+
+.mso {
+  font-family: 'Material Symbols Outlined';
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-block;
+  user-select: none;
+}
+.mso.fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+.mso.sm { font-size: 16px; }
+.mso.lg { font-size: 28px; }
+.mso.xl { font-size: 40px; }
+
+/* Grain overlay */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Spring hover for cards */
+.event-card {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.2s ease,
+              border-color 0.15s ease,
+              background-color 0.15s ease;
+}
+.event-card:hover { transform: translateY(-4px); }
+.event-card:active { transform: translateY(-1px); }
+
+/* CTA button */
+.btn-cta {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  box-shadow: 0 4px 20px rgba(179, 0, 105, 0.3);
+}
+.btn-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(179, 0, 105, 0.45), 0 2px 8px rgba(223, 14, 132, 0.2);
+}
+.btn-cta:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(179, 0, 105, 0.2);
+}
+.btn-cta:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Calendar day */
+.cal-day {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.18s ease;
+}
+.cal-day:hover:not(.past) { transform: scale(1.1); }
+.cal-day.selected { transform: scale(1.08); }
+
+/* Nav link */
+.nav-link {
+  transition: color 0.15s ease;
+}
+
+/* Trust item hover */
+.trust-item {
+  transition: background 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.trust-item:hover { transform: translateY(-1px); }
+
+/* Stagger entrance */
+.fade-up {
+  opacity: 0;
+  animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Calendar nav btn */
+.cal-nav {
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.cal-nav:hover { background: #ffd9e4; border-color: rgba(179,0,105,0.3); }
+
+/* Step connector */
+.step-done { background: linear-gradient(90deg, #b30069, #df0e84); }
+.step-pending { background: #e4e2de; }
+
+/* Sidebar top accent */
+.sidebar-card { border-top: 3px solid #b30069; }
+
+/* Scrollbar hide */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+
+<body class="bg-cream text-ink font-body antialiased">
+
+<!-- ── NAV ─────────────────────────────────────────────── -->
+<nav class="fixed top-0 w-full z-50 h-16 flex items-center justify-between px-6 md:px-10
+            bg-white/90 backdrop-blur-xl border-b border-border">
+  <div class="flex items-center gap-4">
+    <img src="logo-cropped.png" alt="TurmX Games" class="h-8" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+    <span class="font-display text-2xl font-black tracking-tight text-ink" style="display:none">TurmX</span>
+    <a href="https://turmx.games"
+       class="nav-link flex items-center gap-1 text-xs font-semibold text-ink-muted hover:text-rose
+              pl-4 border-l border-border">
+      <span class="mso sm">chevron_left</span>
+      Zurück zur Website
+    </a>
+  </div>
+  <div class="flex items-center gap-4">
+    <a href="tel:+491725850055"
+       class="nav-link hidden sm:flex items-center gap-1.5 text-rose font-bold text-sm hover:text-rose-dark">
+      <span class="mso sm fill">call</span>
+      0172 – 58 500 55
+    </a>
+    <div class="flex items-center gap-1.5 bg-cream-low border border-border px-3 py-1.5 rounded-full">
+      <span class="mso sm fill" style="color:#b02d21">star</span>
+      <span class="text-xs font-bold text-ink">4,9 · Google</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────── -->
+<section class="relative min-h-[600px] flex flex-col items-center justify-center overflow-hidden bg-[#0C0C0C] grain pt-16">
+
+  <!-- Background image -->
+  <div class="absolute inset-0 z-0">
+    <img
+      src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-qNqhVzdlQy6XYoID0APt80_EybH3JkG7G_4yT1Xu0Fu7x37WlBW1wj7VU5vVdDl8G4MNFUE3s6IuuVS_EKYeAzhAu0Osy6Pp01Bcj7IpTlpJLcEQvdTct7numnKXX2KB6ln3cq3yWCSIDJwhLfrI96gdda2CTfZ58Ssf43wzAFMNPlDRGWWcLoiX55E3_Mhg_1O3vk1bn8-D8HYMOLgFIOYlmIZ1CiM4d5TRx3EEvJGUXe1L-gW0fGPpwugqLAB7lhONPBcfdT0"
+      alt="TurmX Games Escape Room"
+      class="w-full h-full object-cover opacity-30"
+    />
+    <!-- Gradient overlays -->
+    <div class="absolute inset-0" style="background:
+      radial-gradient(ellipse 55% 70% at 10% 70%, rgba(179,0,105,0.22) 0%, transparent 60%),
+      radial-gradient(ellipse 35% 50% at 90% 10%, rgba(223,14,132,0.1) 0%, transparent 55%),
+      linear-gradient(to top, #0C0C0C 0%, transparent 55%)
+    "></div>
+  </div>
+
+  <!-- Ratings strip -->
+  <div class="absolute top-16 left-0 right-0 z-10 bg-white/5 backdrop-blur-sm border-b border-white/10 py-2">
+    <div class="max-w-5xl mx-auto flex items-center justify-center gap-8 px-6 overflow-x-auto no-scrollbar">
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="mso sm fill" style="color:#FBBC04">star</span>
+        <span class="text-white/90 text-xs font-bold">4,9 Google · 93 Bewertungen</span>
+      </div>
+      <div class="w-px h-4 bg-white/20 flex-shrink-0"></div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="mso sm fill" style="color:#34E0A1">workspace_premium</span>
+        <span class="text-white/90 text-xs font-bold">Travelers Choice 2024</span>
+      </div>
+      <div class="w-px h-4 bg-white/20 flex-shrink-0"></div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="mso sm fill" style="color:#60a5fa">verified</span>
+        <span class="text-white/90 text-xs font-bold">Kostenlose Stornierung bis 7 Tage</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero content -->
+  <div class="relative z-10 text-center px-6 max-w-4xl mx-auto fade-up">
+    <div class="inline-flex items-center gap-3 mb-5 text-white/50 text-xs font-bold uppercase tracking-[0.3em]">
+      <span class="w-8 h-px" style="background:#b30069"></span>
+      Online Buchung
+      <span class="w-8 h-px" style="background:#b30069"></span>
+    </div>
+
+    <h1 class="font-display font-black uppercase leading-[0.88] tracking-tight text-white mb-6"
+        style="font-size: clamp(3.5rem, 10vw, 8rem)">
+      EUER TERMIN.<br/>
+      <span style="color:#df0e84">JETZT SICHERN.</span>
+    </h1>
+
+    <!-- Trust pills -->
+    <div class="flex flex-wrap justify-center gap-2.5 mt-8">
+      <div class="flex items-center gap-2 bg-white/10 border border-white/15 backdrop-blur-sm
+                  px-4 py-2 rounded-full text-white/80 text-xs font-semibold">
+        <span class="mso sm fill" style="color:#df0e84">lock</span>
+        Sichere Zahlung
+      </div>
+      <div class="flex items-center gap-2 bg-white/10 border border-white/15 backdrop-blur-sm
+                  px-4 py-2 rounded-full text-white/80 text-xs font-semibold">
+        <span class="mso sm fill" style="color:#df0e84">bolt</span>
+        Sofortbestätigung
+      </div>
+      <div class="flex items-center gap-2 bg-white/10 border border-white/15 backdrop-blur-sm
+                  px-4 py-2 rounded-full text-white/80 text-xs font-semibold">
+        <span class="mso sm fill" style="color:#df0e84">event_busy</span>
+        Gratis Stornierung
+      </div>
+      <div class="flex items-center gap-2 bg-white/10 border border-white/15 backdrop-blur-sm
+                  px-4 py-2 rounded-full text-white/80 text-xs font-semibold">
+        <span class="mso sm fill" style="color:#df0e84">payments</span>
+        Karte · PayPal · SEPA
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── BOOKING AREA ──────────────────────────────────────── -->
+<section class="max-w-[1400px] mx-auto px-4 md:px-8 -mt-10 relative z-20 pb-24">
+
+  <!-- Progress bar -->
+  <div class="bg-white border border-border rounded-2xl shadow-xl p-5 mb-10
+              flex flex-wrap md:flex-nowrap items-center gap-3
+              fade-up" style="animation-delay:.1s">
+
+    <!-- Step 1: active -->
+    <div class="flex items-center gap-3 flex-shrink-0">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center font-display font-black text-white text-sm"
+           style="background: linear-gradient(135deg,#b30069,#df0e84); box-shadow: 0 0 0 4px rgba(179,0,105,0.15)">1</div>
+      <span class="font-bold text-ink text-sm whitespace-nowrap">Event & Termin</span>
+    </div>
+
+    <div class="hidden md:block h-px flex-grow mx-2 step-done"></div>
+
+    <!-- Step 2 -->
+    <div class="flex items-center gap-3 opacity-35 flex-shrink-0">
+      <div class="w-9 h-9 rounded-full bg-cream-mid border border-border flex items-center justify-center
+                  font-display font-black text-ink-muted text-sm">2</div>
+      <span class="font-bold text-sm text-ink whitespace-nowrap">Gruppe</span>
+    </div>
+
+    <div class="hidden md:block h-px flex-grow mx-2 step-pending"></div>
+
+    <!-- Step 3 -->
+    <div class="flex items-center gap-3 opacity-35 flex-shrink-0">
+      <div class="w-9 h-9 rounded-full bg-cream-mid border border-border flex items-center justify-center
+                  font-display font-black text-ink-muted text-sm">3</div>
+      <span class="font-bold text-sm text-ink whitespace-nowrap">Kontakt</span>
+    </div>
+
+    <div class="hidden md:block h-px flex-grow mx-2 step-pending"></div>
+
+    <!-- Step 4 -->
+    <div class="flex items-center gap-3 opacity-35 flex-shrink-0">
+      <div class="w-9 h-9 rounded-full bg-cream-mid border border-border flex items-center justify-center
+                  font-display font-black text-ink-muted text-sm">4</div>
+      <span class="font-bold text-sm text-ink whitespace-nowrap">Zahlung</span>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+    <!-- ── LEFT: Main content ──────────────────────────── -->
+    <div class="lg:col-span-8 space-y-14">
+
+      <!-- EVENT SELECTION -->
+      <div class="fade-up" style="animation-delay:.2s">
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-5 h-px" style="background:#b30069"></span>
+            <span class="text-rose text-xs font-black uppercase tracking-[0.2em]">Schritt 1</span>
+          </div>
+          <h2 class="font-display text-5xl font-black uppercase tracking-tight text-ink">Was plant ihr?</h2>
+          <p class="text-ink-muted text-sm font-medium mt-1.5">
+            <span class="font-bold" style="color:#b30069">Min. 4 · Max. 16 Personen</span> pro Buchung
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+          <!-- JGA — Selected -->
+          <div class="event-card cursor-pointer relative overflow-hidden p-6 rounded-2xl border-2"
+               style="background:#ffd9e4; border-color:#b30069; box-shadow:0 6px 24px rgba(179,0,105,0.18); transform:translateY(-2px)">
+            <div class="absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center"
+                 style="background:#b30069">
+              <span class="mso sm fill text-white" style="font-size:13px">check</span>
+            </div>
+            <span class="mso xl fill block mb-5" style="color:#b30069">celebration</span>
+            <h3 class="font-display text-2xl font-black uppercase" style="color:#3e0021">JGA</h3>
+            <p class="text-sm mt-1.5 font-medium" style="color:#8d0051">Junggesellenabschied · Actiongeladen</p>
+          </div>
+
+          <!-- Firmenevent -->
+          <div class="event-card cursor-pointer relative overflow-hidden p-6 rounded-2xl border-2
+                      bg-white border-border hover:border-rose/40 hover:bg-rose-pale group">
+            <span class="mso xl block mb-5 text-ink-muted group-hover:text-rose" style="transition:color .15s">apartment</span>
+            <h3 class="font-display text-2xl font-black uppercase text-ink">Firmenevent</h3>
+            <p class="text-sm mt-1.5 font-medium text-ink-muted">Team-Building auf neuem Level</p>
+          </div>
+
+          <!-- Team Event -->
+          <div class="event-card cursor-pointer relative overflow-hidden p-6 rounded-2xl border-2
+                      bg-white border-border hover:border-rose/40 hover:bg-rose-pale group">
+            <span class="mso xl block mb-5 text-ink-muted group-hover:text-rose" style="transition:color .15s">groups</span>
+            <h3 class="font-display text-2xl font-black uppercase text-ink">Team Event</h3>
+            <p class="text-sm mt-1.5 font-medium text-ink-muted">Abteilungsfeier mal anders</p>
+          </div>
+
+          <!-- Freunde & Familie -->
+          <div class="event-card cursor-pointer relative overflow-hidden p-6 rounded-2xl border-2
+                      bg-white border-border hover:border-rose/40 hover:bg-rose-pale group">
+            <span class="mso xl block mb-5 text-ink-muted group-hover:text-rose" style="transition:color .15s">diversity_1</span>
+            <h3 class="font-display text-2xl font-black uppercase text-ink">Freunde & Familie</h3>
+            <p class="text-sm mt-1.5 font-medium text-ink-muted">Rätselspaß und Adrenalin für alle</p>
+          </div>
+        </div>
+
+        <!-- More options collapsed -->
+        <button class="mt-3 w-full flex items-center justify-between px-4 py-3 rounded-xl
+                       border border-dashed border-border text-ink-muted text-sm font-semibold
+                       hover:border-rose/40 hover:text-rose transition-all">
+          <span>Weitere Optionen: Kindergeburtstag · Schule · Verein</span>
+          <span class="mso sm">expand_more</span>
+        </button>
+      </div>
+
+      <!-- CALENDAR -->
+      <div class="fade-up" style="animation-delay:.3s">
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-5 h-px" style="background:#b30069"></span>
+            <span class="text-rose text-xs font-black uppercase tracking-[0.2em]">Schritt 2</span>
+          </div>
+          <div class="flex justify-between items-end gap-4">
+            <div>
+              <h2 class="font-display text-5xl font-black uppercase tracking-tight text-ink">Wann kommt ihr?</h2>
+              <p class="text-ink-muted text-sm font-medium mt-1.5">April 2026 — Verfügbarkeit live geladen</p>
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+              <button class="cal-nav w-9 h-9 rounded-full bg-cream-low border border-border
+                             flex items-center justify-center">
+                <span class="mso sm">chevron_left</span>
+              </button>
+              <button class="cal-nav w-9 h-9 rounded-full bg-cream-low border border-border
+                             flex items-center justify-center">
+                <span class="mso sm">chevron_right</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-border rounded-2xl p-6">
+          <!-- Weekday headers -->
+          <div class="grid grid-cols-7 gap-2 text-center mb-4">
+            <span class="text-[10px] font-black text-ink-muted/60 uppercase tracking-widest">Mo</span>
+            <span class="text-[10px] font-black text-ink-muted/60 uppercase tracking-widest">Di</span>
+            <span class="text-[10px] font-black text-ink-muted/60 uppercase tracking-widest">Mi</span>
+            <span class="text-[10px] font-black text-ink-muted/60 uppercase tracking-widest">Do</span>
+            <span class="text-[10px] font-black text-ink-muted/60 uppercase tracking-widest">Fr</span>
+            <span class="text-[10px] font-black text-ink-muted/60 uppercase tracking-widest">Sa</span>
+            <span class="text-[10px] font-black text-ink-muted/60 uppercase tracking-widest">So</span>
+          </div>
+
+          <div class="grid grid-cols-7 gap-2">
+            <!-- Past month overflow -->
+            <div class="aspect-square flex items-center justify-center text-xs font-medium text-ink/15 past">28</div>
+            <div class="aspect-square flex items-center justify-center text-xs font-medium text-ink/15 past">29</div>
+            <div class="aspect-square flex items-center justify-center text-xs font-medium text-ink/15 past">30</div>
+            <div class="aspect-square flex items-center justify-center text-xs font-medium text-ink/15 past">31</div>
+
+            <!-- Week 1: Fri–Sun (more expensive) -->
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose/50 transition-all">
+              <span class="text-sm font-bold">01</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#f59e0b"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose/50 transition-all">
+              <span class="text-sm font-bold">02</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#f59e0b"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose/50 transition-all">
+              <span class="text-sm font-bold">03</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#f59e0b"></span>
+            </button>
+
+            <!-- Week 2: Mon–Thu (cheap/available) -->
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose transition-all">
+              <span class="text-sm font-bold">04</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#22c55e"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose transition-all">
+              <span class="text-sm font-bold">05</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#22c55e"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose transition-all">
+              <span class="text-sm font-bold">06</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#22c55e"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose transition-all">
+              <span class="text-sm font-bold">07</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#22c55e"></span>
+            </button>
+
+            <!-- Day 08: Selected -->
+            <button class="cal-day selected aspect-square rounded-xl flex flex-col items-center justify-center
+                           text-white ring-4"
+                    style="background:linear-gradient(135deg,#b30069,#df0e84);
+                           box-shadow:0 4px 18px rgba(179,0,105,0.4);
+                           ring-color:rgba(179,0,105,0.2)">
+              <span class="text-sm font-black">08</span>
+              <span class="text-[9px] font-bold uppercase tracking-wide opacity-80 mt-0.5">gewählt</span>
+            </button>
+
+            <!-- Fri–Sun again -->
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose/50 transition-all">
+              <span class="text-sm font-bold">09</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#f59e0b"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose/50 transition-all">
+              <span class="text-sm font-bold">10</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#f59e0b"></span>
+            </button>
+
+            <!-- Week 3 -->
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose transition-all">
+              <span class="text-sm font-bold">11</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#22c55e"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose transition-all">
+              <span class="text-sm font-bold">12</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#22c55e"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose transition-all">
+              <span class="text-sm font-bold">13</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#22c55e"></span>
+            </button>
+            <button class="cal-day aspect-square bg-cream-low rounded-xl flex flex-col items-center justify-center
+                           hover:ring-2 hover:ring-rose transition-all">
+              <span class="text-sm font-bold">14</span>
+              <span class="w-1.5 h-1.5 rounded-full mt-0.5" style="background:#22c55e"></span>
+            </button>
+          </div>
+
+          <!-- Legend + pricing -->
+          <div class="mt-6 pt-5 border-t border-border flex flex-wrap gap-5">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" style="background:#22c55e"></span>
+              <span class="text-xs font-semibold text-ink-muted">Mo–Do · 32 €/Person</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" style="background:#f59e0b"></span>
+              <span class="text-xs font-semibold text-ink-muted">Fr 37 € · Sa–So 42 €/Person</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" style="background:#b30069"></span>
+              <span class="text-xs font-semibold text-ink-muted">Ausgewählt</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── RIGHT: Sidebar ──────────────────────────────── -->
+    <div class="lg:col-span-4 sticky top-24 space-y-4 fade-up" style="animation-delay:.25s">
+
+      <!-- Summary card -->
+      <div class="bg-white border border-border rounded-2xl shadow-lg p-7 sidebar-card">
+        <div class="mb-6">
+          <h3 class="font-display text-2xl font-black uppercase tracking-tight text-ink">Deine Buchung</h3>
+          <p class="text-[10px] font-black text-ink-muted uppercase tracking-[0.2em] mt-0.5">Zusammenfassung</p>
+        </div>
+
+        <div class="space-y-3 mb-6">
+          <div class="flex justify-between items-center">
+            <span class="text-ink-muted text-sm font-medium">Event</span>
+            <span class="text-ink text-sm font-bold">JGA Special</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-ink-muted text-sm font-medium">Termin</span>
+            <span class="text-ink text-sm font-bold">08. April 2026</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-ink-muted text-sm font-medium">Uhrzeit</span>
+            <span class="text-ink-muted text-sm font-medium italic">Noch wählen</span>
+          </div>
+
+          <div class="h-px bg-border"></div>
+
+          <div class="flex justify-between items-center">
+            <span class="text-ink-muted text-sm font-medium">Grundgebühr</span>
+            <span class="text-ink text-sm font-bold">40,00 €</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-ink-muted text-sm font-medium">Pro Person (×8)</span>
+            <span class="text-ink text-sm font-bold">35,00 €</span>
+          </div>
+
+          <div class="h-px bg-border"></div>
+
+          <div class="flex justify-between items-center">
+            <span class="font-black text-ink">Gesamt</span>
+            <span class="font-display text-3xl font-black" style="color:#b30069">320,00 €</span>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <button class="btn-cta w-full text-white py-4 rounded-xl font-display font-black text-xl
+                       uppercase tracking-wide flex items-center justify-center gap-2"
+                style="background: linear-gradient(135deg, #b30069, #df0e84)">
+          Weiter zur Gruppe
+          <span class="mso fill" style="font-size:20px">arrow_forward</span>
+        </button>
+
+        <p class="text-center text-xs text-ink-muted/60 mt-3 flex items-center justify-center gap-1">
+          <span class="mso sm fill" style="color:#22c55e;font-size:13px">lock</span>
+          256-bit SSL · Stripe · PayPal
+        </p>
+      </div>
+
+      <!-- Trust items -->
+      <div class="bg-white border border-border rounded-2xl p-5 space-y-3">
+        <div class="trust-item flex items-center gap-3 p-2.5 rounded-xl hover:bg-cream-low">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+            <span class="mso fill" style="color:#16a34a;font-size:18px">verified_user</span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-ink">Sichere Zahlung</p>
+            <p class="text-xs text-ink-muted">SSL · DSGVO · PCI DSS</p>
+          </div>
+        </div>
+
+        <div class="h-px bg-cream-mid"></div>
+
+        <div class="trust-item flex items-center gap-3 p-2.5 rounded-xl hover:bg-cream-low">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
+            <span class="mso fill" style="color:#2563eb;font-size:18px">event_busy</span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-ink">Gratis Stornierung</p>
+            <p class="text-xs text-ink-muted">Bis 7 Tage vor dem Event</p>
+          </div>
+        </div>
+
+        <div class="h-px bg-cream-mid"></div>
+
+        <div class="trust-item flex items-center gap-3 p-2.5 rounded-xl hover:bg-cream-low">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
+            <span class="mso fill" style="color:#d97706;font-size:18px">bolt</span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-ink">Sofortbestätigung</p>
+            <p class="text-xs text-ink-muted">Buchungsreferenz per E-Mail</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact -->
+      <div class="text-center py-3">
+        <p class="text-sm text-ink-muted">
+          Fragen?
+          <a href="tel:+491725850055" class="font-bold hover:underline" style="color:#b30069">
+            0172 – 58 500 55
+          </a>
+        </p>
+        <p class="text-xs text-ink-muted/60 mt-0.5">Täglich · Antwort innerhalb 24 Std.</p>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer class="bg-cream-mid border-t border-border py-8 px-8">
+  <div class="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo-cropped.png" alt="TurmX Games" class="h-5 opacity-50"
+           onerror="this.style.display='none'"/>
+      <span class="text-xs text-ink-muted">© 2025 TurmX Games · Kurfürstenstr. 58–60, Brühl</span>
+    </div>
+    <div class="flex gap-6">
+      <a href="https://turmx.games/datenschutz" class="text-xs text-ink-muted hover:text-rose transition-colors">Datenschutz</a>
+      <a href="https://turmx.games/impressum"   class="text-xs text-ink-muted hover:text-rose transition-colors">Impressum</a>
+      <a href="https://turmx.games/agb"          class="text-xs text-ink-muted hover:text-rose transition-colors">AGB</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
