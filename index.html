@@ -33,23 +33,23 @@ body{font-family:"Plus Jakarta Sans",sans-serif;background:var(--dark);color:#ff
 .ms.xl{font-size:36px}
 
 /* ── FOCUSED NAV ── */
-nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:64px;background:rgba(12,12,12,0.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd)}
+nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:64px;background:rgba(255,255,255,0.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--lbdr)}
 .nav-l{display:flex;align-items:center;gap:16px}
 .nav-logo img{height:34px;display:block}
-.nav-back{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,.35);text-decoration:none;border-left:1px solid var(--bd);padding-left:16px;transition:color .2s}
-.nav-back:hover{color:rgba(255,255,255,.7)}
+.nav-back{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:1px;color:var(--tmu);text-decoration:none;border-left:1px solid var(--lbdr);padding-left:16px;transition:color .2s}
+.nav-back:hover{color:var(--td)}
 .nav-r{display:flex;flex-direction:column;align-items:flex-end}
-.nav-r a{font-family:"Barlow Condensed",sans-serif;font-size:16px;letter-spacing:1.5px;color:rgba(255,255,255,.75);text-decoration:none;line-height:1.1;transition:color .2s}
-.nav-r a:hover{color:#fff}
-.nav-r span{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:1px}
+.nav-r a{font-family:"Barlow Condensed",sans-serif;font-size:16px;letter-spacing:1.5px;color:var(--red);text-decoration:none;line-height:1.1;transition:opacity .2s;font-weight:700}
+.nav-r a:hover{opacity:.75}
+.nav-r span{font-size:9px;color:var(--tmu);letter-spacing:1px}
 
 /* ── RATINGS ── */
-.rbar{margin-top:64px;background:#161616;border-bottom:1px solid var(--bd);padding:8px 48px;display:flex;align-items:center;gap:18px;overflow-x:auto;scrollbar-width:none}
+.rbar{margin-top:64px;background:var(--lb);border-bottom:1px solid var(--lbdr);padding:8px 48px;display:flex;align-items:center;gap:18px;overflow-x:auto;scrollbar-width:none}
 .rbar::-webkit-scrollbar{display:none}
 .rg{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .rscore{font-family:"Barlow Condensed",sans-serif;font-size:16px;line-height:1}
-.rsep{width:1px;height:14px;background:var(--bd);flex-shrink:0}
-.rextra{font-size:11px;color:var(--muted);white-space:nowrap}
+.rsep{width:1px;height:14px;background:var(--lbdr);flex-shrink:0}
+.rextra{font-size:11px;color:var(--tm);white-space:nowrap}
 
 /* ── HERO ── */
 .hero{padding:40px 60px 32px;background:var(--dark2);border-bottom:1px solid var(--bd);position:relative;overflow:hidden}
@@ -78,27 +78,33 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .mob-bar-drop.open{display:block}
 
 /* ── BOOKING AREA ── */
-.barea{background:var(--lb);padding:40px 60px 80px}
+.barea{background:var(--lb);padding:0 60px 80px}
 .binner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 340px;gap:36px;align-items:start}
 
-/* ── BOOKING CARD ── */
-.bcard{background:var(--lc);border:1px solid var(--lbdr);border-radius:14px;overflow:hidden;box-shadow:0 8px 48px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);position:relative;animation:fadeUp .5s cubic-bezier(0.22,1,0.36,1) .1s both}
-.bcard::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad);z-index:1}
+/* ── BOOKING CARD ── transparent wrapper now */
+.bcard{background:transparent;border:none;border-radius:0;overflow:visible;box-shadow:none;position:relative;animation:fadeUp .5s cubic-bezier(0.22,1,0.36,1) .1s both}
+.bcard::before{display:none}
 .sidebar{animation:fadeUp .5s cubic-bezier(0.22,1,0.36,1) .2s both}
 
-/* STEP HEADER */
-.shdr{padding:20px 24px 0;display:flex;gap:8px;margin-bottom:20px}
-.sdot{width:28px;height:28px;border-radius:50%;border:2px solid var(--lbdr);display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-size:13px;color:var(--tmu);flex-shrink:0;transition:all .4s cubic-bezier(0.34,1.56,0.64,1);background:var(--lb)}
-.sdot.active{border-color:var(--red);color:#fff;background:var(--red);transform:scale(1.15);box-shadow:0 0 0 4px rgba(192,57,43,.15)}
+/* STEP HEADER — flat centered progress bar above grid */
+.shdr{display:flex;justify-content:center;align-items:center;gap:0;padding:28px 60px 36px;margin-bottom:0;max-width:1160px;margin-left:auto;margin-right:auto}
+.sstep{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.sdot{width:30px;height:30px;border-radius:50%;border:2px solid var(--lbdr);display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-size:13px;color:var(--tmu);flex-shrink:0;transition:all .4s cubic-bezier(0.34,1.56,0.64,1);background:var(--lb)}
+.sdot.active{border-color:var(--red);color:#fff;background:var(--grad);transform:scale(1.12);box-shadow:0 0 0 4px rgba(192,57,43,.15)}
 .sdot.done{border-color:var(--rb);color:var(--red);background:var(--rl)}
-.sline{flex:1;height:2px;background:var(--lbdr);margin:12px -4px 0;align-self:flex-start;transition:background .5s ease}
+.sdot-lbl{font-size:12px;font-weight:700;color:var(--tmu);white-space:nowrap;transition:color .4s}
+.sdot.active + .sdot-lbl{color:var(--td)}
+.sdot.done + .sdot-lbl{color:var(--td)}
+.sline{width:44px;flex:none;height:2px;background:var(--lbdr);margin:0 14px;align-self:center;transition:background .5s ease}
 .sline.done{background:linear-gradient(90deg,var(--red),var(--pink))}
 
 /* STEP PANELS */
-.sp{display:none;padding:0 24px 24px;animation:fadeUp .4s cubic-bezier(0.22,1,0.36,1) both}
+.sp{display:none;padding:0 0 32px;animation:fadeUp .4s cubic-bezier(0.22,1,0.36,1) both}
 .sp.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
-.stitle{font-family:"Barlow Condensed",sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:16px;color:var(--td);font-weight:800}
+.stitle{font-family:"Barlow Condensed",sans-serif;font-size:36px;letter-spacing:1.5px;margin-bottom:4px;color:var(--td);font-weight:900;line-height:1}
+.stitle-sub{font-size:10px;color:var(--red);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;margin-top:0;display:flex;align-items:center;gap:6px}
+.stitle-sub::before{content:"";width:20px;height:1.5px;background:var(--red);flex-shrink:0}
 .slabel{font-size:9px;letter-spacing:2px;color:var(--tmu);margin-bottom:8px;font-weight:700;text-transform:uppercase}
 
 /* EVENT GRID */
@@ -270,7 +276,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .sumtot .sumval{color:var(--red);font-size:21px}
 
 /* STEP NAV */
-.snav{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-top:1px solid var(--lbdr);background:var(--lb2)}
+.snav{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-top:1px solid var(--lbdr);background:transparent}
 .bbk{background:transparent;border:1.5px solid var(--lbdr);color:var(--tmu);font-family:"Barlow Condensed",sans-serif;font-size:13px;letter-spacing:2px;padding:9px 20px;border-radius:4px;cursor:pointer;transition:all .2s ease}
 .bbk:hover{border-color:var(--tm);color:var(--td);transform:translateX(-2px)}
 .bnxt{background:var(--grad);border:none;color:#fff;font-family:"Barlow Condensed",sans-serif;font-size:15px;letter-spacing:2px;padding:11px 28px;border-radius:5px;cursor:pointer;transition:transform .2s cubic-bezier(0.34,1.56,0.64,1),box-shadow .2s ease;display:flex;align-items:center;gap:7px;box-shadow:0 4px 20px rgba(192,57,43,.3)}
@@ -288,7 +294,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .sidebar{position:sticky;top:84px;display:flex;flex-direction:column;gap:14px}
 .scard{background:var(--lc);border:1px solid var(--lbdr);border-radius:12px;padding:18px;box-shadow:0 2px 16px rgba(0,0,0,0.06);transition:transform .22s cubic-bezier(0.34,1.56,0.64,1),box-shadow .22s ease}
 .scard:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.1)}
-.scard.accent{border-color:var(--rb);background:linear-gradient(135deg,rgba(192,57,43,.04),rgba(233,30,140,.02))}
+.scard.accent{border-color:var(--rb);background:var(--lc);border-top:3px solid var(--red)}
 .scard-title{font-family:"Barlow Condensed",sans-serif;font-size:16px;letter-spacing:2px;margin-bottom:12px;color:var(--td)}
 .sprow{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--lbdr)}
 .sprow:last-child{border-bottom:none}
@@ -323,8 +329,11 @@ footer a:hover{color:rgba(255,255,255,.65)}
   .trust{display:none}
   .mob-bar{display:flex;top:60px}
   .mob-bar-drop{top:104px}
-  .barea{padding:20px 0 56px}
+  .barea{padding:0 0 56px}
   .binner{grid-template-columns:1fr;padding:0 14px;gap:18px}
+  .shdr{padding:20px 14px 28px}
+  .sdot-lbl{display:none}
+  .sline{width:28px;margin:0 8px}
   .sidebar{position:static}
   .egrid{grid-template-columns:1fr 1fr}
   .special-grid{grid-template-columns:1fr 1fr 1fr}
@@ -385,7 +394,7 @@ footer a:hover{color:rgba(255,255,255,.65)}
     <svg width="14" height="14" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
     <span class="rscore" style="color:#FBBC04">4,9</span>
     <span style="color:#FBBC04;font-size:11px">★★★★★</span>
-    <span style="font-size:10px;color:var(--muted);letter-spacing:1px">GOOGLE · 93 BEWERTUNGEN</span>
+    <span style="font-size:10px;color:var(--tm);letter-spacing:1px">GOOGLE · 93 BEWERTUNGEN</span>
   </div>
   <div class="rsep"></div>
   <div class="rg">
@@ -438,24 +447,39 @@ footer a:hover{color:rgba(255,255,255,.65)}
 
 <!-- BOOKING AREA -->
 <div class="barea" id="buchung">
+
+  <!-- Progress bar — centered above grid -->
+  <div class="shdr">
+    <div class="sstep">
+      <div class="sdot active" id="dot1">1</div>
+      <span class="sdot-lbl" id="lbl1">Event & Termin</span>
+    </div>
+    <div class="sline" id="line1"></div>
+    <div class="sstep">
+      <div class="sdot" id="dot2">2</div>
+      <span class="sdot-lbl" id="lbl2">Gruppe</span>
+    </div>
+    <div class="sline" id="line2"></div>
+    <div class="sstep">
+      <div class="sdot" id="dot3">3</div>
+      <span class="sdot-lbl" id="lbl3">Kontakt</span>
+    </div>
+    <div class="sline" id="line3"></div>
+    <div class="sstep">
+      <div class="sdot" id="dot4">4</div>
+      <span class="sdot-lbl" id="lbl4">Zahlung</span>
+    </div>
+  </div>
+
   <div class="binner">
 
-    <!-- MAIN CARD -->
+    <!-- MAIN CARD — transparent wrapper -->
     <div class="bcard">
-      <!-- Step dots -->
-      <div class="shdr">
-        <div class="sdot active" id="dot1">1</div>
-        <div class="sline" id="line1"></div>
-        <div class="sdot" id="dot2">2</div>
-        <div class="sline" id="line2"></div>
-        <div class="sdot" id="dot3">3</div>
-        <div class="sline" id="line3"></div>
-        <div class="sdot" id="dot4">4</div>
-      </div>
 
       <!-- STEP 1: Event & Termin -->
       <div class="sp active" id="step1">
-        <div class="stitle">Event &amp; Termin</div>
+        <div class="stitle-sub">Schritt 1 · Event &amp; Termin</div>
+        <div class="stitle">Was plant ihr?</div>
 
         <!-- Event types -->
         <div class="slabel">ART DES EVENTS</div>
@@ -600,7 +624,8 @@ footer a:hover{color:rgba(255,255,255,.65)}
 
       <!-- STEP 2: Gruppe -->
       <div class="sp" id="step2">
-        <div class="stitle">Eure Gruppe</div>
+        <div class="stitle-sub">Schritt 2 · Eure Gruppe</div>
+        <div class="stitle">Wie viele seid ihr?</div>
         <div class="slabel">PERSONENANZAHL</div>
         <div class="qrow">
           <button class="qbtn" onclick="chgQty(-1)">−</button>
@@ -641,6 +666,7 @@ footer a:hover{color:rgba(255,255,255,.65)}
 
       <!-- STEP 3: Kontakt -->
       <div class="sp" id="step3">
+        <div class="stitle-sub">Schritt 3 · Kontaktdaten</div>
         <div class="stitle">Eure Daten</div>
         <div class="frow">
           <div class="fg"><label class="flbl">VORNAME <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="fname" placeholder="Max"></div>
@@ -667,6 +693,11 @@ footer a:hover{color:rgba(255,255,255,.65)}
             <div class="fg"><label class="flbl">UMSATZSTEUER-ID</label><input type="text" class="finput" id="ustid" placeholder="DE123456789"></div>
             <div class="fg"><label class="flbl">ABTEILUNG</label><input type="text" class="finput" id="dept" placeholder="z.B. Marketing"></div>
           </div>
+          <div class="fg"><label class="flbl">STRASSE &amp; HAUSNUMMER <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="companyStreet" placeholder="Musterstraße 12"></div>
+          <div class="frow">
+            <div class="fg" style="flex:0 0 140px"><label class="flbl">PLZ <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="companyZip" placeholder="12345"></div>
+            <div class="fg"><label class="flbl">ORT <span style="color:var(--red)">*</span></label><input type="text" class="finput" id="companyCity" placeholder="Musterstadt"></div>
+          </div>
           <div class="info-box">ℹ️ Rechnung mit ausgewiesener MwSt. wird automatisch erstellt und per E-Mail zugesandt.</div>
         </div>
 
@@ -678,7 +709,8 @@ footer a:hover{color:rgba(255,255,255,.65)}
 
       <!-- STEP 4: Zahlung -->
       <div class="sp" id="step4">
-        <div class="stitle">Zahlung</div>
+        <div class="stitle-sub">Schritt 4 · Zahlung</div>
+        <div class="stitle">Jetzt bezahlen</div>
 
         <!-- Summary -->
         <div class="sumbox">
@@ -836,7 +868,8 @@ footer a:hover{color:rgba(255,255,255,.65)}
 // ═══════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════
-const API        = 'https://turmxgames-booking.vercel.app/api/bookla';
+const API         = 'https://turmxgames-booking.vercel.app/api/bookla';
+const INVOICE_API = 'https://turmxgames-booking.vercel.app/api/invoice';
 const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
 const STRIPE_PK  = 'pk_live_51Sb05pLQ7RS9xJM0Td2s7GgG4DL8ZHlV1SsU2HLOLyALciNiwhgil8b5jSTA16Wifd5BKqzTXHiC3WFFTMqTj7Dj00vX5XklJw';
 const PRICES     = { weekday:32, friday:37, weekend:42 };
@@ -1324,6 +1357,10 @@ function step3Next(){
   em.classList.toggle('invalid',!validEmail);
   $('errEmail').classList.toggle('show',!validEmail);
   if(!validEmail)ok=false;
+  if(S.eventKey==='firma'){
+    const cn=$('company'),cs=$('companyStreet'),cz=$('companyZip'),cc=$('companyCity');
+    [cn,cs,cz,cc].forEach(f=>{f.classList.toggle('invalid',!f.value.trim());if(!f.value.trim())ok=false;});
+  }
   if(ok)goStep(4);
 }
 
@@ -1416,7 +1453,7 @@ async function handlePayment(){
   const btn=$('payBtn'), orig=btn.innerHTML;
   btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Verarbeitung…';
   try{
-    if(S.payMethod==='invoice'){await delay(600);await submitBooking();return;}
+    if(S.payMethod==='invoice'){await submitBookingInvoice();return;}
     if(S.payMethod==='cc'){
       if(!stripe){await delay(1200);await submitBooking();return;}
       let clientSecret;
@@ -1438,6 +1475,32 @@ async function handlePayment(){
 // ═══════════════════════════════════════════════════════
 // SUBMIT BOOKING
 // ═══════════════════════════════════════════════════════
+async function callInvoiceAPI(bookingId){
+  try{
+    await fetch(INVOICE_API+'?action=create-invoice',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        bookingId,
+        serviceName:S.eventName,
+        groupSize:S.qty,
+        amount:getTotal(),
+        paymentMethod:S.payMethod,
+        date:S.dateStr,
+        time:S.time,
+        firstName:$('fname')?.value?.trim(),
+        lastName:$('lname')?.value?.trim(),
+        email:$('email')?.value?.trim(),
+        phone:$('phone')?.value?.trim()||null,
+        companyName:$('company')?.value?.trim()||null,
+        companyStreet:$('companyStreet')?.value?.trim()||null,
+        companyZip:$('companyZip')?.value?.trim()||null,
+        companyCity:$('companyCity')?.value?.trim()||null,
+        ustId:$('ustid')?.value?.trim()||null,
+      }),
+    });
+  }catch(e){console.error('[Invoice]',e);}
+}
+
 async function submitBooking(paymentId){
   try{
     const payload={
@@ -1462,11 +1525,41 @@ promoCode: promoState.code || null,
     const booking=await r.json();
 if(!r.ok) throw new Error(booking.error||'Buchung fehlgeschlagen');
     const ref=booking.id?'BKL-'+String(booking.id).slice(-6).toUpperCase():'GSH-'+Math.floor(100000+Math.random()*900000);
+    if(booking.id)callInvoiceAPI(booking.id);
     showSuccess(ref);
   }catch(e){
     console.error('Bookla error:',e);
     showSuccess('GSH-'+Math.floor(100000+Math.random()*900000));
   }
+}
+
+async function submitBookingInvoice(){
+  const notes=[
+    'Event: '+S.eventName,
+    'Datum: '+S.dateStr+' '+S.time+' Uhr',
+    'Personen: '+S.qty,
+    'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
+    'Zahlung: Auf Rechnung',
+    $('company')?.value?'Firma: '+$('company').value:null,
+    $('wishes')?.value?.trim()||null,
+  ].filter(Boolean).join(' | ');
+  const payload={
+    serviceId:SERVICE_ID,date:S.dateStr,time:S.time,groupSize:S.qty,
+    firstName:$('fname')?.value?.trim(),lastName:$('lname')?.value?.trim(),
+    email:$('email')?.value?.trim(),phone:$('phone')?.value?.trim()||null,
+    serviceName:S.eventName,amount:getTotal(),notes,
+    companyName:$('company')?.value?.trim()||null,
+    companyStreet:$('companyStreet')?.value?.trim()||null,
+    companyZip:$('companyZip')?.value?.trim()||null,
+    companyCity:$('companyCity')?.value?.trim()||null,
+    ustId:$('ustid')?.value?.trim()||null,
+    promoCode:promoState.code||null,
+  };
+  const r=await fetch(API+'?action=create-booking-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const booking=await r.json();
+  if(!r.ok)throw new Error(booking.error||'Buchung fehlgeschlagen');
+  const ref=booking.id?'BKL-'+String(booking.id).slice(-6).toUpperCase():'GSH-'+Math.floor(100000+Math.random()*900000);
+  showSuccess(ref);
 }
 
 function showSuccess(ref){

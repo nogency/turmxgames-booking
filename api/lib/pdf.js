@@ -1,0 +1,149 @@
+const PDFDocument = require('pdfkit');
+const path = require('path');
+const fs = require('fs');
+
+const COMPANY = {
+  name: 'TurmXGames | HB Kletterwelten GmbH',
+  address: 'Kurfürstenstr. 58–60 · 50321 Brühl',
+  ustId: 'DE328174568',
+  hrb: 'HRB 100875 (AG Köln)',
+  gf: 'Raimund Bechtloff · Achim Heymann · Marco Gleißner',
+  phone: '0 172 585 00 55',
+  email: 'games@turmx.de',
+};
+
+function fmtEur(amount) {
+  return amount.toFixed(2).replace('.', ',') + ' €';
+}
+
+function generateInvoicePDF(data) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const LEFT = 50;
+    const RIGHT = doc.page.width - 50;
+    const W = RIGHT - LEFT;
+
+    // ── LOGO ──
+    const logoPath = path.join(__dirname, '../../logo-cropped.png');
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, LEFT, 45, { height: 36 });
+    }
+
+    // ── TITLE top right ──
+    doc.font('Helvetica-Bold').fontSize(22).fillColor('#C0392B')
+       .text('RECHNUNG', 0, 45, { align: 'right' });
+    doc.font('Helvetica').fontSize(9).fillColor('#444')
+       .text(`Rechnungsnummer: ${data.invoiceNumber}`, { align: 'right' })
+       .text(`Rechnungsdatum: ${data.invoiceDate}`, { align: 'right' })
+       .text(`Leistungsdatum: ${data.serviceDate}`, { align: 'right' });
+
+    // ── COMPANY ADDRESS ──
+    doc.moveDown(1.5);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#1a1a1a')
+       .text(COMPANY.name, LEFT);
+    doc.font('Helvetica').fontSize(8.5).fillColor('#555')
+       .text(COMPANY.address);
+
+    // ── DIVIDER ──
+    const d1y = doc.y + 12;
+    doc.moveTo(LEFT, d1y).lineTo(RIGHT, d1y).strokeColor('#e0ddd7').lineWidth(0.75).stroke();
+    doc.y = d1y + 16;
+
+    // ── CUSTOMER SECTION ──
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#888').text('RECHNUNGSEMPFÄNGER', LEFT);
+    doc.moveDown(0.3);
+    doc.font('Helvetica').fontSize(10).fillColor('#1a1a1a');
+
+    if (data.isCompany) {
+      doc.text(data.companyName);
+      doc.font('Helvetica').fontSize(9).fillColor('#444')
+         .text(`${data.firstName} ${data.lastName}`)
+         .text(data.companyStreet)
+         .text(`${data.companyZip} ${data.companyCity}`);
+      if (data.ustId) doc.text(`USt-ID: ${data.ustId}`);
+    } else {
+      doc.text(`${data.firstName} ${data.lastName}`);
+    }
+
+    doc.font('Helvetica').fontSize(9).fillColor('#666').text(data.email);
+    if (data.phone) doc.text(data.phone);
+
+    // ── TABLE ──
+    const tableY = doc.y + 20;
+    const c = { desc: LEFT, qty: LEFT + 255, netto: LEFT + 320, mwst: LEFT + 390, brutto: LEFT + 453 };
+
+    // Header row
+    doc.rect(LEFT, tableY, W, 22).fill('#f4f2ee');
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#555');
+    doc.text('LEISTUNG', c.desc + 6, tableY + 7);
+    doc.text('MENGE', c.qty, tableY + 7);
+    doc.text('NETTO', c.netto, tableY + 7);
+    doc.text('MWST 19%', c.mwst, tableY + 7);
+    doc.text('BRUTTO', c.brutto, tableY + 7);
+
+    // Data row
+    const rowY = tableY + 26;
+    doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a');
+    doc.text(data.serviceName, c.desc + 6, rowY, { width: 240 });
+    doc.text(`${data.groupSize} Pers.`, c.qty, rowY);
+    doc.text(fmtEur(data.tax.netto), c.netto, rowY);
+    doc.text(fmtEur(data.tax.mwst), c.mwst, rowY);
+    doc.text(fmtEur(data.tax.brutto), c.brutto, rowY);
+
+    // Totals
+    const totY = rowY + 28;
+    doc.moveTo(LEFT, totY).lineTo(RIGHT, totY).strokeColor('#e0ddd7').lineWidth(0.75).stroke();
+    const totLabelX = c.netto - 10;
+    const totValW = RIGHT - c.brutto;
+
+    doc.font('Helvetica').fontSize(9).fillColor('#444');
+    doc.text('Netto:', totLabelX, totY + 10, { width: 60, align: 'right' });
+    doc.text(fmtEur(data.tax.netto), c.brutto, totY + 10, { width: totValW, align: 'right' });
+    doc.text('MwSt. 19%:', totLabelX, totY + 24, { width: 60, align: 'right' });
+    doc.text(fmtEur(data.tax.mwst), c.brutto, totY + 24, { width: totValW, align: 'right' });
+
+    doc.rect(totLabelX - 10, totY + 38, RIGHT - totLabelX + 10, 22).fill('#f4f2ee');
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#1a1a1a');
+    doc.text('GESAMT:', totLabelX, totY + 44, { width: 60, align: 'right' });
+    doc.text(fmtEur(data.tax.brutto), c.brutto, totY + 44, { width: totValW, align: 'right' });
+
+    // ── ZAHLUNGSART ──
+    const payY = totY + 76;
+    const payLabels = { cc: 'Kreditkarte', paypal: 'PayPal', sepa: 'SEPA Lastschrift', invoice: 'Kauf auf Rechnung' };
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#888').text('ZAHLUNGSART', LEFT, payY);
+    doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a')
+       .text(payLabels[data.paymentMethod] || data.paymentMethod, LEFT, payY + 12);
+
+    // ── BANK DETAILS (nur bei "invoice" und wenn IBAN vorhanden) ──
+    if (data.paymentMethod === 'invoice' && data.bankIban) {
+      const bankY = payY + 36;
+      doc.rect(LEFT, bankY, W, 76).fillAndStroke('#fff8f0', '#f5c99a');
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#c0392b')
+         .text(`BITTE ÜBERWEISEN SIE DEN BETRAG BIS ZUM ${data.dueDate}`, LEFT + 10, bankY + 10);
+      doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a')
+         .text(`Kontoinhaber: ${data.bankOwner}`, LEFT + 10, bankY + 26)
+         .text(`IBAN: ${data.bankIban}`, LEFT + 10, bankY + 39)
+         .text(`BIC: ${data.bankBic}`, LEFT + 10, bankY + 52)
+         .text(`Verwendungszweck: ${data.invoiceNumber}`, LEFT + 10, bankY + 65);
+    }
+
+    // ── FOOTER ──
+    const footY = doc.page.height - 70;
+    doc.moveTo(LEFT, footY).lineTo(RIGHT, footY).strokeColor('#e0ddd7').lineWidth(0.75).stroke();
+    doc.font('Helvetica').fontSize(7.5).fillColor('#999')
+       .text(
+         `HB Kletterwelten GmbH · USt-IdNr. ${COMPANY.ustId} · ${COMPANY.hrb} · Geschäftsführer: ${COMPANY.gf}`,
+         LEFT, footY + 10, { align: 'center', width: W }
+       )
+       .text(`fon: ${COMPANY.phone} · ${COMPANY.email}`, LEFT, footY + 22, { align: 'center', width: W });
+
+    doc.end();
+  });
+}
+
+module.exports = { generateInvoicePDF };

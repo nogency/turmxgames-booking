@@ -4,10 +4,19 @@
   "description": "Gameshow Experience Booking Widget + Bookla Integration",
   "scripts": {
     "dev": "vercel dev",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "node"
   },
   "dependencies": {
     "luxon": "^3.0.0",
+    "pdfkit": "^0.15.0",
+    "resend": "^4.0.0",
     "stripe": "^14.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
   }
 }

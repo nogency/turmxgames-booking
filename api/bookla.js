@@ -223,6 +223,96 @@ module.exports = async function handler(req, res) {
       }
 
       // ─────────────────────────────────────────────
+      // 4b. Buchung + Rechnung (Auf Rechnung Pfad)
+      //     Legt Bookla-Buchung an und verschickt
+      //     sofort die Rechnung mit Bankdaten.
+      // ─────────────────────────────────────────────
+      case 'create-booking-invoice': {
+        const {
+          serviceId, date, time, groupSize, firstName, lastName,
+          email, phone, notes, promoCode, serviceName, amount,
+          companyName, companyStreet, companyZip, companyCity, ustId,
+        } = req.body || {};
+
+        if (!serviceId || !date || !time || !email || !amount) {
+          return res.status(400).json({ error: 'serviceId, date, time, email, amount required' });
+        }
+
+        const spots = parseInt(groupSize) || 1;
+        const berlinDt  = DateTime.fromISO(`${date}T${time}:00`, { zone: 'Europe/Berlin' });
+        const startTime = berlinDt.toISO();
+        const utcTimeKey = berlinDt.toUTC().toISO().substring(0, 16);
+
+        const from = `${date}T00:00:00Z`;
+        const to   = `${date}T23:59:59Z`;
+
+        const currentAvailability = await Promise.all(
+          RESOURCE_IDS.map(rid =>
+            booklaFetch(
+              `/client/companies/${companyId}/services/${serviceId}/times`,
+              'POST', { from, to, spots, resourceIDs: [rid] }, apiKey
+            ).catch(() => null)
+          )
+        );
+
+        const freeResourceIds = [];
+        currentAvailability.forEach((data, i) => {
+          if (!data || !data.times) return;
+          const rid = RESOURCE_IDS[i];
+          const slotArr = data.times[rid] || Object.values(data.times).flat() || [];
+          const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === utcTimeKey);
+          if (match && match.spotsAvailable === match.totalSpots && match.totalSpots > 0) {
+            freeResourceIds.push(rid);
+          }
+        });
+
+        if (freeResourceIds.length === 0) {
+          return res.status(409).json({ error: 'Dieser Slot ist leider nicht mehr verfügbar.' });
+        }
+
+        let bookingData = null;
+        let lastError = null;
+        for (const resourceId of freeResourceIds) {
+          try {
+            bookingData = await booklaFetch('/client/bookings', 'POST', {
+              companyID:  companyId,
+              serviceID:  serviceId,
+              resourceID: resourceId,
+              startTime,
+              spots,
+              client: { email, firstName, lastName, ...(phone && { phone }) },
+              ...(notes     && { metaData: { notes } }),
+              ...(promoCode && { code: promoCode }),
+            }, apiKey);
+            break;
+          } catch (e) { lastError = e; }
+        }
+
+        if (!bookingData) throw lastError || new Error('Alle Slots belegt');
+
+        // Rechnung generieren und verschicken
+        const { buildInvoiceData } = require('./lib/invoice-data');
+        const { generateInvoicePDF } = require('./lib/pdf');
+        const { sendInvoiceEmail } = require('./lib/email');
+
+        const invoiceData = buildInvoiceData({
+          bookingId: bookingData.id,
+          serviceName: serviceName || serviceId,
+          groupSize: spots,
+          amount,
+          paymentMethod: 'invoice',
+          date, time,
+          firstName, lastName, email, phone,
+          companyName, companyStreet, companyZip, companyCity, ustId,
+        });
+
+        const pdfBuffer = await generateInvoicePDF(invoiceData);
+        await sendInvoiceEmail({ to: email, invoiceNumber: invoiceData.invoiceNumber, pdfBuffer });
+
+        return res.status(201).json({ ...bookingData, invoiceId: invoiceData.invoiceNumber });
+      }
+
+      // ─────────────────────────────────────────────
       // 5. Promo Code validieren
       //    Gibt zurück: { canApply, price, discountAmount }
       // ─────────────────────────────────────────────
