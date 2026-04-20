@@ -677,7 +677,7 @@ footer a:hover{color:rgba(255,255,255,.65)}
             <div class="extra-check"></div>
             <div class="extra-info">
               <div class="extra-name"><span class="ms sm fill">liquor</span> Getränkeflat</div>
-              <div class="extra-desc">So viel trinken wie du willst · Ab 18 auch Bier &amp; mehr</div>
+              <div class="extra-desc" id="extra-drinks-desc">So viel trinken wie du willst · Ab 18 auch Bier &amp; mehr</div>
             </div>
             <div class="extra-price" id="extra-drinks-price">12,90 € × 4</div>
           </div>
@@ -1249,6 +1249,12 @@ function copyShare(btn){navigator.clipboard.writeText(genShareText()).then(()=>{
 // ═══════════════════════════════════════════════════════
 // EVENT SELECTION
 // ═══════════════════════════════════════════════════════
+function updateDrinksDesc(){
+  $('extra-drinks-desc').textContent = S.eventKey==='kinder'
+    ? 'So viel trinken wie du willst'
+    : 'So viel trinken wie du willst · Ab 18 auch Bier & mehr';
+}
+
 function selEvent(btn) {
   document.querySelectorAll('.ebtn,.sbtn').forEach(b=>{b.classList.remove('sel');});
   btn.classList.add('sel');
@@ -1261,6 +1267,7 @@ function selEvent(btn) {
   $('firmaSection').style.display='none';
   if(S.eventKey==='firma') $('firmaSection').style.display='block';
   availDates=new Set(); renderCal();
+  updateDrinksDesc();
   updateSummary();
 }
 
@@ -1282,6 +1289,7 @@ function selSpecial(btn) {
   }
   $('firmaSection').style.display='none';
   availDates=new Set(); renderCal();
+  updateDrinksDesc();
   updateSummary();
 }
 
