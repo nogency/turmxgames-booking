@@ -27,30 +27,71 @@ function buildInvoiceData(params) {
     bookingId, serviceName, groupSize, amount, paymentMethod,
     date, time, firstName, lastName, email, phone,
     companyName, companyStreet, companyZip, companyCity, ustId,
+    drinksFlat, insurance, baseAmount,
   } = params;
+
+  const spots = parseInt(groupSize) || 1;
+
+  // ── Positionen aufbauen ──
+  const items = [];
+
+  // 1. Haupt-Event
+  const eventAmount = parseFloat(baseAmount || amount);
+  items.push({
+    name: serviceName,
+    qtyLabel: `${spots} Pers.`,
+    tax: calculateTax(eventAmount),
+  });
+
+  // 2. Getränkeflat (12,90 € × Personen)
+  if (drinksFlat) {
+    const drinkTotal = Math.round(12.90 * spots * 100) / 100;
+    items.push({
+      name: 'Getränkeflat',
+      qtyLabel: `${spots} Pers.`,
+      tax: calculateTax(drinkTotal),
+    });
+  }
+
+  // 3. Flex-Versicherung (14,90 € pauschal)
+  if (insurance) {
+    items.push({
+      name: 'Flex-Versicherung',
+      qtyLabel: '1×',
+      tax: calculateTax(14.90),
+    });
+  }
+
+  // ── Gesamtsteuer (Summe aller Positionen) ──
+  const tax = {
+    brutto: Math.round(items.reduce((s, i) => s + i.tax.brutto, 0) * 100) / 100,
+    netto:  Math.round(items.reduce((s, i) => s + i.tax.netto,  0) * 100) / 100,
+    mwst:   Math.round(items.reduce((s, i) => s + i.tax.mwst,   0) * 100) / 100,
+  };
 
   return {
     invoiceNumber: formatInvoiceNumber(bookingId),
-    invoiceDate: formatDate(new Date()),
-    serviceDate: formatDate(date),
+    invoiceDate:   formatDate(new Date()),
+    serviceDate:   formatDate(date),
     serviceName,
-    groupSize: parseInt(groupSize) || 1,
-    tax: calculateTax(amount),
+    groupSize: spots,
+    items,
+    tax,
     paymentMethod,
-    dueDate: getDueDate(14),
+    dueDate:   getDueDate(14),
     firstName,
     lastName,
     email,
-    phone: phone || null,
-    isCompany: !!companyName,
-    companyName: companyName || null,
+    phone:       phone || null,
+    isCompany:   !!companyName,
+    companyName:   companyName   || null,
     companyStreet: companyStreet || null,
-    companyZip: companyZip || null,
-    companyCity: companyCity || null,
-    ustId: ustId || null,
+    companyZip:    companyZip    || null,
+    companyCity:   companyCity   || null,
+    ustId:         ustId         || null,
     bankOwner: process.env.INVOICE_BANK_OWNER || 'HB Kletterwelten GmbH',
-    bankIban: process.env.INVOICE_BANK_IBAN || null,
-    bankBic: process.env.INVOICE_BANK_BIC || null,
+    bankIban:  process.env.INVOICE_BANK_IBAN  || null,
+    bankBic:   process.env.INVOICE_BANK_BIC   || null,
   };
 }
 

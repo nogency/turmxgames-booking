@@ -86,17 +86,32 @@ function generateInvoicePDF(data) {
     doc.text('MWST 19%', c.mwst, tableY + 7);
     doc.text('BRUTTO', c.brutto, tableY + 7);
 
-    // Data row
-    const rowY = tableY + 26;
-    doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a');
-    doc.text(data.serviceName, c.desc + 6, rowY, { width: 240 });
-    doc.text(`${data.groupSize} Pers.`, c.qty, rowY);
-    doc.text(fmtEur(data.tax.netto), c.netto, rowY);
-    doc.text(fmtEur(data.tax.mwst), c.mwst, rowY);
-    doc.text(fmtEur(data.tax.brutto), c.brutto, rowY);
+    // Data rows (eine pro Position)
+    const ROW_H = 26;
+    let rowY = tableY + 26;
+    const items = data.items && data.items.length ? data.items : [{
+      name: data.serviceName,
+      qtyLabel: `${data.groupSize} Pers.`,
+      tax: data.tax,
+    }];
+
+    items.forEach((item, idx) => {
+      doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a');
+      doc.text(item.name,          c.desc + 6, rowY, { width: 240 });
+      doc.text(item.qtyLabel,      c.qty,      rowY);
+      doc.text(fmtEur(item.tax.netto),  c.netto,    rowY);
+      doc.text(fmtEur(item.tax.mwst),   c.mwst,     rowY);
+      doc.text(fmtEur(item.tax.brutto), c.brutto,   rowY);
+      // Trennlinie zwischen Zeilen (nicht nach letzter)
+      if (idx < items.length - 1) {
+        const sepY = rowY + ROW_H - 4;
+        doc.moveTo(LEFT, sepY).lineTo(RIGHT, sepY).strokeColor('#eeebe5').lineWidth(0.5).stroke();
+      }
+      rowY += ROW_H;
+    });
 
     // Totals
-    const totY = rowY + 28;
+    const totY = rowY + 4;
     doc.moveTo(LEFT, totY).lineTo(RIGHT, totY).strokeColor('#e0ddd7').lineWidth(0.75).stroke();
     const totLabelX = c.netto - 10;
     const totValW = RIGHT - c.brutto;

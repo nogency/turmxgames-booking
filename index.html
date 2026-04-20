@@ -1665,6 +1665,8 @@ async function submitBookingInvoice(){
     firstName:$('fname')?.value?.trim(),lastName:$('lname')?.value?.trim(),
     email:$('email')?.value?.trim(),phone:$('phone')?.value?.trim()||null,
     serviceName:S.eventName,amount:getTotal(),notes,
+    drinksFlat:S.drinksFlat,insurance:S.insurance,
+    baseAmount:promoState.newPrice!==null?promoState.newPrice:S.basePrice+S.pricePerPerson*S.qty,
     companyName:$('company')?.value?.trim()||null,
     companyStreet:$('companyStreet')?.value?.trim()||null,
     companyZip:$('companyZip')?.value?.trim()||null,
