@@ -1599,6 +1599,15 @@ renderCal();
 renderDoodle();
 updateSummary();
 checkStep1();
+
+// ── URL PRE-SELECTION (?event=jga, ?event=firma, …) ──
+(function(){
+  const key = new URLSearchParams(window.location.search).get('event');
+  if(!key) return;
+  const btn = document.querySelector(`.ebtn[data-key="${key}"], .sbtn[data-key="${key}"]`);
+  if(!btn) return;
+  btn.classList.contains('sbtn') ? selSpecial(btn) : selEvent(btn);
+})();
 </script>
 </body>
 </html>
