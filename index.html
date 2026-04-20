@@ -1687,7 +1687,8 @@ checkStep1();
   if(!key) return;
   const btn = document.querySelector(`.ebtn[data-key="${key}"], .sbtn[data-key="${key}"]`);
   if(!btn) return;
-  btn.classList.contains('sbtn') ? selSpecial(btn) : selEvent(btn);
+  if(btn.classList.contains('sbtn')) { $('morePanel').classList.add('open'); selSpecial(btn); }
+  else selEvent(btn);
 })();
 </script>
 </body>
