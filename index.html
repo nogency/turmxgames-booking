@@ -368,6 +368,18 @@ footer a:hover{color:rgba(255,255,255,.65)}
 .promo-msg.err{color:var(--expensive)}
 .promo-discount{display:none;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--lbdr)}
 .promo-discount.show{display:flex}
+.extras-section{margin-top:20px;margin-bottom:4px}
+.extra-opt{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--lc);border:1.5px solid var(--lbdr);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:border-color .2s,background .2s;user-select:none}
+.extra-opt.sel{border-color:var(--red);background:var(--rl)}
+.extra-check{width:20px;height:20px;border-radius:4px;border:2px solid var(--lbdr2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:13px;color:transparent}
+.extra-opt.sel .extra-check{background:var(--red);border-color:var(--red);color:#fff}
+.extra-check::after{content:'✓'}
+.extra-info{flex:1;min-width:0}
+.extra-name{font-size:13px;font-weight:700;color:var(--td);display:flex;align-items:center;gap:5px}
+.extra-desc{font-size:11px;color:var(--tmu);margin-top:3px;line-height:1.5}
+.extra-price{font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;color:var(--td);white-space:nowrap;text-align:right}
+.side-extra-row{display:none;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--lbdr)}
+.side-extra-row.show{display:flex}
   
 </style>
 </head>
@@ -658,6 +670,27 @@ footer a:hover{color:rgba(255,255,255,.65)}
           </div>
         </div>
 
+        <!-- EXTRAS -->
+        <div class="extras-section">
+          <div class="slabel">EXTRAS</div>
+          <div class="extra-opt" id="extra-drinks" onclick="toggleExtra('drinks')">
+            <div class="extra-check"></div>
+            <div class="extra-info">
+              <div class="extra-name"><span class="ms sm fill">local_bar</span> Getränkeflat</div>
+              <div class="extra-desc">Alle Softdrinks &amp; Wasser für alle Teilnehmer · Für alle buchbar</div>
+            </div>
+            <div class="extra-price" id="extra-drinks-price">12,90 € × 4</div>
+          </div>
+          <div class="extra-opt" id="extra-insurance" onclick="toggleExtra('insurance')">
+            <div class="extra-check"></div>
+            <div class="extra-info">
+              <div class="extra-name"><span class="ms sm fill">shield</span> Veranstaltungsversicherung</div>
+              <div class="extra-desc">Flexible Anpassung der Personenanzahl bis kurz vor dem Event</div>
+            </div>
+            <div class="extra-price">14,90 €</div>
+          </div>
+        </div>
+
         <div class="snav">
           <button class="bbk" onclick="goStep(1)">← Zurück</button>
           <button class="bnxt" onclick="goStep(3)">Weiter zu Kontakt →</button>
@@ -717,6 +750,8 @@ footer a:hover{color:rgba(255,255,255,.65)}
           <div class="sumrow"><span class="sumkey">Event</span><span class="sumval" id="pay-event">—</span></div>
           <div class="sumrow"><span class="sumkey">Datum &amp; Zeit</span><span class="sumval" id="pay-dt">—</span></div>
           <div class="sumrow"><span class="sumkey">Personen</span><span class="sumval" id="pay-persons">—</span></div>
+          <div class="sumrow" id="pay-drinks-row" style="display:none"><span class="sumkey">Getränkeflat</span><span class="sumval" id="pay-drinks-val">—</span></div>
+          <div class="sumrow" id="pay-insurance-row" style="display:none"><span class="sumkey">Versicherung</span><span class="sumval">14,90 €</span></div>
           <div class="sumrow sumtot"><span class="sumkey">GESAMT</span><span class="sumval" id="pay-total">—</span></div>
         </div>
 
@@ -823,6 +858,14 @@ footer a:hover{color:rgba(255,255,255,.65)}
   <span class="spkey" style="color:var(--cheap)">RABATT</span>
   <div class="spval" id="side-discount" style="font-size:18px;color:var(--cheap)">—</div>
 </div>
+<div class="side-extra-row" id="side-drinks-row">
+  <span class="spkey" style="color:var(--red)"><span class="ms sm fill">local_bar</span> Getränkeflat</span>
+  <div style="text-align:right"><div class="spval" id="side-drinks-val" style="font-size:15px">—</div><div class="spnote">/ Person</div></div>
+</div>
+<div class="side-extra-row" id="side-insurance-row">
+  <span class="spkey" style="color:var(--red)"><span class="ms sm fill">shield</span> Versicherung</span>
+  <div style="text-align:right"><div class="spval" style="font-size:15px">14,90 EUR</div><div class="spnote">einmalig</div></div>
+</div>
 <div class="sprow" style="border-top:2px solid var(--rb);margin-top:4px;padding-top:10px">
           <span class="spkey" style="font-weight:700;color:var(--td)">GESAMT</span>
           <div class="spval" id="side-total" style="font-size:24px">—</div>
@@ -885,6 +928,7 @@ const S = {
   eventKey:'jga', eventName:'JGA',
   date:null, dateStr:null, time:null,
   qty:4, pricePerPerson:35, basePrice:40, duration:'2,5 Stunden',
+  drinksFlat:false, insurance:false,
   kindAge:null, payMethod:'cc',
   doodleSlots: new Set(),
 };
@@ -1005,9 +1049,12 @@ function stopCountdown() {
 }
   
   function getTotal() {
-  const base = S.basePrice + S.pricePerPerson * S.qty;
-  if (promoState && promoState.newPrice !== null) return promoState.newPrice;
-  return base;
+  let base = S.basePrice + S.pricePerPerson * S.qty;
+  if (promoState && promoState.newPrice !== null) base = promoState.newPrice;
+  let extras = 0;
+  if (S.drinksFlat) extras += 12.90 * S.qty;
+  if (S.insurance) extras += 14.90;
+  return Math.round((base + extras) * 100) / 100;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1264,11 +1311,23 @@ function setMode(m){
 // ═══════════════════════════════════════════════════════
 // GROUP SIZE
 // ═══════════════════════════════════════════════════════
+function toggleExtra(type){
+  if(type==='drinks'){
+    S.drinksFlat=!S.drinksFlat;
+    $('extra-drinks').classList.toggle('sel',S.drinksFlat);
+  } else {
+    S.insurance=!S.insurance;
+    $('extra-insurance').classList.toggle('sel',S.insurance);
+  }
+  updateSummary();
+}
+
 function chgQty(d){
   S.qty=Math.max(4,Math.min(16,S.qty+d));
   $('qtyVal').textContent=S.qty;
   const t=Math.ceil(S.qty/16), pp=Math.ceil(S.qty/t);
   $('teamCalc').textContent=S.qty+' Personen = '+t+' Team'+(t>1?'s':'')+' à '+pp+' · Max. 16 pro Team';
+  $('extra-drinks-price').textContent='12,90 € × '+S.qty;
   if (promoState.code && S.dateStr && S.time) {
     // Preis neu von Bookla holen mit aktuellem groupSize
     fetch(API+'?action=validate-code', {
@@ -1312,6 +1371,16 @@ if (promoState && promoState.discountAmount > 0) {
 } else {
   promoRow.classList.remove('show');
 }
+
+  // Extras sidebar
+  const drinksTotal = Math.round(12.90 * S.qty * 100) / 100;
+  $('side-drinks-row').classList.toggle('show', S.drinksFlat);
+  $('side-drinks-val').textContent = fmtEur(drinksTotal).replace(' €',' EUR');
+  $('side-insurance-row').classList.toggle('show', S.insurance);
+  // Extras Step 4
+  const pdr=$('pay-drinks-row');if(pdr)pdr.style.display=S.drinksFlat?'flex':'none';
+  const pdv=$('pay-drinks-val');if(pdv)pdv.textContent=fmtEur(drinksTotal);
+  const pir=$('pay-insurance-row');if(pir)pir.style.display=S.insurance?'flex':'none';
 
   // Step 4
   const pe=$('pay-event');if(pe)pe.textContent=S.eventName;
@@ -1513,6 +1582,8 @@ async function submitBooking(paymentId){
   'Personen: '+S.qty,
   'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
   'Zahlung: '+S.payMethod,
+  S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × 12,90 €)':null,
+  S.insurance?'Versicherung: Ja (14,90 €)':null,
   S.kindAge?'Alter: '+S.kindAge:null,
   $('company')?.value?'Firma: '+$('company').value:null,
   document.querySelector('#acc-visit .ropt.sel .rlabel')?.textContent?.trim()||null,
@@ -1540,6 +1611,8 @@ async function submitBookingInvoice(){
     'Personen: '+S.qty,
     'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
     'Zahlung: Auf Rechnung',
+    S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × 12,90 €)':null,
+    S.insurance?'Versicherung: Ja (14,90 €)':null,
     $('company')?.value?'Firma: '+$('company').value:null,
     $('wishes')?.value?.trim()||null,
   ].filter(Boolean).join(' | ');
