@@ -2,6 +2,13 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-W4S2PD8F');</script>
+<!-- End Google Tag Manager -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Jetzt buchen – TurmXGames</title>
 <meta name="description" content="TurmXGames direkt buchen. Sofortbestätigung, sichere Zahlung.">
@@ -391,6 +398,10 @@ footer a:hover{color:rgba(255,255,255,.65)}
 </style>
 </head>
 <body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W4S2PD8F"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
 
 <!-- NAV -->
 <nav>
@@ -918,6 +929,12 @@ footer a:hover{color:rgba(255,255,255,.65)}
 // ═══════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// TRACKING
+// ═══════════════════════════════════════════════════════
+window.dataLayer = window.dataLayer || [];
+function dlPush(obj){ window.dataLayer.push(obj); }
+
 const API         = '/api/bookla';
 const INVOICE_API = '/api/invoice';
 const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
@@ -1127,6 +1144,7 @@ function calNext(){cM++;if(cM>11){cM=0;cY++;}renderCal();}
 
 async function pickDate(dt, ds, dow) {
   S.date=dt; S.dateStr=ds; S.time=null;
+  dlPush({event:'select_date', date:ds, event_type:S.eventKey});
   // Pricing
   const isSocial = S.eventKey==='schule'||S.eventKey==='verein';
   if (!isSocial) {
@@ -1174,7 +1192,7 @@ function renderTimes(times) {
     const label=full?'Ausgebucht':lastOne?'⚡ Letzter Slot!':'Verfügbar';
     const cls=full?'no':lastOne?'last':'ok';
     el.innerHTML=`<div class="tslot-t">${t}</div><div class="tslot-a ${cls}">${label}</div>`;
-   if(!full)el.onclick=()=>{S.time=t;resetPromo();renderTimes(times);updateSummary();checkStep1();startCountdown();};
+   if(!full)el.onclick=()=>{S.time=t;resetPromo();renderTimes(times);updateSummary();checkStep1();startCountdown();dlPush({event:'select_time',time:t,date:S.dateStr,event_type:S.eventKey});};
     g.appendChild(el);
   });
   // Smooth scroll zu den Uhrzeiten
@@ -1276,6 +1294,7 @@ function selEvent(btn) {
   availDates=new Set(); renderCal();
   updateDrinksDesc();
   updateSummary();
+  dlPush({event:'select_event_type', event_type:S.eventKey, event_name:S.eventName});
 }
 
 function selSpecial(btn) {
@@ -1298,6 +1317,7 @@ function selSpecial(btn) {
   availDates=new Set(); renderCal();
   updateDrinksDesc();
   updateSummary();
+  dlPush({event:'select_event_type', event_type:S.eventKey, event_name:S.eventName});
 }
 
 function toggleMore(){
@@ -1330,9 +1350,11 @@ function toggleExtra(type){
   if(type==='drinks'){
     S.drinksFlat=!S.drinksFlat;
     $('extra-drinks').classList.toggle('sel',S.drinksFlat);
+    dlPush({event:S.drinksFlat?'add_extra':'remove_extra',extra:'getraenkeflat',price:12.90*S.qty});
   } else {
     S.insurance=!S.insurance;
     $('extra-insurance').classList.toggle('sel',S.insurance);
+    dlPush({event:S.insurance?'add_extra':'remove_extra',extra:'versicherung',price:14.90});
   }
   updateSummary();
 }
@@ -1449,6 +1471,8 @@ function step3Next(){
 }
 
 function goStep(n){
+  const stepNames={1:'event_selection',2:'group_config',3:'contact',4:'payment'};
+  dlPush({event:'checkout_progress',step:n,step_name:stepNames[n]||'step_'+n,event_type:S.eventKey,value:getTotal(),currency:'EUR'});
   document.querySelectorAll('.sp').forEach((p,i)=>p.classList.toggle('active',i+1===n));
   for(let i=1;i<=4;i++){
     const dot=$('dot'+i); dot.classList.remove('active','done');
@@ -1474,6 +1498,7 @@ function pickPay(m,btn){
   ['cc','paypal','sepa','invoice'].forEach(x=>$('pform-'+x).classList.toggle('show',x===m));
   const snav=document.querySelector('#step4 .snav');
   if(snav)snav.style.display=m==='paypal'?'none':'flex';
+  dlPush({event:'select_payment_method',payment_method:m,value:getTotal(),currency:'EUR'});
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1612,6 +1637,7 @@ promoCode: promoState.code || null,
 if(!r.ok) throw new Error(booking.error||'Buchung fehlgeschlagen');
     const ref=booking.id?'BKL-'+String(booking.id).slice(-6).toUpperCase():'GSH-'+Math.floor(100000+Math.random()*900000);
     if(booking.id)callInvoiceAPI(booking.id);
+    dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:S.payMethod,items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
     showSuccess(ref);
   }catch(e){
     console.error('Bookla error:',e);
@@ -1647,6 +1673,7 @@ async function submitBookingInvoice(){
   const booking=await r.json();
   if(!r.ok)throw new Error(booking.error||'Buchung fehlgeschlagen');
   const ref=booking.id?'BKL-'+String(booking.id).slice(-6).toUpperCase():'GSH-'+Math.floor(100000+Math.random()*900000);
+  dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:'invoice',items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
   showSuccess(ref);
 }
 
