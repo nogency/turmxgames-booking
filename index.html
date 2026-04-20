@@ -677,18 +677,9 @@ footer a:hover{color:rgba(255,255,255,.65)}
             <div class="extra-check"></div>
             <div class="extra-info">
               <div class="extra-name"><span class="ms sm fill">liquor</span> Getränkeflat</div>
-              <div class="extra-desc">Alle Softdrinks &amp; Wasser für alle Teilnehmer</div>
+              <div class="extra-desc">So viel trinken wie du willst · Ab 18 auch Bier &amp; mehr</div>
             </div>
             <div class="extra-price" id="extra-drinks-price">12,90 € × 4</div>
-          </div>
-          <div id="extra-alcohol-wrap" style="display:none;margin-top:-4px;margin-bottom:8px;padding:10px 14px;background:var(--rl);border:1.5px solid var(--rb);border-top:none;border-radius:0 0 8px 8px">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none" onclick="toggleExtra('alcohol')">
-              <div class="extra-check" id="extra-alcohol-check" style="flex-shrink:0"></div>
-              <div>
-                <div style="font-size:12px;font-weight:700;color:var(--td)">🍺 Inkl. Alkohol</div>
-                <div style="font-size:11px;color:var(--tmu);margin-top:2px">Alle Teilnehmer sind 18+ Jahre alt</div>
-              </div>
-            </label>
           </div>
           <div class="extra-opt" id="extra-insurance" onclick="toggleExtra('insurance')">
             <div class="extra-check"></div>
@@ -937,7 +928,7 @@ const S = {
   eventKey:'jga', eventName:'JGA',
   date:null, dateStr:null, time:null,
   qty:4, pricePerPerson:35, basePrice:40, duration:'2,5 Stunden',
-  drinksFlat:false, drinksAlcohol:false, insurance:false,
+  drinksFlat:false, insurance:false,
   kindAge:null, payMethod:'cc',
   doodleSlots: new Set(),
 };
@@ -1324,11 +1315,6 @@ function toggleExtra(type){
   if(type==='drinks'){
     S.drinksFlat=!S.drinksFlat;
     $('extra-drinks').classList.toggle('sel',S.drinksFlat);
-    $('extra-alcohol-wrap').style.display=S.drinksFlat?'block':'none';
-    if(!S.drinksFlat){S.drinksAlcohol=false;$('extra-alcohol-check').classList.remove('sel');}
-  } else if(type==='alcohol'){
-    S.drinksAlcohol=!S.drinksAlcohol;
-    $('extra-alcohol-check').classList.toggle('sel',S.drinksAlcohol);
   } else {
     S.insurance=!S.insurance;
     $('extra-insurance').classList.toggle('sel',S.insurance);
@@ -1596,7 +1582,7 @@ async function submitBooking(paymentId){
   'Personen: '+S.qty,
   'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
   'Zahlung: '+S.payMethod,
-  S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × 12,90 €'+(S.drinksAlcohol?', inkl. Alkohol 18+':'')+')':null,
+  S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × 12,90 €)':null,
   S.insurance?'Versicherung: Ja (14,90 €)':null,
   S.kindAge?'Alter: '+S.kindAge:null,
   $('company')?.value?'Firma: '+$('company').value:null,
@@ -1625,7 +1611,7 @@ async function submitBookingInvoice(){
     'Personen: '+S.qty,
     'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
     'Zahlung: Auf Rechnung',
-    S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × 12,90 €'+(S.drinksAlcohol?', inkl. Alkohol 18+':'')+')':null,
+    S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × 12,90 €)':null,
     S.insurance?'Versicherung: Ja (14,90 €)':null,
     $('company')?.value?'Firma: '+$('company').value:null,
     $('wishes')?.value?.trim()||null,
