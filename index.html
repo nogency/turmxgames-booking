@@ -398,6 +398,30 @@ footer a:hover{color:rgba(255,255,255,.65)}
 .side-extra-row{display:none;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--lbdr)}
 .side-extra-row.show{display:flex}
   
+/* ── INQUIRY MODAL ── */
+.inq-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .22s}
+.inq-overlay.show{opacity:1;pointer-events:all}
+.inq-modal{background:#fff;border-radius:14px;padding:28px 24px 24px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;position:relative;transform:translateY(24px);transition:transform .25s cubic-bezier(0.34,1.56,0.64,1)}
+.inq-overlay.show .inq-modal{transform:translateY(0)}
+.inq-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1;padding:4px}
+.inq-close:hover{color:#333}
+.inq-icon{width:44px;height:44px;background:rgba(192,57,43,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.inq-title{font-family:"Barlow Condensed",sans-serif;font-size:22px;letter-spacing:1.5px;color:#1a1a1a;margin-bottom:3px;font-weight:700}
+.inq-sub{font-size:12px;color:#888;margin-bottom:20px;line-height:1.5}
+.inq-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inq-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.inq-label{font-size:10px;letter-spacing:1px;color:#888;font-weight:700;text-transform:uppercase}
+.inq-input{border:1.5px solid #e8e5e0;border-radius:6px;padding:9px 12px;font-size:13px;color:#1a1a1a;outline:none;transition:border-color .15s;font-family:inherit}
+.inq-input:focus{border-color:rgba(192,57,43,.5);box-shadow:0 0 0 3px rgba(192,57,43,.08)}
+.inq-submit{width:100%;background:linear-gradient(135deg,#C0392B,#96281B);border:none;color:#fff;font-family:"Barlow Condensed",sans-serif;font-size:15px;letter-spacing:2px;padding:13px;border-radius:7px;cursor:pointer;margin-top:6px;transition:opacity .15s;font-weight:700}
+.inq-submit:hover{opacity:.9}
+.inq-submit:disabled{opacity:.5;cursor:not-allowed}
+.inq-success{text-align:center;padding:12px 0}
+/* 17+ trigger button */
+.qbtn-large{background:var(--red)!important;color:#fff!important;font-size:10px!important;letter-spacing:.8px;font-weight:800!important;border-color:var(--red)!important;min-width:52px;padding:0 8px!important}
+/* Small CTA under min/max */
+.inq-hint-link{font-size:11px;color:var(--red);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:opacity .15s;white-space:nowrap}
+.inq-hint-link:hover{opacity:.72}
 </style>
 </head>
 <body>
@@ -516,7 +540,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <!-- Event types -->
         <div class="slabel">ART DES EVENTS</div>
-        <div style="font-size:11px;color:var(--tmu);margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="color:var(--red);font-weight:700;display:inline-flex;align-items:center;gap:4px"><span class="ms sm fill">group</span> Min. 4 · Max. 16 Personen</span> pro Buchung</div>
+        <div style="font-size:11px;color:var(--tmu);margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="color:var(--red);font-weight:700;display:inline-flex;align-items:center;gap:4px"><span class="ms sm fill">group</span> Min. 4 · Max. 16 Personen</span> pro Buchung <span class="inq-hint-link" onclick="openInquiryModal()"><span class="ms sm" style="font-size:13px">arrow_forward</span> Größere Gruppe? Anfragen</span></div>
         <div class="egrid">
           <button class="ebtn sel" data-key="jga" onclick="selEvent(this)">
             <span class="ebtn-ico ms lg fill">celebration</span>
@@ -662,7 +686,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="qrow">
           <button class="qbtn" onclick="chgQty(-1)">−</button>
           <div class="qval" id="qtyVal">4</div>
-          <button class="qbtn" onclick="chgQty(1)">+</button>
+          <button class="qbtn" id="qtyPlus" onclick="chgQty(1)">+</button>
         </div>
         <p style="font-size:11px;color:var(--tmu);margin-bottom:16px;line-height:1.6" id="teamCalc">4 Personen = 1 Team à 4 · Max. 16 pro Team</p>
 
@@ -937,8 +961,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 window.dataLayer = window.dataLayer || [];
 function dlPush(obj){ window.dataLayer.push(obj); }
 
-const API         = '/api/bookla';
-const INVOICE_API = '/api/invoice';
+const API          = '/api/bookla';
+const INVOICE_API  = '/api/invoice';
+const INQUIRY_API  = '/api/inquiry';
 const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
 const STRIPE_PK  = 'pk_live_51THLJ60vmKKQKzqsErMVhgv3ganpKWJR7cgPzPfwtqy4Dt2qwAUyIoTAPMe3mCXQw4aRyBhZwRtWK2VxnDkSDy8p00VbhVvkHK';
 const PRICES     = { weekday:32, friday:37, weekend:42 };
@@ -1373,6 +1398,17 @@ function chgQty(d){
   $('qtyVal').textContent=S.qty;
   const t=Math.ceil(S.qty/16), pp=Math.ceil(S.qty/t);
   $('teamCalc').textContent=S.qty+' Personen = '+t+' Team'+(t>1?'s':'')+' à '+pp+' · Max. 16 pro Team';
+  // 17+ trigger (Idee A)
+  const plusBtn=$('qtyPlus');
+  if(S.qty>=16){
+    plusBtn.textContent='17+?';
+    plusBtn.classList.add('qbtn-large');
+    plusBtn.onclick=()=>openInquiryModal();
+  } else {
+    plusBtn.textContent='+';
+    plusBtn.classList.remove('qbtn-large');
+    plusBtn.onclick=()=>chgQty(1);
+  }
   $('extra-drinks-price').textContent=getDrinksPrice().toFixed(2).replace('.',',')+'€ × '+S.qty;
   if (promoState.code && S.dateStr && S.time) {
     // Preis neu von Bookla holen mit aktuellem groupSize
@@ -1719,6 +1755,61 @@ function toggleMobBar(){
 }
 
 // ═══════════════════════════════════════════════════════
+// INQUIRY MODAL
+// ═══════════════════════════════════════════════════════
+function openInquiryModal(){
+  $('inqForm').style.display='block';
+  $('inqSuccess').style.display='none';
+  $('inqError').style.display='none';
+  // Pre-fill group size if at max
+  if(S.qty>=16) $('inqSize').value=17;
+  // Pre-fill event type
+  const evtMap={jga:'JGA',firma:'Firmenevent',team:'Team Building',friends:'Geburtstag',kinder:'Geburtstag',schule:'Sonstiges',verein:'Sonstiges'};
+  if(S.eventKey && evtMap[S.eventKey]) $('inqEvent').value=evtMap[S.eventKey];
+  $('inqOverlay').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeInquiryModal(e){
+  if(e && e.target!=$('inqOverlay')) return;
+  $('inqOverlay').classList.remove('show');
+  document.body.style.overflow='';
+}
+async function submitInquiry(){
+  const name=$('inqName').value.trim();
+  const email=$('inqEmail').value.trim();
+  const size=$('inqSize').value;
+  const errEl=$('inqError');
+  if(!name||!email||!size){
+    errEl.textContent='Bitte Name, E-Mail und Personenanzahl angeben.';
+    errEl.style.display='block';
+    return;
+  }
+  const btn=$('inqSubmitBtn');
+  btn.disabled=true; btn.textContent='WIRD GESENDET...';
+  try {
+    const r=await fetch(INQUIRY_API,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        name,email,
+        phone:$('inqPhone').value.trim()||null,
+        groupSize:parseInt(size),
+        eventType:$('inqEvent').value||null,
+        desiredDate:$('inqDate').value||null,
+        message:$('inqMsg').value.trim()||null,
+      })
+    });
+    if(!r.ok) throw new Error('Fehler beim Senden');
+    $('inqForm').style.display='none';
+    $('inqSuccess').style.display='block';
+    dlPush({event:'inquiry_submitted',group_size:parseInt(size),event_type:$('inqEvent').value});
+  } catch(e){
+    errEl.textContent='Etwas ist schiefgelaufen. Bitte direkt an games@turmx.de schreiben.';
+    errEl.style.display='block';
+    btn.disabled=false; btn.textContent='ANFRAGE ABSENDEN';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
 renderCal();
@@ -1736,5 +1827,71 @@ checkStep1();
   else selEvent(btn);
 })();
 </script>
+
+<!-- ── INQUIRY MODAL ── -->
+<div class="inq-overlay" id="inqOverlay" onclick="closeInquiryModal(event)">
+  <div class="inq-modal" role="dialog" aria-modal="true">
+    <button class="inq-close" onclick="closeInquiryModal()" aria-label="Schließen">×</button>
+
+    <!-- Form state -->
+    <div id="inqForm">
+      <div class="inq-icon"><span class="ms fill" style="color:var(--red);font-size:22px">groups</span></div>
+      <div class="inq-title">GROSSGRUPPEN-ANFRAGE</div>
+      <div class="inq-sub">Mehr als 16 Personen? Schreib uns — wir erstellen euch ein maßgeschneidertes Angebot innerhalb von 24h.</div>
+
+      <div class="inq-row">
+        <div class="inq-field">
+          <label class="inq-label">Name *</label>
+          <input class="inq-input" id="inqName" type="text" placeholder="Max Mustermann" required>
+        </div>
+        <div class="inq-field">
+          <label class="inq-label">E-Mail *</label>
+          <input class="inq-input" id="inqEmail" type="email" placeholder="max@firma.de" required>
+        </div>
+      </div>
+      <div class="inq-row">
+        <div class="inq-field">
+          <label class="inq-label">Telefon</label>
+          <input class="inq-input" id="inqPhone" type="tel" placeholder="+49 172 ...">
+        </div>
+        <div class="inq-field">
+          <label class="inq-label">Personenanzahl *</label>
+          <input class="inq-input" id="inqSize" type="number" min="17" max="200" placeholder="z.B. 25" required>
+        </div>
+      </div>
+      <div class="inq-row">
+        <div class="inq-field">
+          <label class="inq-label">Event-Art</label>
+          <select class="inq-input" id="inqEvent">
+            <option value="">Bitte wählen</option>
+            <option value="Firmenevent">Firmenevent</option>
+            <option value="Team Building">Team Building</option>
+            <option value="JGA">JGA</option>
+            <option value="Geburtstag">Geburtstag</option>
+            <option value="Sonstiges">Sonstiges</option>
+          </select>
+        </div>
+        <div class="inq-field">
+          <label class="inq-label">Wunschdatum</label>
+          <input class="inq-input" id="inqDate" type="date">
+        </div>
+      </div>
+      <div class="inq-field">
+        <label class="inq-label">Nachricht</label>
+        <textarea class="inq-input" id="inqMsg" rows="3" placeholder="Besondere Wünsche, Fragen..." style="resize:vertical"></textarea>
+      </div>
+      <div id="inqError" style="font-size:11px;color:#c0392b;margin-bottom:8px;display:none"></div>
+      <button class="inq-submit" id="inqSubmitBtn" onclick="submitInquiry()">ANFRAGE ABSENDEN</button>
+    </div>
+
+    <!-- Success state -->
+    <div id="inqSuccess" class="inq-success" style="display:none">
+      <div style="font-size:48px;margin-bottom:12px">🎉</div>
+      <div class="inq-title" style="font-size:20px">ANFRAGE ERHALTEN!</div>
+      <p style="font-size:13px;color:#555;margin:10px 0 20px;line-height:1.6">Wir melden uns <strong>innerhalb von 24 Stunden</strong> bei euch mit einem persönlichen Angebot.</p>
+      <button class="inq-submit" style="max-width:200px;margin:0 auto;display:block" onclick="closeInquiryModal()">SCHLIESSEN</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
