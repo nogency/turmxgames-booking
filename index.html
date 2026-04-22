@@ -524,34 +524,46 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <span class="ebtn-sub">Junggesellenabschied</span>
           </button>
           <button class="ebtn" data-key="firma" onclick="selEvent(this)">
-            <span class="ebtn-ico ms lg">apartment</span>
-            <span class="ebtn-name">Firmenevent</span>
-            <span class="ebtn-sub">Team Building &amp; Corporate</span>
-          </button>
-          <button class="ebtn" data-key="team" onclick="selEvent(this)">
-            <span class="ebtn-ico ms lg">groups</span>
-            <span class="ebtn-name">Team Event</span>
-            <span class="ebtn-sub">Gemeinsam gewinnen</span>
+            <span class="ebtn-ico ms lg fill">apartment</span>
+            <span class="ebtn-name">Firmen &amp; Teams</span>
+            <span class="ebtn-sub">Corporate · Team Building</span>
           </button>
           <button class="ebtn" data-key="friends" onclick="selEvent(this)">
             <span class="ebtn-ico ms lg fill">diversity_1</span>
             <span class="ebtn-name">Freunde &amp; Familie</span>
             <span class="ebtn-sub">Spaß für alle</span>
           </button>
+          <button class="ebtn" data-key="kinder" onclick="selEvent(this)">
+            <span class="ebtn-ico ms lg fill">cake</span>
+            <span class="ebtn-name">Kindergeburtstag</span>
+            <span class="ebtn-sub">Ab 8 Jahre · 2 Std.</span>
+          </button>
         </div>
 
-        <!-- More events -->
+        <!-- Age picker for Kinder (outside morePanel) -->
+        <div id="ageBox" style="display:none">
+          <div class="slabel" style="margin-top:12px">ALTER DES GEBURTSTAGSKINDES</div>
+          <div class="age-chips">
+            <div class="achip" onclick="pickAge(this,'8')">8 Jahre</div>
+            <div class="achip" onclick="pickAge(this,'9')">9 Jahre</div>
+            <div class="achip" onclick="pickAge(this,'10')">10 Jahre</div>
+            <div class="achip" onclick="pickAge(this,'11')">11 Jahre</div>
+            <div class="achip" onclick="pickAge(this,'12')">12 Jahre</div>
+            <div class="achip" onclick="pickAge(this,'13')">13 Jahre</div>
+            <div class="achip" onclick="pickAge(this,'14')">14 Jahre</div>
+            <div class="achip" onclick="pickAge(this,'15+')">15+</div>
+          </div>
+          <div class="special-note show" id="kinderNote">Wir passen Spielmodus &amp; Schwierigkeit ans Alter an. Grundgebühr 60 €, dazu 32 €/Person (Mo–Do).</div>
+        </div>
+
+        <!-- More events (Schule & Verein) -->
         <button class="emore-btn" onclick="toggleMore()">
-          <span>Weitere Optionen: Kindergeburtstag, Schule &amp; Verein</span>
+          <span>Sonderkonditionen: Schulausflug &amp; Verein</span>
           <span id="more-arr">▾</span>
         </button>
         <div class="emore-panel" id="morePanel">
           <div class="slabel">SONDERKONDITIONEN</div>
           <div class="special-grid">
-            <button class="sbtn" data-key="kinder" onclick="selSpecial(this)">
-              <span class="sbtn-name"><span class="ms sm fill">cake</span> Kinder­geburtstag</span>
-              <span class="sbtn-price">Grundgebühr 60 € · 2,5 Std.</span>
-            </button>
             <button class="sbtn" data-key="schule" onclick="selSpecial(this)">
               <span class="sbtn-name"><span class="ms sm fill">school</span> Schulausflug</span>
               <span class="sbtn-price">25 €/Person</span>
@@ -560,23 +572,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               <span class="sbtn-name"><span class="ms sm fill">sports_soccer</span> Verein</span>
               <span class="sbtn-price">25 €/Person</span>
             </button>
-          </div>
-          <!-- Age picker for Kinder -->
-          <div id="ageBox" style="display:none">
-            <div class="slabel">ALTER DES GEBURTSTAGSKINDES</div>
-            <div class="age-chips">
-              <div class="achip" onclick="pickAge(this,'6')">6 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'7')">7 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'8')">8 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'9')">9 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'10')">10 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'11')">11 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'12')">12 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'13')">13 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'14')">14 Jahre</div>
-              <div class="achip" onclick="pickAge(this,'15+')">15+</div>
-            </div>
-            <div class="special-note show" id="kinderNote">Wir passen Spielmodus &amp; Schwierigkeit ans Alter an. Grundgebühr 60 €, dazu 32 €/Person (Mo–Do).</div>
           </div>
           <div class="special-note" id="socialNote">Sondertarif 25 €/Person · 2 Stunden · Bitte Schul- oder Vereinsnachweis beim Check-in mitbringen.</div>
         </div>
@@ -591,6 +586,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <!-- DIRECT mode -->
         <div class="mpanel show" id="mpanel-direct">
+          <div id="weekday-callout" style="display:flex;align-items:center;gap:8px;background:rgba(46,125,50,0.08);border:1.5px solid rgba(46,125,50,0.25);border-radius:6px;padding:9px 13px;margin-bottom:10px;font-size:11.5px;color:#2e7d32;font-weight:700;line-height:1.4">
+            <span class="ms sm fill" style="font-size:16px;color:#43a047">savings</span>
+            <span>Mo – Do: <strong>35 €</strong>/Person · Du sparst bis zu <strong>15 €</strong> vs. Wochenende!</span>
+          </div>
           <div id="pnote-cheap" class="pnote"></div>
           <div id="pnote-exp" class="pnote"></div>
           <div class="calwrap">
@@ -700,7 +699,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               <div class="extra-name"><span class="ms sm fill">liquor</span> Getränkeflat</div>
               <div class="extra-desc" id="extra-drinks-desc">So viel trinken wie du willst · Ab 18 auch Bier &amp; mehr</div>
             </div>
-            <div class="extra-price" id="extra-drinks-price">12,90 € × 4</div>
+            <div class="extra-price" id="extra-drinks-price">12,90 € × 4</div><!-- updated dynamically -->
           </div>
           <div class="extra-opt" id="extra-insurance" onclick="toggleExtra('insurance')">
             <div class="extra-check"></div>
@@ -1075,11 +1074,14 @@ function stopCountdown() {
   $('cdBox').className = '';
 }
   
+  function getDrinksPrice() {
+  return S.eventKey === 'kinder' ? 7.90 : 12.90;
+}
   function getTotal() {
   let base = S.basePrice + S.pricePerPerson * S.qty;
   if (promoState && promoState.newPrice !== null) base = promoState.newPrice;
   let extras = 0;
-  if (S.drinksFlat) extras += 12.90 * S.qty;
+  if (S.drinksFlat) extras += getDrinksPrice() * S.qty;
   if (S.insurance) extras += 14.90;
   return Math.round((base + extras) * 100) / 100;
 }
@@ -1127,7 +1129,8 @@ function buildCal() {
   for(let d=1;d<=dim;d++){
     const dt = new Date(cY,cM,d), dow=dt.getDay();
     const ds = cY+'-'+String(cM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    const isPast = dt < new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    const minDate = new Date(today.getFullYear(),today.getMonth(),today.getDate()+3);
+    const isPast = dt < minDate;
     const isAvail = availDates.size===0 || availDates.has(ds);
     const el = document.createElement('div'); el.className='cd'; el.textContent=d;
     if (dow===5) el.classList.add('mid');
@@ -1288,11 +1291,21 @@ function selEvent(btn) {
   btn.classList.add('sel');
   S.eventKey=btn.dataset.key;
   S.eventName=btn.querySelector('.ebtn-name').textContent;
+  // Defaults
   S.basePrice=40; S.pricePerPerson=35; S.duration='2,5 Stunden';
   $('ageBox').style.display='none';
   $('kinderNote').classList.remove('show');
   $('socialNote').classList.remove('show');
   $('firmaSection').style.display='none';
+  // Kinder-Sonderfall
+  if(S.eventKey==='kinder'){
+    S.basePrice=60; S.pricePerPerson=32; S.duration='2 Stunden';
+    $('ageBox').style.display='block';
+    $('kinderNote').classList.add('show');
+    $('weekday-callout').style.display='none';
+  } else {
+    $('weekday-callout').style.display='flex';
+  }
   if(S.eventKey==='firma') $('firmaSection').style.display='block';
   availDates=new Set(); renderCal();
   updateDrinksDesc();
@@ -1305,17 +1318,10 @@ function selSpecial(btn) {
   btn.classList.add('sel');
   S.eventKey=btn.dataset.key;
   S.eventName=btn.querySelector('.sbtn-name').textContent.replace(/^\S+\s/,'');
-  if(S.eventKey==='kinder'){
-    S.basePrice=60; S.pricePerPerson=32; S.duration='2,5 Stunden';
-    $('ageBox').style.display='block';
-    $('kinderNote').classList.add('show');
-    $('socialNote').classList.remove('show');
-  } else {
-    S.basePrice=0; S.pricePerPerson=25; S.duration='2 Stunden';
-    $('ageBox').style.display='none';
-    $('kinderNote').classList.remove('show');
-    $('socialNote').classList.add('show');
-  }
+  S.basePrice=0; S.pricePerPerson=25; S.duration='2 Stunden';
+  $('ageBox').style.display='none';
+  $('kinderNote').classList.remove('show');
+  $('socialNote').classList.add('show');
   $('firmaSection').style.display='none';
   availDates=new Set(); renderCal();
   updateDrinksDesc();
@@ -1353,7 +1359,7 @@ function toggleExtra(type){
   if(type==='drinks'){
     S.drinksFlat=!S.drinksFlat;
     $('extra-drinks').classList.toggle('sel',S.drinksFlat);
-    dlPush({event:S.drinksFlat?'add_extra':'remove_extra',extra:'getraenkeflat',price:12.90*S.qty});
+    dlPush({event:S.drinksFlat?'add_extra':'remove_extra',extra:'getraenkeflat',price:getDrinksPrice()*S.qty});
   } else {
     S.insurance=!S.insurance;
     $('extra-insurance').classList.toggle('sel',S.insurance);
@@ -1367,7 +1373,7 @@ function chgQty(d){
   $('qtyVal').textContent=S.qty;
   const t=Math.ceil(S.qty/16), pp=Math.ceil(S.qty/t);
   $('teamCalc').textContent=S.qty+' Personen = '+t+' Team'+(t>1?'s':'')+' à '+pp+' · Max. 16 pro Team';
-  $('extra-drinks-price').textContent='12,90 € × '+S.qty;
+  $('extra-drinks-price').textContent=getDrinksPrice().toFixed(2).replace('.',',')+'€ × '+S.qty;
   if (promoState.code && S.dateStr && S.time) {
     // Preis neu von Bookla holen mit aktuellem groupSize
     fetch(API+'?action=validate-code', {
@@ -1413,7 +1419,7 @@ if (promoState && promoState.discountAmount > 0) {
 }
 
   // Extras sidebar
-  const drinksTotal = Math.round(12.90 * S.qty * 100) / 100;
+  const drinksTotal = Math.round(getDrinksPrice() * S.qty * 100) / 100;
   $('side-drinks-row').classList.toggle('show', S.drinksFlat);
   $('side-drinks-val').textContent = fmtEur(drinksTotal).replace(' €',' EUR');
   $('side-insurance-row').classList.toggle('show', S.insurance);
@@ -1655,7 +1661,7 @@ async function submitBookingInvoice(){
     'Personen: '+S.qty,
     'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
     'Zahlung: Auf Rechnung',
-    S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × 12,90 €)':null,
+    S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × '+getDrinksPrice().toFixed(2).replace('.',',')+'€)':null,
     S.insurance?'Versicherung: Ja (14,90 €)':null,
     $('company')?.value?'Firma: '+$('company').value:null,
     $('wishes')?.value?.trim()||null,
