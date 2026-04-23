@@ -25,7 +25,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <script src="https://js.stripe.com/v3/"></script>
-<script src="https://www.paypal.com/sdk/js?client-id=AUtt4ilp1Wq2daDJq6F_Y9FVEC3KkxbLMIlgYHk1kXWpAJnmhfNLUrLCGkEysj8lNulMueNkq_95n-hE&currency=EUR&intent=capture&components=buttons" data-namespace="paypalSDK"></script>
+<!-- PayPal SDK loaded dynamically via /api/config to avoid hardcoded keys -->
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -908,7 +908,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <label class="flbl">IBAN <span style="color:var(--red)">*</span></label>
           <div class="sfield" id="stripeIban"></div>
           <div class="serr" id="ibanErr"></div>
-          <p style="font-size:11px;color:var(--tmu);margin-top:8px;line-height:1.6">Test-IBAN: <strong>DE89 3704 0044 0532 0130 00</strong> · Einzug 2 Werktage vor Event.</p>
+          <p style="font-size:11px;color:var(--tmu);margin-top:8px;line-height:1.6">SEPA-Lastschrift · Einzug 2 Werktage vor Event.</p>
         </div>
 
         <!-- Invoice -->
@@ -1075,8 +1075,9 @@ function dlPush(obj){ window.dataLayer.push(obj); }
 const API          = '/api/bookla';
 const INVOICE_API  = '/api/invoice';
 const INQUIRY_API  = '/api/inquiry';
+const CONFIG_API   = '/api/config';
 const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
-const STRIPE_PK  = 'pk_live_51THLJ60vmKKQKzqsErMVhgv3ganpKWJR7cgPzPfwtqy4Dt2qwAUyIoTAPMe3mCXQw4aRyBhZwRtWK2VxnDkSDy8p00VbhVvkHK';
+let _cfg = null; // populated by loadConfig() on page load
 const PRICES     = { weekday:32, friday:37, weekend:42 };
 const BASE_PRICE = 40;
 const MONTHS     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -1729,7 +1730,9 @@ let stripe,sElements,cardEl,ibanEl,prButton,prRequest,prMounted=false,stripeRead
 function initStripe(){
   if(stripeReady)return;
   if(typeof Stripe==='undefined'){showStripeDemo();return;}
-  try{stripe=Stripe(STRIPE_PK);}catch(e){showStripeDemo();return;}
+  const stripePk=_cfg?.stripePk;
+  if(!stripePk){showStripeDemo();return;}
+  try{stripe=Stripe(stripePk);}catch(e){showStripeDemo();return;}
   stripeReady=true;
   const style={base:{color:'#1a1a1a',fontFamily:'"Plus Jakarta Sans",sans-serif',fontSize:'13px','::placeholder':{color:'#aaa'}},invalid:{color:'#C0392B'}};
   sElements=stripe.elements();
@@ -1744,7 +1747,7 @@ function initStripe(){
 
 function showStripeDemo(){
   const sc=$('stripeCard');if(sc)sc.innerHTML='<input type="text" placeholder="4242 4242 4242 4242" style="width:100%;border:none;outline:none;background:transparent;font-family:Montserrat,sans-serif;font-size:13px;color:var(--td)">';
-  const si=$('stripeIban');if(si)si.innerHTML='<input type="text" placeholder="DE89 3704 0044 0532 0130 00" style="width:100%;border:none;outline:none;background:transparent;font-family:Montserrat,sans-serif;font-size:13px;color:var(--td)">';
+  const si=$('stripeIban');if(si)si.innerHTML='<input type="text" placeholder="DEXX XXXX XXXX XXXX XXXX XX" style="width:100%;border:none;outline:none;background:transparent;font-family:Montserrat,sans-serif;font-size:13px;color:var(--td)">';
 }
 
 function initPR(){
@@ -1786,10 +1789,17 @@ function updatePRAmount(){
 // PAYPAL
 // ═══════════════════════════════════════════════════════
 let ppReady=false;
-function initPayPal(){
+async function initPayPal(){
   if(ppReady)return;ppReady=true;
-  if(typeof paypalSDK==='undefined'){
-    $('paypalBtn').innerHTML='<button onclick="submitBooking()" style="width:100%;height:46px;background:#FFC439;border:none;border-radius:4px;cursor:pointer;font-family:Montserrat,sans-serif;font-size:13px;font-weight:700;color:#003087">Mit PayPal bezahlen (Demo)</button>';
+  const clientId=_cfg?.paypalClientId;
+  if(!clientId){
+    $('paypalBtn').innerHTML='<p style="font-size:11px;color:var(--tmu);padding:8px 0">PayPal nicht konfiguriert. PAYPAL_CLIENT_ID Env Var fehlt.</p>';
+    return;
+  }
+  try{
+    await loadPayPalSDK(clientId);
+  }catch(e){
+    $('paypalBtn').innerHTML='<p style="font-size:11px;color:var(--tmu);padding:8px 0">PayPal konnte nicht geladen werden.</p>';
     return;
   }
   paypalSDK.Buttons({
@@ -2020,6 +2030,30 @@ async function submitInquiry(){
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+
+// Load public config (Stripe PK + PayPal Client ID) from server
+async function loadConfig(){
+  try{
+    const r=await fetch(CONFIG_API);
+    if(r.ok) _cfg=await r.json();
+  }catch(e){
+    console.warn('Config not loaded — using fallback keys');
+  }
+}
+
+// Load PayPal SDK dynamically after config is available
+function loadPayPalSDK(clientId){
+  return new Promise((resolve,reject)=>{
+    if(window.paypalSDK){resolve();return;}
+    const s=document.createElement('script');
+    s.src=`https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=capture&components=buttons`;
+    s.setAttribute('data-namespace','paypalSDK');
+    s.onload=resolve; s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+
+loadConfig();
 renderCal();
 renderDoodle();
 updateSummary();
