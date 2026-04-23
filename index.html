@@ -1734,7 +1734,8 @@ function pickPay(m,btn){
 // ═══════════════════════════════════════════════════════
 // STRIPE
 // ═══════════════════════════════════════════════════════
-let stripe,sElements,cardEl,ibanEl,prButton,prRequest,prMounted=false,stripeReady=false;
+let stripe,sElements,cardEl,ibanEl,stripeReady=false;
+let ecElements=null,ecEl=null,ecMounted=false;
 
 function initStripe(){
   if(stripeReady)return;
@@ -1751,7 +1752,7 @@ function initStripe(){
   ibanEl=sElements.create('iban',{style,supportedCountries:['SEPA'],placeholderCountry:'DE'});
   ibanEl.mount('#stripeIban');
   ibanEl.on('change',e=>{$('ibanErr').textContent=e.error?e.error.message:'';$('stripeIban').style.borderColor=e.error?'var(--red)':e.complete?'var(--cheap)':'';});
-  initPR();
+  initExpressCheckout();
 }
 
 function showStripeDemo(){
@@ -1759,46 +1760,51 @@ function showStripeDemo(){
   const si=$('stripeIban');if(si)si.innerHTML='<input type="text" placeholder="DEXX XXXX XXXX XXXX XXXX XX" style="width:100%;border:none;outline:none;background:transparent;font-family:Montserrat,sans-serif;font-size:13px;color:var(--td)">';
 }
 
-function initPR(){
-  if(prMounted)return;
-  prRequest=stripe.paymentRequest({
-    country:'DE',currency:'eur',
-    total:{label:'TurmX Games',amount:Math.max(3200,Math.round(getTotal()*100))},
-    requestPayerName:true,requestPayerEmail:true,
-    disableWallets:['link','browserCard']
+async function initExpressCheckout(){
+  if(ecMounted||!stripe)return;
+  const amount=Math.max(3200,Math.round(getTotal()*100));
+  ecElements=stripe.elements({mode:'payment',amount,currency:'eur'});
+  ecEl=ecElements.create('expressCheckout',{
+    buttonType:{applePay:'buy',googlePay:'buy',paypal:'buy'},
+    buttonHeight:48,
+    layout:{maxColumns:3,maxRows:1,overflow:'auto'}
   });
-  const prBtn=sElements.create('paymentRequestButton',{
-    paymentRequest:prRequest,
-    style:{paymentRequestButton:{type:'buy',theme:'dark',height:'48px'}}
-  });
-  prRequest.canMakePayment().then(res=>{
-    if(res && (res.applePay || res.googlePay)){
+  ecEl.on('ready',({availablePaymentMethods})=>{
+    if(availablePaymentMethods&&Object.values(availablePaymentMethods).some(Boolean)){
       $('expressSec').style.display='block';
-      prBtn.mount('#prButton');
-      prMounted=true;
     }
   });
-  prRequest.on('paymentmethod',async e=>{
+  ecEl.on('confirm',async(event)=>{
     try{
-      // Pre-fill contact form from Apple/Google Pay payer data if fields empty
-      if(e.payerName && !$('fname')?.value){
-        const parts=e.payerName.trim().split(' ');
+      const r=await fetch(API+'?action=create-payment-intent',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({amount:getTotal(),description:'TurmX Games – '+S.eventName})
+      });
+      const {clientSecret}=await r.json();
+      // Pre-fill contact form from express billing details
+      const bd=event.billingDetails;
+      if(bd?.name&&!$('fname')?.value){
+        const parts=bd.name.trim().split(' ');
         if($('fname'))$('fname').value=parts[0]||'';
         if($('lname'))$('lname').value=parts.slice(1).join(' ')||'';
       }
-      if(e.payerEmail && !$('email')?.value && $('email'))$('email').value=e.payerEmail;
+      if(bd?.email&&$('email')&&!$('email').value)$('email').value=bd.email;
+      const{error}=await stripe.confirmPayment({
+        elements:ecElements,clientSecret,
+        confirmParams:{return_url:window.location.href},
+        redirect:'if_required'
+      });
+      if(error){alert(error.message);return;}
       await submitBooking();
-      e.complete('success');
-    }catch(err){
-      e.complete('fail');
-    }
+    }catch(err){console.error('[EC]',err);}
   });
+  ecEl.mount('#prButton');
+  ecMounted=true;
 }
 
-// Call this whenever total changes (qty, extras) so Apple Pay sheet shows correct amount
 function updatePRAmount(){
-  if(prRequest&&prMounted){
-    prRequest.update({total:{label:'TurmX Games – '+S.eventName,amount:Math.round(getTotal()*100)}});
+  if(ecElements){
+    ecElements.update({amount:Math.max(3200,Math.round(getTotal()*100))});
   }
 }
 
