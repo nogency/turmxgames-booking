@@ -1765,7 +1765,7 @@ async function initExpressCheckout(){
   const amount=Math.max(3200,Math.round(getTotal()*100));
   ecElements=stripe.elements({mode:'payment',amount,currency:'eur'});
   ecEl=ecElements.create('expressCheckout',{
-    paymentMethods:{paypal:'never',link:'never'},
+    paymentMethods:{paypal:'never',link:'never',amazonPay:'never'},
     buttonType:{applePay:'buy',googlePay:'buy'},
     buttonHeight:48,
     layout:{maxColumns:2,maxRows:1,overflow:'auto'}
@@ -2081,7 +2081,7 @@ function loadPayPalSDK(clientId){
   return new Promise((resolve,reject)=>{
     if(window.paypalSDK){resolve();return;}
     const s=document.createElement('script');
-    s.src=`https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=capture&components=buttons&disable-funding=googlepay,applepay,venmo`;
+    s.src=`https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=capture&components=buttons`;
     s.setAttribute('data-namespace','paypalSDK');
     s.onload=resolve; s.onerror=reject;
     document.head.appendChild(s);
