@@ -1707,14 +1707,16 @@ function goStep(n){
   }
   S.step=n;
   if(n===4){setTimeout(()=>{
-    initStripe();
-    // Hide PayPal tab if no client ID available
-    if(!_cfg?.paypalClientId){
-      const ppTab=$('ptab-paypal');
-      if(ppTab)ppTab.style.display='none';
-    } else {
-      initPayPal();
-    }
+    initStripe(); // calls initPR() → canMakePayment() must run before PayPal SDK loads
+    // Small delay so canMakePayment() claims Google Pay before PayPal SDK initialises
+    setTimeout(()=>{
+      if(!_cfg?.paypalClientId){
+        const ppTab=$('ptab-paypal');
+        if(ppTab)ppTab.style.display='none';
+      } else {
+        initPayPal();
+      }
+    },400);
   },150);}
   window.scrollTo({top:$('buchung').offsetTop-80,behavior:'smooth'});
   // Close sheet if open
@@ -2092,7 +2094,7 @@ function loadPayPalSDK(clientId){
   return new Promise((resolve,reject)=>{
     if(window.paypalSDK){resolve();return;}
     const s=document.createElement('script');
-    s.src=`https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=capture&components=buttons`;
+    s.src=`https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=capture&components=buttons&disable-funding=googlepay,applepay,venmo`;
     s.setAttribute('data-namespace','paypalSDK');
     s.onload=resolve; s.onerror=reject;
     document.head.appendChild(s);
