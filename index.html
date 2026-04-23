@@ -1221,7 +1221,8 @@ async function renderCal() {
   const today = new Date();
   const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()+3);
   if (!calStart) {
-    calStart = getMonday(minDate);
+    // Start from first bookable date (not necessarily a Monday)
+    calStart = new Date(minDate);
   }
   // Update header: show month(s) in view
   const endDay = new Date(calStart); endDay.setDate(endDay.getDate()+6);
@@ -1291,8 +1292,12 @@ function buildCal() {
 
 function calPrev() {
   if (!calStart) { renderCal(); return; }
-  calStart = new Date(calStart);
-  calStart.setDate(calStart.getDate()-7);
+  const today = new Date();
+  const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()+3);
+  const prev = new Date(calStart);
+  prev.setDate(prev.getDate()-7);
+  if (prev < minDate) return; // Nicht vor den frühesten buchbaren Tag
+  calStart = prev;
   renderCal();
 }
 function calNext() {
@@ -1343,7 +1348,14 @@ async function pickDate(dt, ds, dow) {
 function renderTimes(times) {
   $('timeLoading').style.display='none';
   const g=$('timeGrid'); g.style.display='block'; g.innerHTML='';
-  if(!times.length){g.innerHTML='<div style="font-size:11px;color:var(--tmu);padding:6px 0">Leider keine freien Zeiten an diesem Tag.</div>';return;}
+  if(!times.length){
+    g.innerHTML=`<div style="padding:16px 0;text-align:center">
+      <div style="font-size:28px;margin-bottom:6px">😔</div>
+      <div style="font-size:13px;color:var(--td);font-weight:600;margin-bottom:4px">Kein freier Slot an diesem Tag</div>
+      <div style="font-size:11px;color:var(--tmu)">Bitte wähle einen anderen Tag — nutze die Pfeile zum Navigieren.</div>
+    </div>`;
+    return;
+  }
 
   // Group by time of day
   const groups = {Vormittag:[], Nachmittag:[], Abend:[]};
