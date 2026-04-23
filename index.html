@@ -886,34 +886,86 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div class="cd-timer" id="cdTimer">10:00</div>
   <div class="cd-sub">Bitte Buchung jetzt abschließen.<br>Danach wird der Slot wieder freigegeben.</div>
 </div>
-      <div class="scard">
-  <div class="scard-title">PROMO-CODE</div>
-  <div class="promo-wrap">
-    <input class="promo-input" id="promoInput" placeholder="CODE EINGEBEN" maxlength="30">
-    <button class="promo-btn" id="promoBtn" onclick="applyPromo()">OK</button>
-  </div>
-  <div class="promo-msg" id="promoMsg"></div>
-</div>
       <div class="scard accent">
-        <div class="scard-title">DEINE BUCHUNG</div>
-        <div class="sprow"><span class="spkey">Grundgebühr</span><div style="text-align:right"><div class="spval" id="side-base">40 EUR</div><div class="spnote">einmalig</div></div></div>
-        <div class="sprow"><span class="spkey">Pro Person</span><div style="text-align:right"><div class="spval" id="side-pp">32 EUR</div><div class="spnote">/ Person</div></div></div>
-        <div class="sprow promo-discount" id="side-promo-row">
-  <span class="spkey" style="color:var(--cheap)">RABATT</span>
-  <div class="spval" id="side-discount" style="font-size:18px;color:var(--cheap)">—</div>
-</div>
-<div class="side-extra-row" id="side-drinks-row">
-  <span class="spkey" style="color:var(--red)"><span class="ms sm fill">local_bar</span> Getränkeflat</span>
-  <div style="text-align:right"><div class="spval" id="side-drinks-val" style="font-size:15px">—</div><div class="spnote">/ Person</div></div>
-</div>
-<div class="side-extra-row" id="side-insurance-row">
-  <span class="spkey" style="color:var(--red)"><span class="ms sm fill">shield</span> Versicherung</span>
-  <div style="text-align:right"><div class="spval" style="font-size:15px">14,90 EUR</div><div class="spnote">einmalig</div></div>
-</div>
-<div class="sprow" style="border-top:2px solid var(--rb);margin-top:4px;padding-top:10px">
-          <span class="spkey" style="font-weight:700;color:var(--td)">GESAMT</span>
-          <div class="spval" id="side-total" style="font-size:24px">—</div>
+        <div class="scard-title">EURE BUCHUNG</div>
+
+        <!-- Event block -->
+        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--lbdr)">
+          <div class="spnote" style="text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Event</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:1px;color:var(--td);text-transform:uppercase;line-height:1.1">TurmX Gameshow</div>
+          <div style="font-size:12px;color:var(--tm);margin-top:3px" id="side-event-type">JGA</div>
         </div>
+
+        <!-- Date / Time / Persons — revealed once date is picked -->
+        <div id="side-datetime-block" style="display:none;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--lbdr)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <div class="spnote" style="text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Datum</div>
+              <div style="font-size:13px;font-weight:600;color:var(--td)" id="side-date-val">—</div>
+            </div>
+            <div>
+              <div class="spnote" style="text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Uhrzeit</div>
+              <div style="font-size:13px;font-weight:600;color:var(--td)" id="side-time-val">—</div>
+            </div>
+          </div>
+          <div>
+            <div class="spnote" style="text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Personen</div>
+            <div style="font-size:13px;font-weight:600;color:var(--td)" id="side-persons-val">4</div>
+          </div>
+        </div>
+
+        <!-- Price rows -->
+        <div class="sprow" id="side-base-row">
+          <span class="spkey">Grundgebühr</span>
+          <div style="text-align:right">
+            <div class="spval" id="side-base">40 €</div>
+            <div class="spnote">einmalig</div>
+          </div>
+        </div>
+        <div class="sprow">
+          <span class="spkey" id="side-pp-label">Pro Person × 4</span>
+          <div style="text-align:right">
+            <div class="spval" id="side-pp-total">128 €</div>
+            <div class="spnote" id="side-pp-sub">32 € / Person</div>
+          </div>
+        </div>
+        <div class="side-extra-row" id="side-drinks-row">
+          <span class="spkey"><span class="ms sm fill" style="font-size:13px;vertical-align:middle">local_bar</span> Getränkeflat</span>
+          <div style="text-align:right">
+            <div class="spval" id="side-drinks-val">—</div>
+            <div class="spnote" id="side-drinks-sub">12,90 € × 4</div>
+          </div>
+        </div>
+        <div class="side-extra-row" id="side-insurance-row">
+          <span class="spkey"><span class="ms sm fill" style="font-size:13px;vertical-align:middle">shield</span> Versicherung</span>
+          <div style="text-align:right">
+            <div class="spval">14,90 €</div>
+            <div class="spnote">einmalig</div>
+          </div>
+        </div>
+        <div class="promo-discount" id="side-promo-row">
+          <span class="spkey" style="color:var(--cheap)">RABATT</span>
+          <div class="spval" id="side-discount" style="font-size:18px;color:var(--cheap)">—</div>
+        </div>
+
+        <!-- Gesamt -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:2px solid var(--rb);margin-top:6px;padding-top:12px">
+          <div>
+            <div class="spkey" style="font-weight:700;color:var(--td);font-size:12px">GESAMT</div>
+            <div class="spnote" style="margin-top:2px">inkl. MwSt.</div>
+          </div>
+          <div class="spval" id="side-total" style="font-size:26px">—</div>
+        </div>
+      </div>
+
+      <!-- Promo code -->
+      <div class="scard">
+        <div class="scard-title">PROMO-CODE</div>
+        <div class="promo-wrap">
+          <input class="promo-input" id="promoInput" placeholder="CODE EINGEBEN" maxlength="30">
+          <button class="promo-btn" id="promoBtn" onclick="applyPromo()">OK</button>
+        </div>
+        <div class="promo-msg" id="promoMsg"></div>
       </div>
       <div class="scard">
         <div class="scard-title">INKLUSIVE</div>
@@ -989,6 +1041,7 @@ const S = {
 // ═══════════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
 const fmtEur = n => n.toFixed(2).replace('.',',') + ' €';
+const fmtEurShort = n => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.',',')) + ' €';
 const delay  = ms => new Promise(r => setTimeout(r, ms));
 function utcToBerlin(isoStr){const d=new Date(isoStr);return d.toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',hour12:false});}
 
@@ -1440,24 +1493,50 @@ function updateSummary(){
   const total=getTotal();
   const totalStr=fmtEur(total);
   const ds=S.date?S.date.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}):'—';
-
-  // Sidebar
   const isSocial=S.eventKey==='schule'||S.eventKey==='verein';
-  $('side-base').textContent=isSocial?'0 EUR':S.basePrice+' EUR';
-  $('side-pp').textContent=S.pricePerPerson+' EUR';
-  $('side-total').textContent=totalStr;
-const promoRow = $('side-promo-row');
-if (promoState && promoState.discountAmount > 0) {
-  promoRow.classList.add('show');
-  $('side-discount').textContent = '− ' + fmtEur(promoState.discountAmount);
-} else {
-  promoRow.classList.remove('show');
-}
+
+  // ── Sidebar ─────────────────────────────────────────────
+  // Event type label
+  $('side-event-type').textContent = S.eventName;
+
+  // Date / time / persons block
+  const dtBlock = $('side-datetime-block');
+  if (S.date) {
+    dtBlock.style.display = 'block';
+    $('side-date-val').textContent = S.date.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'});
+    $('side-time-val').textContent = S.time ? S.time + ' Uhr' : '—';
+    $('side-persons-val').textContent = S.qty + ' Personen';
+  } else {
+    dtBlock.style.display = 'none';
+  }
+
+  // Base fee row
+  const baseRow = $('side-base-row');
+  if (baseRow) baseRow.style.display = isSocial ? 'none' : '';
+  $('side-base').textContent = isSocial ? '0 €' : fmtEurShort(S.basePrice);
+
+  // Per-person row
+  $('side-pp-label').textContent = 'Pro Person × ' + S.qty;
+  $('side-pp-total').textContent = fmtEurShort(S.pricePerPerson * S.qty);
+  $('side-pp-sub').textContent = fmtEurShort(S.pricePerPerson) + ' / Person';
+
+  // Total
+  $('side-total').textContent = totalStr;
+
+  // Promo discount
+  const promoRow = $('side-promo-row');
+  if (promoState && promoState.discountAmount > 0) {
+    promoRow.classList.add('show');
+    $('side-discount').textContent = '− ' + fmtEur(promoState.discountAmount);
+  } else {
+    promoRow.classList.remove('show');
+  }
 
   // Extras sidebar
   const drinksTotal = Math.round(getDrinksPrice() * S.qty * 100) / 100;
   $('side-drinks-row').classList.toggle('show', S.drinksFlat);
-  $('side-drinks-val').textContent = fmtEur(drinksTotal).replace(' €',' EUR');
+  $('side-drinks-val').textContent = fmtEur(drinksTotal);
+  $('side-drinks-sub').textContent = fmtEurShort(getDrinksPrice()) + ' × ' + S.qty;
   $('side-insurance-row').classList.toggle('show', S.insurance);
   // Extras Step 4
   const pdr=$('pay-drinks-row');if(pdr)pdr.style.display=S.drinksFlat?'flex':'none';
