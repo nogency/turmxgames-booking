@@ -1778,6 +1778,7 @@ function initPR(){
     style:{paymentRequestButton:{type:'buy',theme:'dark',height:'48px'}}
   });
   prRequest.canMakePayment().then(res=>{
+    console.log('[PR] canMakePayment:', JSON.stringify(res));
     if(res && (res.applePay || res.googlePay)){
       const wrap=$('prButtonWrap');
       if(wrap) wrap.style.display='flex';
@@ -1827,27 +1828,33 @@ async function initPayPal(){
     $('paypalBtn').innerHTML='<p style="font-size:11px;color:var(--tmu);padding:8px 0">PayPal konnte nicht geladen werden.</p>';
     return;
   }
-  const ppConfig=(containerId)=>paypalSDK.Buttons({
-    style:{layout:'vertical',color:'gold',shape:'rect',label:'paypal',height:48},
-    createOrder:(d,a)=>a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]}),
-    onApprove:async(d,a)=>{
-      const o=await a.order.capture();
-      // Fill contact form from PayPal payer data if fields are empty
-      const p=o.payer;
-      if(p?.name?.given_name && !$('fname')?.value && $('fname'))$('fname').value=p.name.given_name;
-      if(p?.name?.surname && !$('lname')?.value && $('lname'))$('lname').value=p.name.surname;
-      if(p?.email_address && !$('email')?.value && $('email'))$('email').value=p.email_address;
-      await submitBooking(o.id);
-    },
-    onError:e=>{alert('PayPal Fehler: '+e);document.querySelector('#step4 .snav').style.display='flex';}
-  }).render(containerId);
+  const ppOnApprove=async(d,a)=>{
+    const o=await a.order.capture();
+    const p=o.payer;
+    if(p?.name?.given_name && !$('fname')?.value && $('fname'))$('fname').value=p.name.given_name;
+    if(p?.name?.surname && !$('lname')?.value && $('lname'))$('lname').value=p.name.surname;
+    if(p?.email_address && !$('email')?.value && $('email'))$('email').value=p.email_address;
+    await submitBooking(o.id);
+  };
+  const ppCreateOrder=(d,a)=>a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]});
+  const ppOnError=e=>{alert('PayPal Fehler: '+e);document.querySelector('#step4 .snav').style.display='flex';};
 
-  await ppConfig('#paypalBtn');
-  // Also render express button and show express section
-  if($('paypalBtnExpress')){
-    await ppConfig('#paypalBtnExpress');
-    $('expressSec').style.display='block';
-  }
+  // Show express section FIRST so PayPal can render into a visible container
+  $('expressSec').style.display='block';
+
+  // Express button: yellow, only PayPal logo
+  await paypalSDK.Buttons({
+    fundingSource:paypalSDK.FUNDING.PAYPAL,
+    style:{layout:'vertical',color:'gold',shape:'rect',label:'paypal',height:48},
+    createOrder:ppCreateOrder,onApprove:ppOnApprove,onError:ppOnError
+  }).render('#paypalBtnExpress');
+
+  // Tab button: blue, only PayPal logo
+  await paypalSDK.Buttons({
+    fundingSource:paypalSDK.FUNDING.PAYPAL,
+    style:{layout:'vertical',color:'blue',shape:'rect',label:'paypal',height:48},
+    createOrder:ppCreateOrder,onApprove:ppOnApprove,onError:ppOnError
+  }).render('#paypalBtn');
 }
 
 // ═══════════════════════════════════════════════════════
