@@ -612,7 +612,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="mpanel show" id="mpanel-direct">
           <div id="weekday-callout" style="display:flex;align-items:center;gap:8px;background:rgba(46,125,50,0.08);border:1.5px solid rgba(46,125,50,0.25);border-radius:6px;padding:9px 13px;margin-bottom:10px;font-size:11.5px;color:#2e7d32;font-weight:700;line-height:1.4">
             <span class="ms sm fill" style="font-size:16px;color:#43a047">savings</span>
-            <span>Mo – Do: <strong>35 €</strong>/Person · Du sparst bis zu <strong>15 €</strong> vs. Wochenende!</span>
+            <span>Mo – Do: <strong>32 €</strong>/Person · Du sparst bis zu <strong>10 €</strong> vs. Wochenende!</span>
           </div>
           <div id="pnote-cheap" class="pnote"></div>
           <div id="pnote-exp" class="pnote"></div>
@@ -897,7 +897,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="scard accent">
         <div class="scard-title">DEINE BUCHUNG</div>
         <div class="sprow"><span class="spkey">Grundgebühr</span><div style="text-align:right"><div class="spval" id="side-base">40 EUR</div><div class="spnote">einmalig</div></div></div>
-        <div class="sprow"><span class="spkey">Pro Person</span><div style="text-align:right"><div class="spval" id="side-pp">35 EUR</div><div class="spnote">/ Person</div></div></div>
+        <div class="sprow"><span class="spkey">Pro Person</span><div style="text-align:right"><div class="spval" id="side-pp">32 EUR</div><div class="spnote">/ Person</div></div></div>
         <div class="sprow promo-discount" id="side-promo-row">
   <span class="spkey" style="color:var(--cheap)">RABATT</span>
   <div class="spval" id="side-discount" style="font-size:18px;color:var(--cheap)">—</div>
@@ -978,7 +978,7 @@ const S = {
   step:1, mode:'direct',
   eventKey:'jga', eventName:'JGA',
   date:null, dateStr:null, time:null,
-  qty:4, pricePerPerson:35, basePrice:40, duration:'2,5 Stunden',
+  qty:4, pricePerPerson:32, basePrice:40, duration:'2,5 Stunden',
   drinksFlat:false, insurance:false,
   kindAge:null, payMethod:'cc',
   doodleSlots: new Set(),
@@ -1317,7 +1317,7 @@ function selEvent(btn) {
   S.eventKey=btn.dataset.key;
   S.eventName=btn.querySelector('.ebtn-name').textContent;
   // Defaults
-  S.basePrice=40; S.pricePerPerson=35; S.duration='2,5 Stunden';
+  S.basePrice=40; S.pricePerPerson=PRICES.weekday; S.duration='2,5 Stunden';
   $('ageBox').style.display='none';
   $('kinderNote').classList.remove('show');
   $('socialNote').classList.remove('show');
