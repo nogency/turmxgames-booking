@@ -8,12 +8,13 @@
  *   STRIPE_SECRET_KEY   sk_live_...        (Stripe secret key — already used in bookla.js)
  */
 module.exports = (req, res) => {
-  if (!process.env.STRIPE_PK || !process.env.PAYPAL_CLIENT_ID) {
-    return res.status(500).json({ error: 'Missing env vars: STRIPE_PK and/or PAYPAL_CLIENT_ID' });
+  // STRIPE_PK is required — without it Stripe can't initialise at all
+  if (!process.env.STRIPE_PK) {
+    return res.status(500).json({ error: 'Missing STRIPE_PK env var' });
   }
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.json({
-    stripePk: process.env.STRIPE_PK,
-    paypalClientId: process.env.PAYPAL_CLIENT_ID,
+    stripePk:      process.env.STRIPE_PK,
+    paypalClientId: process.env.PAYPAL_CLIENT_ID || null,  // optional — PayPal tab hidden if missing
   });
 };

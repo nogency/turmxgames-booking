@@ -1700,7 +1700,16 @@ function goStep(n){
     const line=$('line'+i);if(line)line.classList.toggle('done',i<n);
   }
   S.step=n;
-  if(n===4){setTimeout(()=>{initStripe();initPayPal();},150);}
+  if(n===4){setTimeout(()=>{
+    initStripe();
+    // Hide PayPal tab if no client ID available
+    if(!_cfg?.paypalClientId){
+      const ppTab=$('ptab-paypal');
+      if(ppTab)ppTab.style.display='none';
+    } else {
+      initPayPal();
+    }
+  },150);}
   window.scrollTo({top:$('buchung').offsetTop-80,behavior:'smooth'});
   // Close sheet if open
   const sheet=$('mobSheet');
