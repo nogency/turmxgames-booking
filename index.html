@@ -1653,6 +1653,9 @@ function updateSummary(){
   $('mb-drinks-sub').textContent=fmtEurShort(getDrinksPrice())+' × '+S.qty;
   const mbIns=$('mb-insurance-row');
   if(mbIns)mbIns.style.display=S.insurance?'flex':'none';
+
+  // Keep Apple Pay sheet amount in sync
+  updatePRAmount();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1721,7 +1724,7 @@ function pickPay(m,btn){
 // ═══════════════════════════════════════════════════════
 // STRIPE
 // ═══════════════════════════════════════════════════════
-let stripe,sElements,cardEl,ibanEl,prButton,prMounted=false,stripeReady=false;
+let stripe,sElements,cardEl,ibanEl,prButton,prRequest,prMounted=false,stripeReady=false;
 
 function initStripe(){
   if(stripeReady)return;
@@ -1746,12 +1749,37 @@ function showStripeDemo(){
 
 function initPR(){
   if(prMounted)return;
-  const pr=stripe.paymentRequest({country:'DE',currency:'eur',total:{label:'TurmX Games – '+S.eventName,amount:Math.round(getTotal()*100)},requestPayerName:true,requestPayerEmail:true});
-  const prBtn=sElements.create('paymentRequestButton',{paymentRequest:pr,style:{paymentRequestButton:{type:'buy',theme:'dark',height:'46px'}}});
-  pr.canMakePayment().then(res=>{
-    if(res){$('expressSec').style.display='block';prBtn.mount('#prButton');prMounted=true;}
+  prRequest=stripe.paymentRequest({
+    country:'DE',currency:'eur',
+    total:{label:'TurmX Games – '+S.eventName,amount:Math.round(getTotal()*100)},
+    requestPayerName:true,requestPayerEmail:true
   });
-  pr.on('paymentmethod',async e=>{e.complete('success');await submitBooking();});
+  const prBtn=sElements.create('paymentRequestButton',{
+    paymentRequest:prRequest,
+    style:{paymentRequestButton:{type:'buy',theme:'dark',height:'48px'}}
+  });
+  prRequest.canMakePayment().then(res=>{
+    if(res){
+      $('expressSec').style.display='block';
+      prBtn.mount('#prButton');
+      prMounted=true;
+    }
+  });
+  prRequest.on('paymentmethod',async e=>{
+    try{
+      await submitBooking();
+      e.complete('success');
+    }catch(err){
+      e.complete('fail');
+    }
+  });
+}
+
+// Call this whenever total changes (qty, extras) so Apple Pay sheet shows correct amount
+function updatePRAmount(){
+  if(prRequest&&prMounted){
+    prRequest.update({total:{label:'TurmX Games – '+S.eventName,amount:Math.round(getTotal()*100)}});
+  }
 }
 
 // ═══════════════════════════════════════════════════════
