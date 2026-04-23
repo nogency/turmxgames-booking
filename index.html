@@ -1765,9 +1765,10 @@ async function initExpressCheckout(){
   const amount=Math.max(3200,Math.round(getTotal()*100));
   ecElements=stripe.elements({mode:'payment',amount,currency:'eur'});
   ecEl=ecElements.create('expressCheckout',{
-    buttonType:{applePay:'buy',googlePay:'buy',paypal:'buy'},
+    paymentMethods:{paypal:'never',link:'never'},
+    buttonType:{applePay:'buy',googlePay:'buy'},
     buttonHeight:48,
-    layout:{maxColumns:3,maxRows:1,overflow:'auto'}
+    layout:{maxColumns:2,maxRows:1,overflow:'auto'}
   });
   ecEl.on('ready',({availablePaymentMethods})=>{
     if(availablePaymentMethods&&Object.values(availablePaymentMethods).some(Boolean)){
