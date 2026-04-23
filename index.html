@@ -1777,11 +1777,15 @@ function initPR(){
     paymentRequest:prRequest,
     style:{paymentRequestButton:{type:'buy',theme:'dark',height:'48px'}}
   });
-  // Mount directly — Stripe hides the button automatically if no method available
-  const wrap=$('prButtonWrap');
-  if(wrap) wrap.style.display='flex';
-  prBtn.mount('#prButton');
-  prMounted=true;
+  prRequest.canMakePayment().then(res=>{
+    if(res && (res.applePay || res.googlePay)){
+      $('expressSec').style.display='block'; // ensure visible even if PayPal not configured
+      const wrap=$('prButtonWrap');
+      if(wrap) wrap.style.display='flex';
+      prBtn.mount('#prButton');
+      prMounted=true;
+    }
+  });
   prRequest.on('paymentmethod',async e=>{
     try{
       // Pre-fill contact form from Apple/Google Pay payer data if fields empty
