@@ -1,8 +1,11 @@
 {
-  "rewrites": [
+  "headers": [
     {
       "source": "/.well-known/apple-developer-merchantid-domain-association",
-      "destination": "/api/apple-pay-domain"
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
     }
   ]
 }
