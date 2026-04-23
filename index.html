@@ -863,12 +863,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <!-- Express Checkout -->
         <div class="express-section" id="expressSec" style="display:none">
           <div class="express-lbl">EXPRESS CHECKOUT</div>
-          <div class="express-btns-row">
-            <div id="paypalBtnExpress"></div>
-            <div id="prButtonWrap" style="display:none;flex:1;min-width:0">
-              <div id="prButton" style="min-height:48px;border-radius:5px;overflow:hidden"></div>
-            </div>
-          </div>
+          <div id="prButton" style="min-height:48px;border-radius:5px;overflow:hidden"></div>
           <div class="express-divider">oder</div>
         </div>
         
@@ -1707,16 +1702,13 @@ function goStep(n){
   }
   S.step=n;
   if(n===4){setTimeout(()=>{
-    initStripe(); // calls initPR() → canMakePayment() must run before PayPal SDK loads
-    // Small delay so canMakePayment() claims Google Pay before PayPal SDK initialises
-    setTimeout(()=>{
-      if(!_cfg?.paypalClientId){
-        const ppTab=$('ptab-paypal');
-        if(ppTab)ppTab.style.display='none';
-      } else {
-        initPayPal();
-      }
-    },400);
+    initStripe();
+    if(!_cfg?.paypalClientId){
+      const ppTab=$('ptab-paypal');
+      if(ppTab)ppTab.style.display='none';
+    } else {
+      initPayPal();
+    }
   },150);}
   window.scrollTo({top:$('buchung').offsetTop-80,behavior:'smooth'});
   // Close sheet if open
@@ -1781,9 +1773,7 @@ function initPR(){
   });
   prRequest.canMakePayment().then(res=>{
     if(res && (res.applePay || res.googlePay)){
-      $('expressSec').style.display='block'; // ensure visible even if PayPal not configured
-      const wrap=$('prButtonWrap');
-      if(wrap) wrap.style.display='flex';
+      $('expressSec').style.display='block';
       prBtn.mount('#prButton');
       prMounted=true;
     }
@@ -1840,17 +1830,7 @@ async function initPayPal(){
   const ppCreateOrder=(d,a)=>a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]});
   const ppOnError=e=>{alert('PayPal Fehler: '+e);document.querySelector('#step4 .snav').style.display='flex';};
 
-  // Show express section FIRST so PayPal can render into a visible container
-  $('expressSec').style.display='block';
-
-  // Express button: yellow, only PayPal logo
-  await paypalSDK.Buttons({
-    fundingSource:paypalSDK.FUNDING.PAYPAL,
-    style:{layout:'vertical',color:'gold',shape:'rect',label:'paypal',height:48},
-    createOrder:ppCreateOrder,onApprove:ppOnApprove,onError:ppOnError
-  }).render('#paypalBtnExpress');
-
-  // Tab button: blue, only PayPal logo
+  // Tab button only — blue PayPal button
   await paypalSDK.Buttons({
     fundingSource:paypalSDK.FUNDING.PAYPAL,
     style:{layout:'vertical',color:'blue',shape:'rect',label:'paypal',height:48},
