@@ -287,6 +287,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .serr{font-size:11px;color:var(--red);margin-top:3px;min-height:15px}
 .express-section{margin-bottom:4px}
 .express-lbl{font-size:9px;letter-spacing:2px;color:var(--tmu);margin-bottom:8px;font-weight:700}
+.express-btns-row{display:flex;gap:10px;align-items:stretch}
+.express-btns-row>div{flex:1;min-width:0}
 .express-divider{display:flex;align-items:center;gap:10px;margin:14px 0 4px;font-size:9px;letter-spacing:2px;color:var(--tmu);font-weight:700}
 .express-divider::before,.express-divider::after{content:"";flex:1;height:1px;background:var(--lbdr)}
 .ssl{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tmu);margin-top:12px;padding-top:12px;border-top:1px solid var(--lbdr)}
@@ -861,7 +863,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <!-- Express Checkout -->
         <div class="express-section" id="expressSec" style="display:none">
           <div class="express-lbl">EXPRESS CHECKOUT</div>
-          <div id="prButton" style="min-height:46px;border-radius:5px;overflow:hidden"></div>
+          <div class="express-btns-row">
+            <div id="paypalBtnExpress"></div>
+            <div id="prButtonWrap" style="display:none;flex:1;min-width:0">
+              <div id="prButton" style="min-height:48px;border-radius:5px;overflow:hidden"></div>
+            </div>
+          </div>
           <div class="express-divider">oder</div>
         </div>
         
@@ -1762,7 +1769,7 @@ function initPR(){
   if(prMounted)return;
   prRequest=stripe.paymentRequest({
     country:'DE',currency:'eur',
-    total:{label:'TurmX Games – '+S.eventName,amount:Math.round(getTotal()*100)},
+    total:{label:'TurmX Games',amount:Math.max(3200,Math.round(getTotal()*100))},
     requestPayerName:true,requestPayerEmail:true,
     disableWallets:['link','browserCard']
   });
@@ -1771,15 +1778,23 @@ function initPR(){
     style:{paymentRequestButton:{type:'buy',theme:'dark',height:'48px'}}
   });
   prRequest.canMakePayment().then(res=>{
-    // Only show Apple Pay or Google Pay — never Stripe Link
     if(res && (res.applePay || res.googlePay)){
-      $('expressSec').style.display='block';
+      const wrap=$('prButtonWrap');
+      if(wrap) wrap.style.display='flex';
       prBtn.mount('#prButton');
       prMounted=true;
+      $('expressSec').style.display='block';
     }
   });
   prRequest.on('paymentmethod',async e=>{
     try{
+      // Pre-fill contact form from Apple/Google Pay payer data if fields empty
+      if(e.payerName && !$('fname')?.value){
+        const parts=e.payerName.trim().split(' ');
+        if($('fname'))$('fname').value=parts[0]||'';
+        if($('lname'))$('lname').value=parts.slice(1).join(' ')||'';
+      }
+      if(e.payerEmail && !$('email')?.value && $('email'))$('email').value=e.payerEmail;
       await submitBooking();
       e.complete('success');
     }catch(err){
@@ -1812,12 +1827,27 @@ async function initPayPal(){
     $('paypalBtn').innerHTML='<p style="font-size:11px;color:var(--tmu);padding:8px 0">PayPal konnte nicht geladen werden.</p>';
     return;
   }
-  paypalSDK.Buttons({
-    style:{layout:'horizontal',color:'blue',shape:'rect',label:'paypal',height:46},
+  const ppConfig=(containerId)=>paypalSDK.Buttons({
+    style:{layout:'vertical',color:'gold',shape:'rect',label:'paypal',height:48},
     createOrder:(d,a)=>a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]}),
-    onApprove:async(d,a)=>{const o=await a.order.capture();await submitBooking(o.id);},
+    onApprove:async(d,a)=>{
+      const o=await a.order.capture();
+      // Fill contact form from PayPal payer data if fields are empty
+      const p=o.payer;
+      if(p?.name?.given_name && !$('fname')?.value && $('fname'))$('fname').value=p.name.given_name;
+      if(p?.name?.surname && !$('lname')?.value && $('lname'))$('lname').value=p.name.surname;
+      if(p?.email_address && !$('email')?.value && $('email'))$('email').value=p.email_address;
+      await submitBooking(o.id);
+    },
     onError:e=>{alert('PayPal Fehler: '+e);document.querySelector('#step4 .snav').style.display='flex';}
-  }).render('#paypalBtn');
+  }).render(containerId);
+
+  await ppConfig('#paypalBtn');
+  // Also render express button and show express section
+  if($('paypalBtnExpress')){
+    await ppConfig('#paypalBtnExpress');
+    $('expressSec').style.display='block';
+  }
 }
 
 // ═══════════════════════════════════════════════════════
