@@ -83,16 +83,20 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .tpill:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:#fff;transform:translateY(-1px)}
 .tpill .ms{color:var(--red)}
 
-/* ── MOBILE STICKY BAR ── */
-.mob-bar{display:none;position:sticky;top:64px;z-index:100;background:var(--dark3);border-bottom:1px solid var(--bd);padding:11px 16px;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none}
-.mob-bar-l{display:flex;align-items:center;gap:10px;min-width:0}
-.mob-bar-icon{width:32px;height:32px;background:rgba(192,57,43,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0;font-size:14px}
-.mob-bar-info{min-width:0}
-.mob-bar-title{font-family:"Barlow Condensed",sans-serif;font-size:13px;letter-spacing:.5px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mob-bar-sub{font-size:10px;color:var(--muted);margin-top:1px}
-.mob-bar-price{font-family:"Barlow Condensed",sans-serif;font-size:20px;color:var(--red);flex-shrink:0}
-.mob-bar-drop{display:none;position:sticky;top:108px;z-index:99;background:var(--dark2);border-bottom:1px solid var(--bd);padding:14px 16px;animation:fadeUp .2s ease both}
-.mob-bar-drop.open{display:block}
+/* ── MOBILE FIXED BOTTOM BAR ── */
+.mob-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--lc);border-top:1px solid var(--lbdr);padding:10px 14px 10px 16px;align-items:center;gap:10px;box-shadow:0 -4px 24px rgba(0,0,0,.1)}
+.mob-bar-summary-btn{flex:1;background:none;border:none;text-align:left;padding:0;cursor:pointer;font-family:inherit;min-width:0}
+.mob-bar-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--tmu);display:flex;align-items:center;gap:3px;margin-bottom:1px}
+.mob-bar-price{font-family:"Barlow Condensed",sans-serif;font-size:26px;color:var(--td);line-height:1}
+.mob-bar-next{background:var(--red);color:#fff;border:none;border-radius:10px;padding:13px 18px;font-family:"Barlow Condensed",sans-serif;font-size:16px;letter-spacing:.5px;font-weight:400;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;transition:filter .15s}
+.mob-bar-next:hover{filter:brightness(1.1)}
+/* Sheet overlay */
+.mob-sheet{display:none;position:fixed;inset:0;z-index:199}
+.mob-sheet.open{display:block}
+.mob-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+.mob-sheet-panel{position:absolute;left:0;right:0;bottom:80px;background:var(--lc);border-radius:18px 18px 0 0;padding:18px 16px 10px;max-height:78vh;overflow-y:auto;animation:slideUpPanel .28s cubic-bezier(0.34,1.2,0.64,1) both}
+@keyframes slideUpPanel{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mob-sheet-handle{width:36px;height:4px;background:rgba(0,0,0,.15);border-radius:2px;margin:0 auto 16px}
 
 /* ── BOOKING AREA ── */
 .barea{background:var(--lb);padding:0 60px 80px}
@@ -169,7 +173,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .calnav:hover{border-color:var(--red)}
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .cal-lbl{text-align:center;font-size:8px;letter-spacing:1px;color:var(--tmu);padding-bottom:4px;font-weight:600}
-.cd{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:all .18s cubic-bezier(0.34,1.56,0.64,1);color:var(--td);font-weight:500;position:relative}
+.cd{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:all .18s cubic-bezier(0.34,1.56,0.64,1);color:var(--td);font-weight:500;position:relative}
+.cd-price{font-size:7px;color:var(--tmu);margin-top:2px;letter-spacing:0;line-height:1;font-weight:400}
+.cd.sel .cd-price{color:rgba(255,255,255,.75)}
+.cd.past .cd-price,.cd.unavail .cd-price{color:rgba(0,0,0,.15)}
 .cd:hover:not(.empty):not(.past):not(.unavail){background:var(--rl);border-color:var(--rb);transform:scale(1.12)}
 .cd.sel{background:var(--red);color:#fff;border-color:var(--red);transform:scale(1.12);box-shadow:0 3px 10px rgba(192,57,43,.4)}
 .cd.today{border-color:var(--rb)}
@@ -344,9 +351,8 @@ footer a:hover{color:rgba(255,255,255,.65)}
   .rbar .rscore,.rbar .rstar{font-size:13px}
   .hero{padding:22px 16px 18px}
   .trust{display:none}
-  .mob-bar{display:flex;top:60px}
-  .mob-bar-drop{top:104px}
-  .barea{padding:0 0 56px}
+  .mob-bar{display:flex}
+  .barea{padding:0 0 96px}
   .binner{grid-template-columns:1fr;padding:0 14px;gap:18px}
   .shdr{padding:20px 14px 28px}
   .sdot-lbl{display:none}
@@ -478,27 +484,80 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
 </div>
 
-<!-- MOBILE STICKY BAR -->
-<div class="mob-bar" id="mobBar" onclick="toggleMobBar()">
-  <div class="mob-bar-l">
-    <div class="mob-bar-icon"><span class="ms sm fill">sports_esports</span></div>
-    <div class="mob-bar-info">
-      <div class="mob-bar-title" id="mb-type">TurmX Gameshow</div>
-      <div class="mob-bar-sub" id="mb-sub">Datum & Zeit wählen</div>
+<!-- MOBILE FIXED BOTTOM BAR -->
+<div class="mob-bar" id="mobBar">
+  <button class="mob-bar-summary-btn" onclick="toggleMobBar()">
+    <div class="mob-bar-label">
+      GESAMT
+      <svg id="mb-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--tmu);transition:transform .25s"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
-  </div>
-  <div style="display:flex;align-items:center;gap:8px">
     <div class="mob-bar-price" id="mb-price">—</div>
-    <svg id="mb-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);transition:transform .25s"><polyline points="6 9 12 15 18 9"/></svg>
-  </div>
+  </button>
+  <button class="mob-bar-next" id="mb-next-btn" onclick="mobBarNext()">
+    Weiter <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+  </button>
 </div>
-<div class="mob-bar-drop" id="mobDrop">
-  <div class="sumbox" style="margin:0">
-    <div class="sumrow"><span class="sumkey">Event</span><span class="sumval" id="mb-d-type">—</span></div>
-    <div class="sumrow"><span class="sumkey">Datum</span><span class="sumval" id="mb-d-date">—</span></div>
-    <div class="sumrow"><span class="sumkey">Uhrzeit</span><span class="sumval" id="mb-d-time">—</span></div>
-    <div class="sumrow"><span class="sumkey">Personen</span><span class="sumval" id="mb-d-persons">—</span></div>
-    <div class="sumrow sumtot"><span class="sumkey">GESAMT</span><span class="sumval" id="mb-d-total">—</span></div>
+
+<!-- MOBILE SUMMARY SHEET -->
+<div class="mob-sheet" id="mobSheet">
+  <div class="mob-sheet-backdrop" onclick="toggleMobBar()"></div>
+  <div class="mob-sheet-panel">
+    <div class="mob-sheet-handle"></div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:var(--td);margin-bottom:12px">EURE BUCHUNG</div>
+
+    <!-- Event block -->
+    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--lbdr)">
+      <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--tmu);margin-bottom:2px">Event</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;letter-spacing:1px;color:var(--td);text-transform:uppercase;line-height:1.1">TurmX Gameshow</div>
+      <div style="font-size:11px;color:var(--tm);margin-top:2px" id="mb-event-type">JGA</div>
+    </div>
+
+    <!-- Date / Time / Persons -->
+    <div id="mb-datetime-block" style="display:none;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--lbdr)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--tmu);margin-bottom:2px">Datum</div>
+          <div style="font-size:13px;font-weight:600;color:var(--td)" id="mb-date-val">—</div>
+        </div>
+        <div>
+          <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--tmu);margin-bottom:2px">Uhrzeit</div>
+          <div style="font-size:13px;font-weight:600;color:var(--td)" id="mb-time-val">—</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--tmu);margin-bottom:2px">Personen</div>
+        <div style="font-size:13px;font-weight:600;color:var(--td)" id="mb-persons-val">4</div>
+      </div>
+    </div>
+
+    <!-- Price rows -->
+    <div id="mb-base-row" style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--lbdr)">
+      <div>
+        <div style="font-size:11px;color:var(--tmu)">Grundgebühr</div>
+        <div style="font-size:9px;color:var(--tmu)">einmalig</div>
+      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--red)" id="mb-base-val">40 €</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--lbdr)">
+      <div>
+        <div style="font-size:11px;color:var(--tmu)" id="mb-pp-label">Pro Person × 4</div>
+        <div style="font-size:9px;color:var(--tmu)" id="mb-pp-sub">32 € / Person</div>
+      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--red)" id="mb-pp-total">128 €</div>
+    </div>
+    <div id="mb-drinks-row" style="display:none;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--lbdr)">
+      <div>
+        <div style="font-size:11px;color:var(--tmu)">Getränkeflat</div>
+        <div style="font-size:9px;color:var(--tmu)" id="mb-drinks-sub">12,90 € × 4</div>
+      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--red)" id="mb-drinks-val">—</div>
+    </div>
+    <div id="mb-insurance-row" style="display:none;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--lbdr)">
+      <div style="font-size:11px;color:var(--tmu)">Versicherung</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--red)">14,90 €</div>
+    </div>
+
+    <div style="height:10px"></div>
   </div>
 </div>
 
@@ -1210,7 +1269,11 @@ function buildCal() {
     const minDate = new Date(today.getFullYear(),today.getMonth(),today.getDate()+3);
     const isPast = dt < minDate;
     const isAvail = availDates.size===0 || availDates.has(ds);
-    const el = document.createElement('div'); el.className='cd'; el.textContent=d;
+    const el = document.createElement('div'); el.className='cd';
+    const isSocial=S.eventKey==='schule'||S.eventKey==='verein';
+    const isKinder=S.eventKey==='kinder';
+    const dayPrice = isSocial?25:(isKinder?32:(dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday)));
+    el.innerHTML = '<span>'+d+'</span><span class="cd-price">'+dayPrice+'€</span>';
     if (dow===5) el.classList.add('mid');
     else if (dow===6||dow===0) el.classList.add('expensive');
     else el.classList.add('cheap');
@@ -1389,6 +1452,11 @@ function selEvent(btn) {
   updateDrinksDesc();
   updateSummary();
   dlPush({event:'select_event_type', event_type:S.eventKey, event_name:S.eventName});
+  // Smooth scroll to calendar
+  setTimeout(()=>{
+    const cal=document.querySelector('.calwrap');
+    if(cal)cal.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },120);
 }
 
 function selSpecial(btn) {
@@ -1405,6 +1473,10 @@ function selSpecial(btn) {
   updateDrinksDesc();
   updateSummary();
   dlPush({event:'select_event_type', event_type:S.eventKey, event_name:S.eventName});
+  setTimeout(()=>{
+    const cal=document.querySelector('.calwrap');
+    if(cal)cal.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },120);
 }
 
 function toggleMore(){
@@ -1550,19 +1622,37 @@ function updateSummary(){
   const pt=$('pay-total');if(pt)pt.textContent=totalStr;
   const pb=$('payBtnTotal');if(pb)pb.textContent=totalStr;
 
-  // Mobile bar
-  $('mb-type').textContent=S.eventName;
+  // ── Mobile bar + sheet ─────────────────────────────────
   $('mb-price').textContent=totalStr;
-  const sub=[];
-  if(S.date)sub.push(S.date.toLocaleDateString('de-DE',{day:'2-digit',month:'short'}));
-  if(S.time)sub.push(S.time+' Uhr');
-  sub.push(S.qty+' Personen');
-  $('mb-sub').textContent=sub.join(' · ');
-  $('mb-d-type').textContent=S.eventName;
-  $('mb-d-date').textContent=ds;
-  $('mb-d-time').textContent=S.time?S.time+' Uhr':'—';
-  $('mb-d-persons').textContent=S.qty+' Personen';
-  $('mb-d-total').textContent=totalStr;
+
+  // Sheet: event type
+  $('mb-event-type').textContent=S.eventName;
+
+  // Sheet: date/time/persons block
+  const mbDt=$('mb-datetime-block');
+  if(S.date){
+    mbDt.style.display='block';
+    $('mb-date-val').textContent=S.date.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'});
+    $('mb-time-val').textContent=S.time?S.time+' Uhr':'—';
+    $('mb-persons-val').textContent=S.qty+' Personen';
+  } else {
+    mbDt.style.display='none';
+  }
+
+  // Sheet: price rows
+  const mbBaseRow=$('mb-base-row');
+  if(mbBaseRow)mbBaseRow.style.display=isSocial?'none':'flex';
+  $('mb-base-val').textContent=isSocial?'0 €':fmtEurShort(S.basePrice);
+  $('mb-pp-label').textContent='Pro Person × '+S.qty;
+  $('mb-pp-total').textContent=fmtEurShort(S.pricePerPerson*S.qty);
+  $('mb-pp-sub').textContent=fmtEurShort(S.pricePerPerson)+' / Person';
+
+  const mbDrinks=$('mb-drinks-row');
+  if(mbDrinks){mbDrinks.style.display=S.drinksFlat?'flex':'none';}
+  $('mb-drinks-val').textContent=fmtEur(drinksTotal);
+  $('mb-drinks-sub').textContent=fmtEurShort(getDrinksPrice())+' × '+S.qty;
+  const mbIns=$('mb-insurance-row');
+  if(mbIns)mbIns.style.display=S.insurance?'flex':'none';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1608,7 +1698,10 @@ function goStep(n){
   S.step=n;
   if(n===4){setTimeout(()=>{initStripe();initPayPal();},150);}
   window.scrollTo({top:$('buchung').offsetTop-80,behavior:'smooth'});
-  $('mobDrop').classList.remove('open');
+  // Close sheet if open
+  const sheet=$('mobSheet');
+  if(sheet){sheet.classList.remove('open');document.body.style.overflow='';}
+  const ch=$('mb-chevron');if(ch)ch.style.transform='';
   updateSummary();
 }
 
@@ -1828,9 +1921,17 @@ function pickRadio(el){el.closest('.radio-group').querySelectorAll('.ropt').forE
 // MOBILE BAR
 // ═══════════════════════════════════════════════════════
 function toggleMobBar(){
-  const d=$('mobDrop'),ch=$('mb-chevron');
-  const o=d.classList.toggle('open');
+  const sheet=$('mobSheet'),ch=$('mb-chevron');
+  const o=sheet.classList.toggle('open');
   ch.style.transform=o?'rotate(180deg)':'';
+  document.body.style.overflow=o?'hidden':'';
+}
+
+function mobBarNext(){
+  if(S.step===1)step1Next();
+  else if(S.step===2)goStep(3);
+  else if(S.step===3)step3Next();
+  else if(S.step===4)handlePayment();
 }
 
 // ═══════════════════════════════════════════════════════
