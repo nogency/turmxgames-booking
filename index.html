@@ -1855,12 +1855,10 @@ async function handlePayment(){
     if(S.payMethod==='invoice'){await submitBookingInvoice();return;}
     if(S.payMethod==='cc'){
       if(!stripe){await delay(1200);await submitBooking();return;}
-      let clientSecret;
-      try{
-        const r=await fetch(API+'?action=create-payment-intent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:getTotal(),description:'TurmX Games – '+S.eventName})});
-        const d=await r.json(); clientSecret=d.clientSecret;
-      }catch(e){await delay(1200);await submitBooking();return;}
-      const result=await stripe.confirmCardPayment(clientSecret,{payment_method:{card:cardEl,billing_details:{name:$('ccName').value}}});
+      const r=await fetch(API+'?action=create-payment-intent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:getTotal(),description:'TurmX Games – '+S.eventName})});
+      const d=await r.json();
+      if(!r.ok||!d.clientSecret) throw new Error(d.error||'Payment Intent konnte nicht erstellt werden. Bitte prüfe ob STRIPE_SECRET_KEY in Vercel gesetzt ist.');
+      const result=await stripe.confirmCardPayment(d.clientSecret,{payment_method:{card:cardEl,billing_details:{name:$('ccName').value}}});
       if(result.error)throw new Error(result.error.message);
       await submitBooking(result.paymentIntent.id); return;
     }
