@@ -1763,14 +1763,16 @@ function initPR(){
   prRequest=stripe.paymentRequest({
     country:'DE',currency:'eur',
     total:{label:'TurmX Games – '+S.eventName,amount:Math.round(getTotal()*100)},
-    requestPayerName:true,requestPayerEmail:true
+    requestPayerName:true,requestPayerEmail:true,
+    disableWallets:['link','browserCard']
   });
   const prBtn=sElements.create('paymentRequestButton',{
     paymentRequest:prRequest,
     style:{paymentRequestButton:{type:'buy',theme:'dark',height:'48px'}}
   });
   prRequest.canMakePayment().then(res=>{
-    if(res){
+    // Only show Apple Pay or Google Pay — never Stripe Link
+    if(res && (res.applePay || res.googlePay)){
       $('expressSec').style.display='block';
       prBtn.mount('#prButton');
       prMounted=true;
