@@ -747,7 +747,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <div style="height:16px"></div>
         <div style="display:flex;justify-content:flex-end">
-          <button class="bnxt" id="btn1" onclick="step1Next()" disabled>Weiter zur Gruppe →</button>
+          <button class="bnxt" id="btn1" onclick="step1Next()" disabled>Datum wählen →</button>
         </div>
       </div>
 
@@ -1654,13 +1654,29 @@ if (promoState && promoState.discountAmount > 0) {
 // STEPS
 // ═══════════════════════════════════════════════════════
 function checkStep1(){
-  const ok = S.mode==='doodle' ? S.doodleSlots.size > 0 : (!!S.date && !!S.time);
+  const ok = S.mode==='doodle' ? S.doodleSlots.size > 0 : !!S.date;
   $('btn1').disabled=!ok;
+  // Button-Text je nach Status
+  const btn=$('btn1');
+  if(S.mode==='direct'){
+    if(!S.date) btn.textContent='Datum wählen →';
+    else if(!S.time) btn.textContent='⬇ Uhrzeit wählen';
+    else btn.textContent='Weiter zur Gruppe →';
+  }
 }
 
 function step1Next(){
   if(S.mode==='direct'&&!S.date){alert('Bitte wähle ein Datum.');return;}
-  if(S.mode==='direct'&&!S.time){alert('Bitte wähle eine Uhrzeit.');return;}
+  if(S.mode==='direct'&&!S.time){
+    // Scroll zur Uhrzeitauswahl + kurz hervorheben
+    const ts=$('timeSec');
+    ts.scrollIntoView({behavior:'smooth',block:'start'});
+    ts.style.transition='box-shadow .2s';
+    ts.style.boxShadow='0 0 0 2px var(--red)';
+    ts.style.borderRadius='10px';
+    setTimeout(()=>{ts.style.boxShadow='';ts.style.borderRadius='';},1600);
+    return;
+  }
   goStep(2);
 }
 
