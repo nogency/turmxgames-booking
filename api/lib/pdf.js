@@ -160,14 +160,14 @@ function generateInvoicePDF(data) {
     }
 
     // ── FOOTER ──
-    const footY = doc.page.height - 70;
+    const footY = doc.page.height - 95;
     doc.moveTo(LEFT, footY).lineTo(RIGHT, footY).strokeColor('#e0ddd7').lineWidth(0.75).stroke();
     doc.font('Helvetica').fontSize(7.5).fillColor('#999')
        .text(
          `HB Kletterwelten GmbH · USt-IdNr. ${COMPANY.ustId} · ${COMPANY.hrb} · Geschäftsführer: ${COMPANY.gf}`,
          LEFT, footY + 10, { align: 'center', width: W }
        )
-       .text(`fon: ${COMPANY.phone} · ${COMPANY.email}`, LEFT, footY + 22, { align: 'center', width: W });
+       .text(`fon: ${COMPANY.phone} · ${COMPANY.email}`, LEFT, footY + 30, { align: 'center', width: W });
 
     doc.end();
   });
