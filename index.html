@@ -864,7 +864,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <!-- Express Checkout -->
         <div class="express-section" id="expressSec" style="display:none">
           <div class="express-lbl">EXPRESS CHECKOUT</div>
-          <div id="prButton" style="border-radius:5px;overflow:hidden"></div>
+          <div id="prButton" style="min-height:48px;border-radius:5px;overflow:hidden"></div>
           <div id="expressPaypalBtn" style="margin-top:8px"></div>
           <div class="express-divider">oder</div>
         </div>
@@ -1789,12 +1789,14 @@ async function initExpressCheckout(){
     paymentMethods:{paypal:'never',link:'never',amazonPay:'never'},
     buttonType:{applePay:'buy',googlePay:'buy'},
     buttonHeight:48,
-    layout:{maxColumns:1,maxRows:3,overflow:'never'}
+    layout:{maxColumns:1,maxRows:3,overflow:'auto'}
   });
+  // Show section BEFORE mount so Stripe can render into a visible container
+  $('expressSec').style.display='block';
   ecEl.on('ready',({availablePaymentMethods})=>{
-    if(availablePaymentMethods&&Object.values(availablePaymentMethods).some(Boolean)){
-      $('expressSec').style.display='block';
-    }
+    const hasStripe=availablePaymentMethods&&Object.values(availablePaymentMethods).some(Boolean);
+    const hasPayPal=!!$('expressPaypalBtn')?.querySelector('iframe,button,div[data-funding-source]');
+    if(!hasStripe&&!hasPayPal)$('expressSec').style.display='none';
   });
   ecEl.on('confirm',async(event)=>{
     try{
