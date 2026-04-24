@@ -864,7 +864,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <!-- Express Checkout -->
         <div class="express-section" id="expressSec" style="display:none">
           <div class="express-lbl">EXPRESS CHECKOUT</div>
-          <div id="prButton" style="min-height:48px;border-radius:5px;overflow:hidden"></div>
+          <div id="prButton" style="border-radius:5px;overflow:hidden"></div>
+          <div id="expressPaypalBtn" style="margin-top:8px"></div>
           <div class="express-divider">oder</div>
         </div>
         
@@ -1710,6 +1711,7 @@ function goStep(n){
       if(ppTab)ppTab.style.display='none';
     } else {
       initPayPal();
+      initExpressPayPal();
     }
   },150);}
   window.scrollTo({top:$('buchung').offsetTop-80,behavior:'smooth'});
@@ -1787,7 +1789,7 @@ async function initExpressCheckout(){
     paymentMethods:{paypal:'never',link:'never',amazonPay:'never'},
     buttonType:{applePay:'buy',googlePay:'buy'},
     buttonHeight:48,
-    layout:{maxColumns:2,maxRows:1,overflow:'auto'}
+    layout:{maxColumns:1,maxRows:3,overflow:'never'}
   });
   ecEl.on('ready',({availablePaymentMethods})=>{
     if(availablePaymentMethods&&Object.values(availablePaymentMethods).some(Boolean)){
@@ -1831,6 +1833,18 @@ function updatePRAmount(){
 // ═══════════════════════════════════════════════════════
 // PAYPAL
 // ═══════════════════════════════════════════════════════
+// Shared PayPal handlers
+function _ppCreateOrder(d,a){return a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]});}
+async function _ppOnApprove(d,a){
+  const o=await a.order.capture();
+  const p=o.payer;
+  if(p?.name?.given_name && !$('fname')?.value && $('fname'))$('fname').value=p.name.given_name;
+  if(p?.name?.surname && !$('lname')?.value && $('lname'))$('lname').value=p.name.surname;
+  if(p?.email_address && !$('email')?.value && $('email'))$('email').value=p.email_address;
+  await submitBooking(o.id);
+}
+function _ppOnError(e){alert('PayPal Fehler: '+e);const nav=document.querySelector('#step4 .snav');if(nav)nav.style.display='flex';}
+
 let ppReady=false;
 async function initPayPal(){
   if(ppReady)return;ppReady=true;
@@ -1839,29 +1853,32 @@ async function initPayPal(){
     $('paypalBtn').innerHTML='<p style="font-size:11px;color:var(--tmu);padding:8px 0">PayPal nicht konfiguriert. PAYPAL_CLIENT_ID Env Var fehlt.</p>';
     return;
   }
-  try{
-    await loadPayPalSDK(clientId);
-  }catch(e){
-    $('paypalBtn').innerHTML='<p style="font-size:11px;color:var(--tmu);padding:8px 0">PayPal konnte nicht geladen werden.</p>';
-    return;
-  }
-  const ppOnApprove=async(d,a)=>{
-    const o=await a.order.capture();
-    const p=o.payer;
-    if(p?.name?.given_name && !$('fname')?.value && $('fname'))$('fname').value=p.name.given_name;
-    if(p?.name?.surname && !$('lname')?.value && $('lname'))$('lname').value=p.name.surname;
-    if(p?.email_address && !$('email')?.value && $('email'))$('email').value=p.email_address;
-    await submitBooking(o.id);
-  };
-  const ppCreateOrder=(d,a)=>a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]});
-  const ppOnError=e=>{alert('PayPal Fehler: '+e);document.querySelector('#step4 .snav').style.display='flex';};
-
-  // Tab button only — blue PayPal button
-  await paypalSDK.Buttons({
+  try{await loadPayPalSDK(clientId);}
+  catch(e){$('paypalBtn').innerHTML='<p style="font-size:11px;color:var(--tmu);padding:8px 0">PayPal konnte nicht geladen werden.</p>';return;}
+  // Tab button — blue PayPal button
+  const tabBtn=paypalSDK.Buttons({
     fundingSource:paypalSDK.FUNDING.PAYPAL,
     style:{layout:'vertical',color:'blue',shape:'rect',label:'paypal',height:48},
-    createOrder:ppCreateOrder,onApprove:ppOnApprove,onError:ppOnError
-  }).render('#paypalBtn');
+    createOrder:_ppCreateOrder,onApprove:_ppOnApprove,onError:_ppOnError
+  });
+  if(tabBtn.isEligible())await tabBtn.render('#paypalBtn');
+}
+
+let ppExpressReady=false;
+async function initExpressPayPal(){
+  if(ppExpressReady)return; ppExpressReady=true;
+  const clientId=_cfg?.paypalClientId;
+  if(!clientId)return;
+  try{await loadPayPalSDK(clientId);}catch(e){return;}
+  const expBtn=paypalSDK.Buttons({
+    fundingSource:paypalSDK.FUNDING.PAYPAL,
+    style:{layout:'vertical',color:'gold',shape:'rect',label:'paypal',height:48},
+    createOrder:_ppCreateOrder,onApprove:_ppOnApprove,onError:_ppOnError
+  });
+  if(expBtn.isEligible()){
+    await expBtn.render('#expressPaypalBtn');
+    $('expressSec').style.display='block';
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2098,8 +2115,10 @@ async function loadConfig(){
 }
 
 // Load PayPal SDK dynamically after config is available
+let _ppSdkPromise=null;
 function loadPayPalSDK(clientId){
-  return new Promise((resolve,reject)=>{
+  if(_ppSdkPromise)return _ppSdkPromise;
+  _ppSdkPromise=new Promise((resolve,reject)=>{
     if(window.paypalSDK){resolve();return;}
     const s=document.createElement('script');
     s.src=`https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=capture&components=buttons`;
@@ -2107,6 +2126,7 @@ function loadPayPalSDK(clientId){
     s.onload=resolve; s.onerror=reject;
     document.head.appendChild(s);
   });
+  return _ppSdkPromise;
 }
 
 loadConfig();

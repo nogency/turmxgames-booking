@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd.exe /c \"node --version\")",
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs:/c/Users/JonathanRoxlau/AppData/Roaming/npm\")",
+      "Bash(npm --version)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__find",
+      "Bash(git push *)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Read(//c//**)",
+      "Read(//c/nvm/**)",
+      "Bash(where vercel *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(vercel --prod)",
+      "Bash(npx vercel *)",
+      "Bash(where node *)",
+      "Bash(where npm *)",
+      "PowerShell(vercel --prod 2>&1)",
+      "PowerShell(npx vercel --prod 2>&1)",
+      "PowerShell(Get-Command node -ErrorAction SilentlyContinue)",
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(python3 -m http.server 3001)"
+    ]
+  }
+}
