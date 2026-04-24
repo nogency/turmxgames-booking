@@ -91,8 +91,8 @@ function buildInvoiceData(params) {
     companyCity:   companyCity   || null,
     ustId:         ustId         || null,
     bankOwner: process.env.INVOICE_BANK_OWNER || 'HB Kletterwelten GmbH',
-    bankIban:  process.env.INVOICE_BANK_IBAN  || null,
-    bankBic:   process.env.INVOICE_BANK_BIC   || null,
+    bankIban:  process.env.INVOICE_BANK_IBAN  || 'DE13382501100001720465',
+    bankBic:   process.env.INVOICE_BANK_BIC   || 'WELADED1EUS',
   };
 }
 

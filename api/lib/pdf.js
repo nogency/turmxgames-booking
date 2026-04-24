@@ -128,7 +128,7 @@ function generateInvoicePDF(data) {
     doc.text(fmtEur(data.tax.brutto), c.brutto, totY + 44, { width: totValW, align: 'right' });
 
     // ── ZAHLUNGSART ──
-    const payY = totY + 76;
+    const payY = totY + 58;
     const isInvoice = data.paymentMethod === 'invoice';
     const payLabels = { cc: 'Kreditkarte', paypal: 'PayPal', sepa: 'SEPA-Lastschrift', invoice: 'Kauf auf Rechnung' };
     const payLabel = payLabels[data.paymentMethod] || data.paymentMethod;
@@ -145,17 +145,17 @@ function generateInvoicePDF(data) {
       doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a')
          .text(payLabel, LEFT, payY + 12);
 
-      // ── BANK DETAILS (nur bei "invoice" und wenn IBAN vorhanden) ──
+      // ── BANK DETAILS ──
       if (data.bankIban) {
-        const bankY = payY + 44;
-        doc.rect(LEFT, bankY, W, 76).fillAndStroke('#fff8f0', '#f5c99a');
+        const bankY = payY + 34;
+        doc.rect(LEFT, bankY, W, 80).fillAndStroke('#fff8f0', '#f5c99a');
         doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#c0392b')
            .text(`BITTE ÜBERWEISEN SIE DEN BETRAG BIS ZUM ${data.dueDate}`, LEFT + 10, bankY + 10);
         doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a')
            .text(`Kontoinhaber: ${data.bankOwner}`, LEFT + 10, bankY + 26)
-           .text(`IBAN: ${data.bankIban}`, LEFT + 10, bankY + 39)
-           .text(`BIC: ${data.bankBic || ''}`, LEFT + 10, bankY + 52)
-           .text(`Verwendungszweck: ${data.invoiceNumber}`, LEFT + 10, bankY + 65);
+           .text(`IBAN:  ${data.bankIban}`, LEFT + 10, bankY + 40)
+           .text(`BIC:   ${data.bankBic || ''}`, LEFT + 10, bankY + 54)
+           .text(`Verwendungszweck: ${data.invoiceNumber}`, LEFT + 10, bankY + 68);
       }
     }
 
