@@ -98,6 +98,24 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 @keyframes slideUpPanel{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
 .mob-sheet-handle{width:36px;height:4px;background:rgba(0,0,0,.15);border-radius:2px;margin:0 auto 16px}
 
+/* ── AGB MODAL ── */
+.agb-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:16px}
+.agb-overlay.open{display:flex}
+.agb-box{background:var(--lc);border-radius:12px;max-width:640px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.agb-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--lbdr);flex-shrink:0}
+.agb-head h2{font-family:"Barlow Condensed",sans-serif;font-size:18px;letter-spacing:2px;color:var(--td);margin:0}
+.agb-close{background:none;border:none;cursor:pointer;color:var(--tmu);font-size:20px;line-height:1;padding:4px;transition:color .15s}
+.agb-close:hover{color:var(--td)}
+.agb-body{overflow-y:auto;padding:20px;font-size:12px;color:var(--tm);line-height:1.75}
+.agb-body h3{font-family:"Barlow Condensed",sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--td);margin:18px 0 6px;text-transform:uppercase}
+.agb-body h3:first-child{margin-top:0}
+.agb-body p{margin:0 0 8px}
+.agb-body ul{margin:4px 0 8px;padding-left:16px}
+.agb-body ul li{margin-bottom:3px}
+.agb-note{font-size:10px;color:var(--tmu);text-align:center;margin-top:12px}
+.agb-note a{color:var(--tmu);text-decoration:underline;cursor:pointer}
+.agb-note a:hover{color:var(--td)}
+
 /* ── BOOKING AREA ── */
 .barea{background:var(--lb);padding:0 60px 80px}
 .binner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 340px;gap:36px;align-items:start}
@@ -927,6 +945,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             Jetzt buchen · <span id="payBtnTotal">—</span>
           </button>
         </div>
+        <p class="agb-note">Mit deiner Buchung bestätigst du unsere <a onclick="openAgb()">AGB &amp; Teilnahmebedingungen</a>.</p>
       </div>
 
       <!-- SUCCESS -->
@@ -1055,12 +1074,81 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
 </div>
 
+<!-- AGB MODAL -->
+<div class="agb-overlay" id="agbOverlay" onclick="closeAgbOutside(event)">
+  <div class="agb-box">
+    <div class="agb-head">
+      <h2>AGB &amp; TEILNAHMEBEDINGUNGEN</h2>
+      <button class="agb-close" onclick="closeAgb()"><span class="ms sm">close</span></button>
+    </div>
+    <div class="agb-body">
+      <p style="font-size:11px;color:var(--tmu)">TurmXGames – HB Kletterwelten GmbH · Kurfürstenstraße 60 · 50321 Brühl</p>
+
+      <h3>1. Vertragsgegenstand</h3>
+      <p>TurmXGames bietet interaktive Indoor-Teamevents im Gameshow-Stil an. Ziel ist ein gemeinsames Erlebnis mit Wettkampf-, Quiz- und Actionelementen.</p>
+      <p>Mit deiner Buchung sicherst du dir einen festen Termin zur Teilnahme an diesem Erlebnis.</p>
+
+      <h3>2. Buchung &amp; Vertragsabschluss</h3>
+      <p>Die Buchung kann online, per Anfrageformular, per E-Mail oder vor Ort erfolgen.</p>
+      <p>Ein verbindlicher Vertrag kommt mit unserer Buchungsbestätigung zustande.</p>
+      <p>Bei Gruppenbuchungen gilt der Anmelder als Vertragspartner für alle Teilnehmer.</p>
+
+      <h3>3. Preise &amp; Zahlung</h3>
+      <p>Alle Preise verstehen sich inklusive gesetzlicher Mehrwertsteuer.</p>
+      <ul>
+        <li>Zahlung vor Ort per EC/Karte (bevorzugt)</li>
+        <li>Online-Zahlung möglich (z. B. PayPal)</li>
+        <li>Firmenkunden erhalten auf Wunsch eine Rechnung</li>
+      </ul>
+      <p>Offene Beträge sind unmittelbar nach Leistungserbringung fällig.</p>
+
+      <h3>4. Termin &amp; Ablauf</h3>
+      <p>Bitte erscheine mindestens 15 Minuten vor Beginn.</p>
+      <p>Verspätungen führen zu einer Verkürzung der Spielzeit – ein Anspruch auf Verlängerung besteht nicht.</p>
+      <p>Der Ablauf erfolgt strukturiert durch unser Team („Showmaster").</p>
+
+      <h3>5. Stornierung &amp; Umbuchung</h3>
+      <ul>
+        <li>Bis 14 Tage vorher: kostenfrei</li>
+        <li>13–7 Tage vorher: 50 %</li>
+        <li>Weniger als 7 Tage: 100 %</li>
+      </ul>
+      <p>Umbuchung: 15 € pro Buchung (ohne Flex-Option). Bei Nichterscheinen verfällt die Buchung vollständig.</p>
+
+      <h3>6. Teilnahme &amp; Verhalten</h3>
+      <p>Empfohlen ab 10 Jahren. Jüngere Teilnehmer nach individueller Einschätzung möglich.</p>
+      <p>Den Anweisungen unseres Teams ist jederzeit Folge zu leisten.</p>
+      <p>Bei grobem Fehlverhalten oder Gefährdung anderer Teilnehmer behalten wir uns einen Ausschluss ohne Rückerstattung vor.</p>
+
+      <h3>7. Haftung</h3>
+      <p>Die Teilnahme erfolgt auf eigene Verantwortung.</p>
+      <p>Wir haften bei Vorsatz, grober Fahrlässigkeit sowie bei Schäden an Leben, Körper oder Gesundheit. Bei einfacher Fahrlässigkeit nur bei Verletzung wesentlicher Vertragspflichten.</p>
+
+      <h3>8. Gutscheine</h3>
+      <ul>
+        <li>Unbegrenzt gültig</li>
+        <li>Übertragbar</li>
+        <li>Nicht auszahlbar – eine Barauszahlung ist ausgeschlossen</li>
+      </ul>
+
+      <h3>📸 9. Foto &amp; Videoaufnahmen</h3>
+      <p>Während der Events können Foto- und Videoaufnahmen entstehen. Diese werden ausschließlich mit deiner ausdrücklichen Einwilligung für Marketingzwecke genutzt (Website, Social Media etc.).</p>
+      <p>Deine Einwilligung ist freiwillig und jederzeit widerrufbar.</p>
+
+      <h3>10. Gerichtsstand</h3>
+      <p>Es gilt deutsches Recht. Gerichtsstand ist – soweit zulässig – Brühl.</p>
+
+      <p style="margin-top:16px;padding-top:14px;border-top:1px solid var(--lbdr);font-size:11px;color:var(--tmu)">Mit Abschluss einer Buchung über unsere Website bestätigst du, dass du diese AGB zur Kenntnis genommen hast und ihnen zustimmst.</p>
+    </div>
+  </div>
+</div>
+
 <footer>
   <a href="https://turmx.games"><img src="logo-cropped.png" style="height:20px;opacity:.4" alt="TurmX"></a>
   <div class="flinks">
     <a href="https://turmx.games/datenschutz">Datenschutz</a>
     <a href="https://turmx.games/impressum">Impressum</a>
-    <a href="https://turmx.games/agb">AGB</a>
+    <a onclick="openAgb()" style="cursor:pointer">AGB</a>
   </div>
   <span style="font-size:11px;color:rgba(255,255,255,.2)">© 2025 TurmX Games · Brühl</span>
 </footer>
@@ -2056,6 +2144,14 @@ function pickRadio(el){el.closest('.radio-group').querySelectorAll('.ropt').forE
 
 // ═══════════════════════════════════════════════════════
 // MOBILE BAR
+// ═══════════════════════════════════════════════════════
+// AGB MODAL
+// ═══════════════════════════════════════════════════════
+function openAgb(){$('agbOverlay').classList.add('open');document.body.style.overflow='hidden';}
+function closeAgb(){$('agbOverlay').classList.remove('open');document.body.style.overflow='';}
+function closeAgbOutside(e){if(e.target===$('agbOverlay'))closeAgb();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAgb();});
+
 // ═══════════════════════════════════════════════════════
 function toggleMobBar(){
   const sheet=$('mobSheet'),ch=$('mb-chevron');
