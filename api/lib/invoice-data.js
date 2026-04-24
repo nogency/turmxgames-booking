@@ -27,7 +27,7 @@ function buildInvoiceData(params) {
     bookingId, serviceName, groupSize, amount, paymentMethod,
     date, time, firstName, lastName, email, phone,
     companyName, companyStreet, companyZip, companyCity, ustId,
-    drinksFlat, insurance, baseAmount,
+    drinksFlat, drinksPrice, insurance, baseAmount,
   } = params;
 
   const spots = parseInt(groupSize) || 1;
@@ -43,9 +43,10 @@ function buildInvoiceData(params) {
     tax: calculateTax(eventAmount),
   });
 
-  // 2. Getränkeflat (12,90 € × Personen)
+  // 2. Getränkeflat (drinksPrice × Personen)
   if (drinksFlat) {
-    const drinkTotal = Math.round(12.90 * spots * 100) / 100;
+    const dprice = parseFloat(drinksPrice) || 12.90;
+    const drinkTotal = Math.round(dprice * spots * 100) / 100;
     items.push({
       name: 'Getränkeflat',
       qtyLabel: `${spots} Pers.`,

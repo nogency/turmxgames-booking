@@ -129,22 +129,34 @@ function generateInvoicePDF(data) {
 
     // ── ZAHLUNGSART ──
     const payY = totY + 76;
-    const payLabels = { cc: 'Kreditkarte', paypal: 'PayPal', sepa: 'SEPA Lastschrift', invoice: 'Kauf auf Rechnung' };
-    doc.font('Helvetica-Bold').fontSize(8).fillColor('#888').text('ZAHLUNGSART', LEFT, payY);
-    doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a')
-       .text(payLabels[data.paymentMethod] || data.paymentMethod, LEFT, payY + 12);
+    const isInvoice = data.paymentMethod === 'invoice';
+    const payLabels = { cc: 'Kreditkarte', paypal: 'PayPal', sepa: 'SEPA-Lastschrift', invoice: 'Kauf auf Rechnung' };
+    const payLabel = payLabels[data.paymentMethod] || data.paymentMethod;
 
-    // ── BANK DETAILS (nur bei "invoice" und wenn IBAN vorhanden) ──
-    if (data.paymentMethod === 'invoice' && data.bankIban) {
-      const bankY = payY + 36;
-      doc.rect(LEFT, bankY, W, 76).fillAndStroke('#fff8f0', '#f5c99a');
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#c0392b')
-         .text(`BITTE ÜBERWEISEN SIE DEN BETRAG BIS ZUM ${data.dueDate}`, LEFT + 10, bankY + 10);
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#888').text('ZAHLUNGSART', LEFT, payY);
+
+    if (!isInvoice) {
+      // Paid — green checkmark box
+      const paidBoxY = payY + 10;
+      doc.rect(LEFT, paidBoxY, W, 28).fillAndStroke('#f0faf4', '#a8dab5');
+      doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#1a7340')
+         .text(`✓  Bereits via ${payLabel} bezahlt`, LEFT + 10, paidBoxY + 9);
+    } else {
       doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a')
-         .text(`Kontoinhaber: ${data.bankOwner}`, LEFT + 10, bankY + 26)
-         .text(`IBAN: ${data.bankIban}`, LEFT + 10, bankY + 39)
-         .text(`BIC: ${data.bankBic}`, LEFT + 10, bankY + 52)
-         .text(`Verwendungszweck: ${data.invoiceNumber}`, LEFT + 10, bankY + 65);
+         .text(payLabel, LEFT, payY + 12);
+
+      // ── BANK DETAILS (nur bei "invoice" und wenn IBAN vorhanden) ──
+      if (data.bankIban) {
+        const bankY = payY + 44;
+        doc.rect(LEFT, bankY, W, 76).fillAndStroke('#fff8f0', '#f5c99a');
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#c0392b')
+           .text(`BITTE ÜBERWEISEN SIE DEN BETRAG BIS ZUM ${data.dueDate}`, LEFT + 10, bankY + 10);
+        doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a')
+           .text(`Kontoinhaber: ${data.bankOwner}`, LEFT + 10, bankY + 26)
+           .text(`IBAN: ${data.bankIban}`, LEFT + 10, bankY + 39)
+           .text(`BIC: ${data.bankBic || ''}`, LEFT + 10, bankY + 52)
+           .text(`Verwendungszweck: ${data.invoiceNumber}`, LEFT + 10, bankY + 65);
+      }
     }
 
     // ── FOOTER ──
