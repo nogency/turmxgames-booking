@@ -34,7 +34,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   --dark:#0C0C0C;--dark2:#141414;--dark3:#1C1C1C;
   --bd:rgba(255,255,255,0.08);--muted:rgba(255,255,255,0.55);
   /* Light area */
-  --lb:#F4F2EE;--lb2:#EDEAE4;--lb3:#E5E1D8;
+  --lb:#F8F6F3;--lb2:#F1EDE7;--lb3:#E8E4DC;
   --lc:#FFFFFF;--lbdr:rgba(0,0,0,0.09);--lbdr2:rgba(0,0,0,0.05);
   --td:#1a1a1a;--tm:#444;--tmu:#888;
   --rl:rgba(192,57,43,0.08);--rb:rgba(192,57,43,0.22);
@@ -277,8 +277,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 /* PAYMENT */
 .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:16px}
 .pbtn{padding:10px 6px;background:var(--lb);border:1.5px solid var(--lbdr);border-radius:7px;cursor:pointer;text-align:center;transition:all .2s cubic-bezier(0.34,1.56,0.64,1)}
-.pbtn:hover{border-color:var(--rb);background:var(--rl);transform:translateY(-2px);box-shadow:0 4px 12px rgba(192,57,43,.1)}
+.pbtn:hover:not(:disabled){border-color:var(--rb);background:var(--rl);transform:translateY(-2px);box-shadow:0 4px 12px rgba(192,57,43,.1)}
 .pbtn.sel{border-color:var(--red);background:var(--rl);transform:translateY(-1px);box-shadow:0 4px 14px rgba(192,57,43,.18)}
+.pbtn:disabled{opacity:0.38;cursor:not-allowed;transform:none!important;box-shadow:none!important}
 .pbtn-name{font-family:"Barlow Condensed",sans-serif;font-size:12px;letter-spacing:1px;color:var(--td);margin-bottom:1px}
 .pbtn-sub{font-size:9px;color:var(--tmu)}
 .pform{display:none;animation:fadeUp .2s ease}
@@ -1703,6 +1704,7 @@ function goStep(n){
   S.step=n;
   if(n===4){setTimeout(()=>{
     initStripe();
+    updateInvoiceTab();
     if(!_cfg?.paypalClientId){
       const ppTab=$('ptab-paypal');
       if(ppTab)ppTab.style.display='none';
@@ -1722,13 +1724,30 @@ function goStep(n){
 // PAYMENT METHOD
 // ═══════════════════════════════════════════════════════
 function pickPay(m,btn){
+  const tab=btn||$('ptab-'+m);
+  if(tab?.disabled)return; // blocked
   S.payMethod=m;
   document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel');
+  if(tab)tab.classList.add('sel');
   ['cc','paypal','sepa','invoice'].forEach(x=>$('pform-'+x).classList.toggle('show',x===m));
   const snav=document.querySelector('#step4 .snav');
   if(snav)snav.style.display=m==='paypal'?'none':'flex';
   dlPush({event:'select_payment_method',payment_method:m,value:getTotal(),currency:'EUR'});
+}
+
+function updateInvoiceTab(){
+  const tab=$('ptab-invoice');
+  if(!tab)return;
+  const isFirma=S.eventKey==='firma';
+  const hasCompany=!!$('company')?.value?.trim();
+  const hasUstId=!!$('ustid')?.value?.trim();
+  const allowed=isFirma&&hasCompany&&hasUstId;
+  tab.disabled=!allowed;
+  tab.title=allowed?'':'Nur für Firmenbuchungen mit eingetragener Firma und USt-ID';
+  // If currently selected but no longer valid → switch to Karte
+  if(!allowed&&S.payMethod==='invoice'){
+    pickPay('cc',$('ptab-cc'));
+  }
 }
 
 // ═══════════════════════════════════════════════════════
