@@ -1691,7 +1691,7 @@ function step3Next(){
   if(ok)goStep(4);
 }
 
-function goStep(n){
+function goStep(n, fromHistory=false){
   const stepNames={1:'event_selection',2:'group_config',3:'contact',4:'payment'};
   dlPush({event:'checkout_progress',step:n,step_name:stepNames[n]||'step_'+n,event_type:S.eventKey,value:getTotal(),currency:'EUR'});
   document.querySelectorAll('.sp').forEach((p,i)=>p.classList.toggle('active',i+1===n));
@@ -1720,7 +1720,31 @@ function goStep(n){
   if(sheet){sheet.classList.remove('open');document.body.style.overflow='';}
   const ch=$('mb-chevron');if(ch)ch.style.transform='';
   updateSummary();
+  // Update browser history so back-button navigates between steps
+  if(!fromHistory){
+    const url=new URL(window.location.href);
+    url.searchParams.set('step',n);
+    history.pushState({step:n},''  ,url.toString());
+  }
 }
+
+// Browser back/forward → navigate between steps
+window.addEventListener('popstate',(e)=>{
+  const step=e.state?.step;
+  if(step>=1&&step<=4){
+    goStep(step,true);
+  }
+});
+
+// On first load: replace current history entry with step=1 marker
+// so back-button from step 1 correctly leaves the page
+(function(){
+  const url=new URL(window.location.href);
+  if(!url.searchParams.has('step')){
+    url.searchParams.set('step',1);
+    history.replaceState({step:1},'',url.toString());
+  }
+})();
 
 // ═══════════════════════════════════════════════════════
 // PAYMENT METHOD
