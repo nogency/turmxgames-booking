@@ -657,7 +657,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <div class="achip" onclick="pickAge(this,'14')">14 Jahre</div>
             <div class="achip" onclick="pickAge(this,'15+')">15+</div>
           </div>
-          <div class="special-note show" id="kinderNote">Wir passen Spielmodus &amp; Schwierigkeit ans Alter an. Grundgebühr 60 €, dazu 32 €/Person (Mo–Do).</div>
+          <div class="special-note show" id="kinderNote">Wir passen Spielmodus &amp; Schwierigkeit ans Alter an. Grundgebühr 60 €, dazu 24 €/Person (Mo–Fr) · 30 €/Person (Sa &amp; So).</div>
         </div>
 
         <!-- More events (Schule & Verein) -->
@@ -1169,7 +1169,8 @@ const INQUIRY_API  = '/api/inquiry';
 const CONFIG_API   = '/api/config';
 const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
 let _cfg = null; // populated by loadConfig() on page load
-const PRICES     = { weekday:28, friday:30, weekend:35 };
+const PRICES       = { weekday:28, friday:30, weekend:35 };
+const KINDER_PRICES = { weekday:24, weekend:30 };
 const BASE_PRICE = 40;
 const MONTHS     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const DNAMES     = ['So','Mo','Di','Mi','Do','Fr','Sa'];
@@ -1364,7 +1365,7 @@ function buildCal() {
     const el = document.createElement('div'); el.className='cd';
     const isSocial=S.eventKey==='schule'||S.eventKey==='verein';
     const isKinder=S.eventKey==='kinder';
-    const dayPrice = isSocial?25:(isKinder?32:(dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday)));
+    const dayPrice = isSocial?25:(isKinder?(dow===6||dow===0?KINDER_PRICES.weekend:KINDER_PRICES.weekday):(dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday)));
     el.innerHTML = '<span>'+d+'</span><span class="cd-price">'+dayPrice+'€</span>';
     if (dow===5) el.classList.add('mid');
     else if (dow===6||dow===0) el.classList.add('expensive');
@@ -1387,7 +1388,9 @@ async function pickDate(dt, ds, dow) {
   // Pricing
   const isSocial = S.eventKey==='schule'||S.eventKey==='verein';
   const isKinder  = S.eventKey==='kinder';
-  if (!isSocial && !isKinder) {
+  if (isKinder) {
+    S.pricePerPerson = (dow===6||dow===0)?KINDER_PRICES.weekend:KINDER_PRICES.weekday;
+  } else if (!isSocial) {
     S.pricePerPerson = dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday);
   }
   // Price notes (nur für Standard-Events mit Tagespreisen)
@@ -1533,7 +1536,7 @@ function selEvent(btn) {
   $('firmaSection').style.display='none';
   // Kinder-Sonderfall
   if(S.eventKey==='kinder'){
-    S.basePrice=60; S.pricePerPerson=32; S.duration='2 Stunden';
+    S.basePrice=60; S.pricePerPerson=KINDER_PRICES.weekday; S.duration='2 Stunden';
     $('ageBox').style.display='block';
     $('kinderNote').classList.add('show');
     $('weekday-callout').style.display='none';
