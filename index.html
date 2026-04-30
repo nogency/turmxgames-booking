@@ -1386,13 +1386,14 @@ async function pickDate(dt, ds, dow) {
   dlPush({event:'select_date', date:ds, event_type:S.eventKey});
   // Pricing
   const isSocial = S.eventKey==='schule'||S.eventKey==='verein';
-  if (!isSocial) {
+  const isKinder  = S.eventKey==='kinder';
+  if (!isSocial && !isKinder) {
     S.pricePerPerson = dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday);
   }
-  // Price notes
+  // Price notes (nur für Standard-Events mit Tagespreisen)
   const nc=$('pnote-cheap'), ne=$('pnote-exp');
   nc.className='pnote'; ne.className='pnote';
-  if (!isSocial) {
+  if (!isSocial && !isKinder) {
     if(dow>=1&&dow<=4){nc.innerHTML='🎉 Weekday-Vorteil: Nur '+PRICES.weekday+' €/Person!';nc.classList.add('cheap');}
     else if(dow===6||dow===0){ne.innerHTML='📅 Wochenend-Tarif '+PRICES.weekend+' €/Person';ne.classList.add('exp');}
   }
