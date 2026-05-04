@@ -929,7 +929,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <label class="flbl">IBAN <span style="color:var(--red)">*</span></label>
           <div class="sfield" id="stripeIban"></div>
           <div class="serr" id="ibanErr"></div>
-          <p style="font-size:11px;color:var(--tmu);margin-top:8px;line-height:1.6">SEPA-Lastschrift · Einzug 2 Werktage vor Event.</p>
+          <p style="font-size:11px;color:var(--tmu);margin-top:10px;line-height:1.7;background:var(--lb);border:1px solid var(--lbdr);border-radius:5px;padding:9px 11px">
+            Durch Angabe deiner IBAN und Bestätigung dieser Zahlung ermächtigst du TurmXGames (HB Kletterwelten GmbH) und Stripe, unserem Zahlungsdienstleister, Lastschriften von deinem Konto einzuziehen. Du hast Anspruch auf Rückerstattung gemäß den Bedingungen deiner Bank.
+          </p>
         </div>
 
         <!-- Invoice -->
@@ -2016,7 +2018,28 @@ async function handlePayment(){
       if(result.error)throw new Error(result.error.message);
       await submitBooking(result.paymentIntent.id); return;
     }
-    if(S.payMethod==='sepa'){await delay(1200);await submitBooking();return;}
+    if(S.payMethod==='sepa'){
+      const sepaName=$('sepaName')?.value?.trim();
+      const sepaEmail=$('sepaEmail')?.value?.trim();
+      if(!sepaName){alert('Bitte Kontoinhaber eingeben.');btn.disabled=false;btn.innerHTML=orig;return;}
+      if(!sepaEmail||!/\S+@\S+\.\S+/.test(sepaEmail)){alert('Bitte gültige E-Mail eingeben.');btn.disabled=false;btn.innerHTML=orig;return;}
+      const r=await fetch(API+'?action=create-payment-intent',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({amount:getTotal(),description:'TurmX Games – '+S.eventName,paymentMethodType:'sepa_debit'})
+      });
+      const d=await r.json();
+      if(!r.ok||!d.clientSecret)throw new Error(d.error||'SEPA-Lastschrift konnte nicht erstellt werden.');
+      const{error,paymentIntent}=await stripe.confirmSepaDebitPayment(d.clientSecret,{
+        payment_method:{
+          sepa_debit:ibanEl,
+          billing_details:{name:sepaName,email:sepaEmail}
+        }
+      });
+      if(error)throw new Error(error.message);
+      // SEPA enters 'processing' state — treat as success (bank settles in 2-5 days)
+      await submitBooking(paymentIntent?.id);
+      return;
+    }
   }catch(e){
     btn.disabled=false;btn.innerHTML=orig;
     alert('Zahlung fehlgeschlagen: '+e.message);

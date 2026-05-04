@@ -355,14 +355,18 @@ module.exports = async function handler(req, res) {
       // ─────────────────────────────────────────────
       case 'create-payment-intent': {
         const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-        const { amount, description } = req.body || {};
+        const { amount, description, paymentMethodType } = req.body || {};
         if (!amount) return res.status(400).json({ error: 'amount required' });
 
+        const isSepa = paymentMethodType === 'sepa_debit';
         const paymentIntent = await stripe.paymentIntents.create({
           amount:   Math.round(parseFloat(amount) * 100),
           currency: 'eur',
           description: description || 'TurmX Games Booking',
-          automatic_payment_methods: { enabled: true },
+          ...(isSepa
+            ? { payment_method_types: ['sepa_debit'] }
+            : { automatic_payment_methods: { enabled: true } }
+          ),
         });
 
         return res.status(200).json({ clientSecret: paymentIntent.client_secret });
