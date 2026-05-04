@@ -192,7 +192,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .cal-lbl{text-align:center;font-size:8px;letter-spacing:1px;color:var(--tmu);padding-bottom:4px;font-weight:600}
 .cd{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:all .18s cubic-bezier(0.34,1.56,0.64,1);color:var(--td);font-weight:500;position:relative}
-.cd-price{font-size:7px;color:var(--tmu);margin-top:2px;letter-spacing:0;line-height:1;font-weight:400}
+.cd-price{font-size:8px;color:var(--tmu);margin-top:2px;letter-spacing:0;line-height:1;font-weight:500}
 .cd.mid .cd-price,.cd.expensive .cd-price{color:rgba(161,122,0,0.8)}
 .cd.sel .cd-price{color:rgba(255,255,255,.75)}
 .cd.past .cd-price,.cd.unavail .cd-price{color:rgba(0,0,0,.15)}
@@ -1369,7 +1369,7 @@ function buildCal() {
     const isSocial=S.eventKey==='schule'||S.eventKey==='verein';
     const isKinder=S.eventKey==='kinder';
     const dayPrice = isSocial?25:(isKinder?(dow===6||dow===0?KINDER_PRICES.weekend:KINDER_PRICES.weekday):(dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday)));
-    el.innerHTML = '<span>'+d+'</span><span class="cd-price">'+dayPrice+'€</span>';
+    el.innerHTML = '<span>'+d+'</span><span class="cd-price">'+dayPrice+'€ p.P.</span>';
     if (dow===5) el.classList.add('mid');
     else if (dow===6||dow===0) el.classList.add('expensive');
     else el.classList.add('cheap');
