@@ -98,9 +98,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;display:flex;align-items:cen
 @keyframes slideUpPanel{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
 .mob-sheet-handle{width:36px;height:4px;background:rgba(0,0,0,.15);border-radius:2px;margin:0 auto 16px}
 
-/* ── APPLE PAY DIRECT ── */
-#applePayDirectBtn{display:none;margin-bottom:8px}
-.ap-btn{-webkit-appearance:-apple-pay-button;-apple-pay-button-type:buy;-apple-pay-button-style:black;width:100%;min-height:48px;border-radius:5px;border:none;cursor:pointer;display:block}
 
 /* ── AGB MODAL ── */
 .agb-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:16px}
@@ -887,7 +884,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <!-- Express Checkout -->
         <div class="express-section" id="expressSec" style="display:none">
           <div class="express-lbl">EXPRESS CHECKOUT</div>
-          <div id="applePayDirectBtn"><button class="ap-btn" onclick="triggerApplePay()"></button></div>
           <div id="prButton" style="min-height:48px;border-radius:5px;overflow:hidden"></div>
           <div id="expressPaypalBtn" style="margin-top:8px"></div>
           <div class="express-divider">oder</div>
@@ -1806,7 +1802,6 @@ function goStep(n, fromHistory=false){
   if(n===4){setTimeout(()=>{
     initStripe();
     updateInvoiceTab();
-    initApplePayDirect();
     if(!_cfg?.paypalClientId){
       const ppTab=$('ptab-paypal');
       if(ppTab)ppTab.style.display='none';
@@ -1911,7 +1906,7 @@ async function initExpressCheckout(){
   const amount=Math.max(3200,Math.round(getTotal()*100));
   ecElements=stripe.elements({mode:'payment',amount,currency:'eur'});
   ecEl=ecElements.create('expressCheckout',{
-    paymentMethods:{applePay:'never',paypal:'never',link:'never',amazonPay:'never'},
+    paymentMethods:{paypal:'never',link:'never',amazonPay:'never'},
     buttonType:{applePay:'buy',googlePay:'buy'},
     buttonHeight:48,
     layout:{maxColumns:1,maxRows:3,overflow:'auto'}
@@ -1955,56 +1950,8 @@ function updatePRAmount(){
   if(ecElements){
     ecElements.update({amount:Math.max(3200,Math.round(getTotal()*100))});
   }
-  if(applePayPR){
-    try{applePayPR.update({total:{label:'TurmX Games',amount:Math.max(100,Math.round(getTotal()*100))}});}catch(_){}
-  }
 }
 
-// ═══════════════════════════════════════════════════════
-// APPLE PAY DIRECT (stripe.paymentRequest)
-// ═══════════════════════════════════════════════════════
-let applePayPR=null, applePayPRReady=false;
-
-async function initApplePayDirect(){
-  if(!stripe||applePayPRReady)return;
-  applePayPR=stripe.paymentRequest({
-    country:'DE',currency:'eur',
-    total:{label:'TurmX Games',amount:Math.max(100,Math.round(getTotal()*100))},
-    requestPayerName:true,requestPayerEmail:true,
-  });
-  const result=await applePayPR.canMakePayment();
-  if(!result?.applePay){applePayPR=null;return;}
-  applePayPRReady=true;
-  $('applePayDirectBtn').style.display='block';
-  $('expressSec').style.display='block';
-
-  applePayPR.on('paymentmethod',async(e)=>{
-    try{
-      const r=await fetch(API+'?action=create-payment-intent',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({amount:getTotal(),description:'TurmX Games – '+S.eventName})
-      });
-      const d=await r.json();
-      if(!r.ok||!d.clientSecret){e.complete('fail');return;}
-      const{error,paymentIntent}=await stripe.confirmCardPayment(
-        d.clientSecret,{payment_method:e.paymentMethod.id},{handleActions:false}
-      );
-      if(error){e.complete('fail');alert(error.message);return;}
-      e.complete('success');
-      const n=e.payerName?.trim().split(' ')||[];
-      if(n[0]&&$('fname')&&!$('fname').value)$('fname').value=n[0];
-      if(n.length>1&&$('lname')&&!$('lname').value)$('lname').value=n.slice(1).join(' ');
-      if(e.payerEmail&&$('email')&&!$('email').value)$('email').value=e.payerEmail;
-      await submitBooking(paymentIntent?.id);
-    }catch(err){e.complete('fail');console.error('[ApplePay]',err);}
-  });
-}
-
-function triggerApplePay(){
-  if(!applePayPR)return;
-  applePayPR.update({total:{label:'TurmX Games',amount:Math.max(100,Math.round(getTotal()*100))}});
-  applePayPR.show();
-}
 
 // ═══════════════════════════════════════════════════════
 // PAYPAL
