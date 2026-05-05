@@ -1271,13 +1271,21 @@ async function applyPromo() {
       msg.textContent = '❌ Code ungültig oder nicht anwendbar.';
       promoState = { code: null, discountAmount: 0, newPrice: null };
     } else {
-      const originalPrice = getTotal() * 100; // in cents
-      const newPriceCents = d.price || 0;
-      const discount      = Math.max(0, originalPrice - newPriceCents);
+      console.log('[Promo raw]', d);
+      // Bookla liefert discountAmount (in Cent) – direkt nutzen statt selbst zu rechnen,
+      // damit Preisunterschiede zwischen Bookla-Basispreis und unserem Frontend-Preis
+      // keinen falschen Rabatt ergeben.
+      let discountCents = 0;
+      if (typeof d.discountAmount === 'number' && d.discountAmount > 0) {
+        discountCents = d.discountAmount; // Bookla: Cent
+      } else if (typeof d.price === 'number' && d.price > 0) {
+        // Fallback: Differenz aus unserem Preis und Bookla-Neupreis
+        discountCents = Math.max(0, getTotal() * 100 - d.price);
+      }
       promoState = {
         code:           code,
-        discountAmount: discount / 100,
-        newPrice:       newPriceCents / 100,
+        discountAmount: discountCents / 100,
+        newPrice:       Math.max(0, getTotal() - discountCents / 100),
       };
       msg.className = 'promo-msg ok';
       msg.textContent = '✓ Code angewendet! Du sparst ' + fmtEur(promoState.discountAmount) + '.';
