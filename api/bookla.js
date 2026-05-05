@@ -328,35 +328,47 @@ module.exports = async function handler(req, res) {
         }
 
         const spots = parseInt(groupSize) || 1;
-        const startTime = DateTime.fromISO(`${date}T${time}:00`, { zone: 'Europe/Berlin' }).toISO();
-
-        // Ersten verfügbaren Slot für die Validierung nutzen
+        const berlinDtV  = DateTime.fromISO(`${date}T${time}:00`, { zone: 'Europe/Berlin' });
+        const startTime  = berlinDtV.toISO();
+        const utcTimeKey = berlinDtV.toUTC().toISO().substring(0, 16);
         const resourceId = RESOURCE_IDS[0];
 
-        // Parallel: Code validieren + Bookla-Basispreis des Services holen
-        const [data, servicesData] = await Promise.all([
+        // Parallel: Code validieren + echten Slot-Preis aus times holen
+        const [data, timesData] = await Promise.all([
           booklaFetch(
             `/client/codes/${encodeURIComponent(code)}/validate`,
             'POST',
             { code, companyID: companyId, serviceID: serviceId, resourceID: resourceId, startTime, spots },
             apiKey
           ),
-          booklaFetch(`/companies/${companyId}/services`, 'GET', null, apiKey).catch(() => null),
+          booklaFetch(
+            `/client/companies/${companyId}/services/${serviceId}/times`,
+            'POST',
+            { from: `${date}T00:00:00Z`, to: `${date}T23:59:59Z`, spots, resourceIDs: [resourceId] },
+            apiKey
+          ).catch(() => null),
         ]);
 
-        // Bookla-Servicepreis (Cent pro Spot) ermitteln
+        // Slot-Preis (Basispreis ohne Rabatt) aus times-Response extrahieren
         let booklaBaseCents = null;
-        if (Array.isArray(servicesData)) {
-          const svc = servicesData.find(s => s.id === serviceId);
-          // Bookla speichert price in Cent
-          if (svc?.price != null) booklaBaseCents = svc.price * spots;
+        if (timesData?.times) {
+          const slotArr = timesData.times[resourceId] || Object.values(timesData.times).flat() || [];
+          const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === utcTimeKey);
+          console.log('[validate-code] slot match:', JSON.stringify(match));
+          // Bookla kann price als Cent-Ganzzahl oder als Float-Euro liefern
+          if (match?.price != null) {
+            booklaBaseCents = match.price > 500 ? match.price : Math.round(match.price * 100);
+          } else if (match?.totalPrice != null) {
+            booklaBaseCents = match.totalPrice > 500 ? match.totalPrice : Math.round(match.totalPrice * 100);
+          }
         }
 
-        // Rabatt = Bookla-Basispreis minus Bookla-Neupreis (beide in Cent)
+        // Rabatt = echter Slot-Basispreis minus Bookla-Neupreis (beide in Cent)
         const discountAmount = (booklaBaseCents != null && data.price != null)
           ? Math.max(0, booklaBaseCents - data.price)
           : null;
 
+        console.log('[validate-code]', { booklaBaseCents, discountedPrice: data.price, discountAmount });
         return res.status(200).json({ ...data, discountAmount, booklaBaseCents });
       }
 
