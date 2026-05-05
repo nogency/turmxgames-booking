@@ -333,21 +333,31 @@ module.exports = async function handler(req, res) {
         // Ersten verfügbaren Slot für die Validierung nutzen
         const resourceId = RESOURCE_IDS[0];
 
-        const data = await booklaFetch(
-          `/client/codes/${encodeURIComponent(code)}/validate`,
-          'POST',
-          {
-            code,
-            companyID:  companyId,
-            serviceID:  serviceId,
-            resourceID: resourceId,
-            startTime,
-            spots,
-          },
-          apiKey
-        );
+        // Parallel: Code validieren + Bookla-Basispreis des Services holen
+        const [data, servicesData] = await Promise.all([
+          booklaFetch(
+            `/client/codes/${encodeURIComponent(code)}/validate`,
+            'POST',
+            { code, companyID: companyId, serviceID: serviceId, resourceID: resourceId, startTime, spots },
+            apiKey
+          ),
+          booklaFetch(`/companies/${companyId}/services`, 'GET', null, apiKey).catch(() => null),
+        ]);
 
-        return res.status(200).json(data);
+        // Bookla-Servicepreis (Cent pro Spot) ermitteln
+        let booklaBaseCents = null;
+        if (Array.isArray(servicesData)) {
+          const svc = servicesData.find(s => s.id === serviceId);
+          // Bookla speichert price in Cent
+          if (svc?.price != null) booklaBaseCents = svc.price * spots;
+        }
+
+        // Rabatt = Bookla-Basispreis minus Bookla-Neupreis (beide in Cent)
+        const discountAmount = (booklaBaseCents != null && data.price != null)
+          ? Math.max(0, booklaBaseCents - data.price)
+          : null;
+
+        return res.status(200).json({ ...data, discountAmount, booklaBaseCents });
       }
 
       // ─────────────────────────────────────────────
