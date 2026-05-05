@@ -1272,15 +1272,13 @@ async function applyPromo() {
       promoState = { code: null, discountAmount: 0, newPrice: null };
     } else {
       console.log('[Promo raw]', d);
-      // Bookla liefert discountAmount (in Cent) – direkt nutzen statt selbst zu rechnen,
-      // damit Preisunterschiede zwischen Bookla-Basispreis und unserem Frontend-Preis
-      // keinen falschen Rabatt ergeben.
+      // Bookla gibt price = neuen Dienstleistungspreis (ohne Grundgebühr) in Cent.
+      // Discount = Bookla-Basispreis (pricePerPerson × qty) minus Bookla-Neupreis.
+      // So bleibt die Grundgebühr aus unserem Gesamtpreis korrekt erhalten.
       let discountCents = 0;
-      if (typeof d.discountAmount === 'number' && d.discountAmount > 0) {
-        discountCents = d.discountAmount; // Bookla: Cent
-      } else if (typeof d.price === 'number' && d.price > 0) {
-        // Fallback: Differenz aus unserem Preis und Bookla-Neupreis
-        discountCents = Math.max(0, getTotal() * 100 - d.price);
+      if (typeof d.price === 'number' && d.price > 0) {
+        const booklaBaseCents = S.pricePerPerson * S.qty * 100;
+        discountCents = Math.max(0, booklaBaseCents - d.price);
       }
       promoState = {
         code:           code,
