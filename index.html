@@ -2085,25 +2085,35 @@ async function callInvoiceAPI(bookingId){
   }catch(e){console.error('[Invoice]',e);}
 }
 
+function buildBookingNotes(payMethod){
+  const pm = payMethod || S.payMethod;
+  const pmLabel = {cc:'Kreditkarte',sepa:'SEPA-Lastschrift',paypal:'PayPal',invoice:'Auf Rechnung'}[pm] || pm;
+  const pricePerP = S.pricePerPerson ? S.pricePerPerson.toFixed(2).replace('.',',')+'€/Person' : '';
+  const lines = [
+    '--- BUCHUNGSDETAILS ---',
+    'Event: '+S.eventName,
+    'Personen: '+S.qty+(pricePerP?' ('+pricePerP+')':''),
+    'Gesamtpreis: '+getTotal().toFixed(2).replace('.',',')+' EUR',
+    promoState.code?'Rabatt-Code: '+promoState.code+' (−'+promoState.discountAmount.toFixed(2).replace('.',',')+'€)':null,
+    'Getränkeflat: '+(S.drinksFlat?'Ja ('+S.qty+' × '+getDrinksPrice().toFixed(2).replace('.',',')+'€)':'Nein'),
+    'Versicherung: '+(S.insurance?'Ja (14,90€)':'Nein'),
+    'Zahlung: '+pmLabel,
+    S.kindAge?'Alter Geburtstagskind: '+S.kindAge:null,
+    $('company')?.value?.trim()?'Firma: '+$('company').value.trim():null,
+    document.querySelector('#acc-visit .ropt.sel .rlabel')?.textContent?.trim()||null,
+    $('wishes')?.value?.trim()?'Wünsche: '+$('wishes').value.trim():null,
+    '----------------------',
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
 async function submitBooking(paymentId){
   try{
     const payload={
       serviceId:SERVICE_ID, date:S.dateStr, time:S.time, groupSize:S.qty,
       firstName:$('fname')?.value?.trim(), lastName:$('lname')?.value?.trim(),
       email:$('email')?.value?.trim(), phone:$('phone')?.value?.trim(),
-      notes:[
-  'Event: '+S.eventName,
-  'Datum: '+S.dateStr+' '+S.time+' Uhr',
-  'Personen: '+S.qty,
-  'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
-  'Zahlung: '+S.payMethod,
-  S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × 12,90 €)':null,
-  S.insurance?'Versicherung: Ja (14,90 €)':null,
-  S.kindAge?'Alter: '+S.kindAge:null,
-  $('company')?.value?'Firma: '+$('company').value:null,
-  document.querySelector('#acc-visit .ropt.sel .rlabel')?.textContent?.trim()||null,
-  $('wishes')?.value?.trim()||null,
-].filter(Boolean).join(' | '),
+      notes:buildBookingNotes(),
       paymentIntentId:paymentId||null,
 promoCode: promoState.code || null,
     };
@@ -2121,22 +2131,11 @@ if(!r.ok) throw new Error(booking.error||'Buchung fehlgeschlagen');
 }
 
 async function submitBookingInvoice(){
-  const notes=[
-    'Event: '+S.eventName,
-    'Datum: '+S.dateStr+' '+S.time+' Uhr',
-    'Personen: '+S.qty,
-    'Gesamtpreis: '+getTotal().toFixed(2)+' EUR',
-    'Zahlung: Auf Rechnung',
-    S.drinksFlat?'Getränkeflat: Ja ('+S.qty+' × '+getDrinksPrice().toFixed(2).replace('.',',')+'€)':null,
-    S.insurance?'Versicherung: Ja (14,90 €)':null,
-    $('company')?.value?'Firma: '+$('company').value:null,
-    $('wishes')?.value?.trim()||null,
-  ].filter(Boolean).join(' | ');
   const payload={
     serviceId:SERVICE_ID,date:S.dateStr,time:S.time,groupSize:S.qty,
     firstName:$('fname')?.value?.trim(),lastName:$('lname')?.value?.trim(),
     email:$('email')?.value?.trim(),phone:$('phone')?.value?.trim()||null,
-    serviceName:S.eventName,amount:getTotal(),notes,
+    serviceName:S.eventName,amount:getTotal(),notes:buildBookingNotes('invoice'),
     drinksFlat:S.drinksFlat,insurance:S.insurance,
     baseAmount:promoState.newPrice!==null?promoState.newPrice:S.basePrice+S.pricePerPerson*S.qty,
     companyName:$('company')?.value?.trim()||null,
