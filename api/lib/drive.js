@@ -1,46 +1,30 @@
-const { google } = require('googleapis');
-const { Readable } = require('stream');
+const { Storage } = require('@google-cloud/storage');
 
 /**
- * Lädt eine Rechnung als PDF in den konfigurierten Google Drive Ordner hoch.
+ * Lädt eine Rechnung als PDF in den Google Cloud Storage Bucket hoch.
  * Fire-and-forget — Fehler werden nur geloggt, nie nach oben weitergegeben.
  */
 async function uploadInvoiceToDrive(pdfBuffer, filename) {
   const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  const folderId           = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const bucketName         = process.env.GCS_BUCKET_NAME;
 
-  if (!serviceAccountJson || !folderId) {
-    console.warn('[Drive] Env vars fehlen — Upload übersprungen');
+  if (!serviceAccountJson || !bucketName) {
+    console.warn('[GCS] Env vars fehlen — Upload übersprungen');
     return;
   }
 
   const credentials = JSON.parse(serviceAccountJson);
 
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
+  const storage = new Storage({ credentials, projectId: credentials.project_id });
+  const bucket  = storage.bucket(bucketName);
+  const file    = bucket.file(filename);
+
+  await file.save(pdfBuffer, {
+    contentType: 'application/pdf',
+    resumable:   false,
   });
 
-  const drive = google.drive({ version: 'v3', auth });
-
-  // Buffer → lesbarer Stream
-  const stream = Readable.from(pdfBuffer);
-
-  const response = await drive.files.create({
-    requestBody: {
-      name:    filename,
-      parents: [folderId],
-      mimeType: 'application/pdf',
-    },
-    media: {
-      mimeType: 'application/pdf',
-      body:     stream,
-    },
-    fields: 'id, name',
-  });
-
-  console.log(`[Drive] Hochgeladen: ${response.data.name} (${response.data.id})`);
-  return response.data;
+  console.log(`[GCS] Hochgeladen: ${filename} → gs://${bucketName}/${filename}`);
 }
 
 module.exports = { uploadInvoiceToDrive };
