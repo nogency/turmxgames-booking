@@ -21,15 +21,18 @@ module.exports = async function handler(req, res) {
 
       const invoiceData = buildInvoiceData(body);
       const pdfBuffer = await generateInvoicePDF(invoiceData);
-      await sendInvoiceEmail({
-        to: body.email,
-        invoiceNumber: invoiceData.invoiceNumber,
-        pdfBuffer,
-      });
 
-      // Drive-Upload: fire-and-forget, bricht Buchung nicht ab
-      uploadInvoiceToDrive(pdfBuffer, `${invoiceData.invoiceNumber}.pdf`)
-        .catch(e => console.error('[Drive] Upload fehlgeschlagen:', e.message));
+      // Email + Drive parallel — Drive-Fehler brechen Buchung nicht ab
+      const [emailResult, driveResult] = await Promise.allSettled([
+        sendInvoiceEmail({ to: body.email, invoiceNumber: invoiceData.invoiceNumber, pdfBuffer }),
+        uploadInvoiceToDrive(pdfBuffer, `${invoiceData.invoiceNumber}.pdf`),
+      ]);
+      if (driveResult.status === 'rejected') {
+        console.error('[Drive] Upload fehlgeschlagen:', driveResult.reason?.message);
+      }
+      if (emailResult.status === 'rejected') {
+        throw emailResult.reason;
+      }
 
       return res.status(200).json({ invoiceId: invoiceData.invoiceNumber });
     }
