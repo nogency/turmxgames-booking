@@ -1,6 +1,7 @@
 const { buildInvoiceData } = require('./lib/invoice-data');
 const { generateInvoicePDF } = require('./lib/pdf');
 const { sendInvoiceEmail } = require('./lib/email');
+const { uploadInvoiceToDrive } = require('./lib/drive');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');
@@ -25,6 +26,10 @@ module.exports = async function handler(req, res) {
         invoiceNumber: invoiceData.invoiceNumber,
         pdfBuffer,
       });
+
+      // Drive-Upload: fire-and-forget, bricht Buchung nicht ab
+      uploadInvoiceToDrive(pdfBuffer, `${invoiceData.invoiceNumber}.pdf`)
+        .catch(e => console.error('[Drive] Upload fehlgeschlagen:', e.message));
 
       return res.status(200).json({ invoiceId: invoiceData.invoiceNumber });
     }
