@@ -1962,12 +1962,19 @@ function updatePRAmount(){
 // Shared PayPal handlers
 function _ppCreateOrder(d,a){return a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]});}
 async function _ppOnApprove(d,a){
-  const o=await a.order.capture();
-  const p=o.payer;
-  if(p?.name?.given_name && !$('fname')?.value && $('fname'))$('fname').value=p.name.given_name;
-  if(p?.name?.surname && !$('lname')?.value && $('lname'))$('lname').value=p.name.surname;
-  if(p?.email_address && !$('email')?.value && $('email'))$('email').value=p.email_address;
-  await submitBooking(o.id);
+  // Authorize only — Geld wird erst nach erfolgreicher Bookla-Buchung eingezogen
+  const auth=await a.order.authorize();
+  const authId=auth?.purchase_units?.[0]?.payments?.authorizations?.[0]?.id;
+  if(!authId){
+    alert('PayPal Fehler: Autorisierung fehlgeschlagen. Bitte erneut versuchen.');
+    const nav=document.querySelector('#step4 .snav');if(nav)nav.style.display='flex';
+    return;
+  }
+  const p=auth.payer;
+  if(p?.name?.given_name&&!$('fname')?.value&&$('fname'))$('fname').value=p.name.given_name;
+  if(p?.name?.surname&&!$('lname')?.value&&$('lname'))$('lname').value=p.name.surname;
+  if(p?.email_address&&!$('email')?.value&&$('email'))$('email').value=p.email_address;
+  await submitBooking(null, authId);
 }
 function _ppOnError(e){alert('PayPal Fehler: '+e);const nav=document.querySelector('#step4 .snav');if(nav)nav.style.display='flex';}
 
@@ -2107,7 +2114,7 @@ function buildBookingNotes(payMethod){
   return lines.filter(Boolean).join('\n');
 }
 
-async function submitBooking(paymentId){
+async function submitBooking(paymentId, paypalAuthId){
   try{
     const payload={
       serviceId:SERVICE_ID, date:S.dateStr, time:S.time, groupSize:S.qty,
@@ -2115,18 +2122,24 @@ async function submitBooking(paymentId){
       email:$('email')?.value?.trim(), phone:$('phone')?.value?.trim(),
       notes:buildBookingNotes(),
       paymentIntentId:paymentId||null,
-promoCode: promoState.code || null,
+      paypalAuthId:paypalAuthId||null,
+      promoCode:promoState.code||null,
     };
     const r=await fetch(API+'?action=create-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const booking=await r.json();
-if(!r.ok) throw new Error(booking.error||'Buchung fehlgeschlagen');
-    const ref=booking.id?'BKL-'+String(booking.id).slice(-6).toUpperCase():'GSH-'+Math.floor(100000+Math.random()*900000);
-    if(booking.id)callInvoiceAPI(booking.id);
+    if(!r.ok)throw new Error(booking.error||'Buchung fehlgeschlagen');
+    if(!booking.id)throw new Error('Keine Buchungs-ID erhalten');
+    const ref='BKL-'+String(booking.id).slice(-6).toUpperCase();
+    callInvoiceAPI(booking.id);
     dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:S.payMethod,items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
     showSuccess(ref);
   }catch(e){
-    console.error('Bookla error:',e);
-    showSuccess('GSH-'+Math.floor(100000+Math.random()*900000));
+    console.error('[Booking error]',e);
+    alert('Buchung fehlgeschlagen: '+e.message+'\n\nBitte kontaktiere uns unter 0172 585 00 55.');
+    const btn=$('payBtn');
+    if(btn){btn.disabled=false;btn.innerHTML='Jetzt verbindlich buchen';}
+    const nav=document.querySelector('#step4 .snav');
+    if(nav)nav.style.display='flex';
   }
 }
 
@@ -2306,7 +2319,7 @@ function loadPayPalSDK(clientId){
   _ppSdkPromise=new Promise((resolve,reject)=>{
     if(window.paypalSDK){resolve();return;}
     const s=document.createElement('script');
-    s.src=`https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=capture&components=buttons`;
+    s.src=`https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=authorize&components=buttons`;
     s.setAttribute('data-namespace','paypalSDK');
     s.onload=resolve; s.onerror=reject;
     document.head.appendChild(s);

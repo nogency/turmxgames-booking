@@ -146,7 +146,7 @@ module.exports = async function handler(req, res) {
       //    dann nur auf einem freien Slot buchen.
       // ─────────────────────────────────────────────
       case 'create-booking': {
-        const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode } = req.body || {};
+        const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode, paypalAuthId } = req.body || {};
 
         if (!serviceId || !date || !time || !email) {
           return res.status(400).json({ error: 'serviceId, date, time, email required' });
@@ -173,8 +173,6 @@ module.exports = async function handler(req, res) {
           )
         );
 
-        // Freie Ressourcen für die gewählte Uhrzeit finden
-
         const freeResourceIds = [];
         currentAvailability.forEach((data, i) => {
           if (!data || !data.times) return;
@@ -187,16 +185,13 @@ module.exports = async function handler(req, res) {
         });
 
         if (freeResourceIds.length === 0) {
+          // Slot nicht verfügbar — PayPal-Autorisierung freigeben
+          if (paypalAuthId) await voidPaypalAuth(paypalAuthId).catch(e => console.error('[PayPal] Void failed:', e.message));
           return res.status(409).json({ error: 'Dieser Slot ist leider nicht mehr verfügbar.' });
         }
 
         // ── Schritt 2: Auf erstem freien Slot buchen ──
-        const clientPayload = {
-          email,
-          firstName,
-          lastName,
-          ...(phone && { phone }),
-        };
+        const clientPayload = { email, firstName, lastName, ...(phone && { phone }) };
 
         let lastError = null;
         for (const resourceId of freeResourceIds) {
@@ -212,6 +207,14 @@ module.exports = async function handler(req, res) {
               ...(promoCode && { code: promoCode }),
             };
             const data = await booklaFetch('/client/bookings', 'POST', bookingBody, apiKey);
+
+            // Bookla-Buchung erfolgreich — PayPal-Autorisierung einziehen
+            if (paypalAuthId) {
+              await capturePaypalAuth(paypalAuthId).catch(e =>
+                console.error('[PayPal] Capture failed after booking (manual action needed):', e.message)
+              );
+            }
+
             return res.status(201).json(data);
           } catch(e) {
             lastError = e;
@@ -219,6 +222,8 @@ module.exports = async function handler(req, res) {
           }
         }
 
+        // Alle Slots fehlgeschlagen — PayPal-Autorisierung freigeben
+        if (paypalAuthId) await voidPaypalAuth(paypalAuthId).catch(e => console.error('[PayPal] Void failed:', e.message));
         throw lastError || new Error('Alle Slots belegt');
       }
 
@@ -443,4 +448,56 @@ async function booklaFetch(path, method, body, apiKey) {
   }
 
   return data;
+}
+
+// ─────────────────────────────────────────────
+// PayPal Authorize / Capture / Void Helpers
+// ─────────────────────────────────────────────
+async function getPaypalAccessToken() {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const secret   = process.env.PAYPAL_SECRET;
+  if (!clientId || !secret) throw new Error('PayPal credentials not configured');
+
+  const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
+  const res  = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+    method:  'POST',
+    headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    'grant_type=client_credentials',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`PayPal token error: ${data.error_description || res.status}`);
+  return data.access_token;
+}
+
+async function capturePaypalAuth(authorizationId) {
+  const token = await getPaypalAccessToken();
+  const res   = await fetch(
+    `https://api-m.paypal.com/v2/payments/authorizations/${authorizationId}/capture`,
+    {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({}),
+    }
+  );
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(`PayPal capture failed: ${JSON.stringify(data)}`);
+  }
+  console.log('[PayPal] Authorization captured:', authorizationId);
+}
+
+async function voidPaypalAuth(authorizationId) {
+  const token = await getPaypalAccessToken();
+  const res   = await fetch(
+    `https://api-m.paypal.com/v2/payments/authorizations/${authorizationId}/void`,
+    {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    }
+  );
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(`PayPal void failed: ${JSON.stringify(data)}`);
+  }
+  console.log('[PayPal] Authorization voided:', authorizationId);
 }
