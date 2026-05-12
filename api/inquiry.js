@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
 
     await resend.emails.send({
       from: process.env.INVOICE_FROM_EMAIL || 'buchung@mail.turmxgames.de',
-      to:   process.env.INQUIRY_EMAIL || 'games@turmx.de',
+      to:   (process.env.INQUIRY_EMAIL || 'games@turmx.de').split(',').map(e => e.trim()),
       replyTo: email,
       subject: `🎯 Großgruppen-Anfrage: ${name} · ${groupSize} Personen`,
       html: `
