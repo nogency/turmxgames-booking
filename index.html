@@ -1372,7 +1372,8 @@ function buildCal() {
     const el = document.createElement('div'); el.className='cd';
     const isSocial=S.eventKey==='schule'||S.eventKey==='verein';
     const isKinder=S.eventKey==='kinder';
-    const dayPrice = isSocial?25:(isKinder?(dow===6||dow===0?KINDER_PRICES.weekend:KINDER_PRICES.weekday):(dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday)));
+    const isFirma=S.eventKey==='firma';
+    const dayPrice = isSocial?25:(isKinder?(dow===6||dow===0?KINDER_PRICES.weekend:KINDER_PRICES.weekday):(isFirma?PRICES.weekend:(dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday))));
     el.innerHTML = '<span>'+d+'</span><span class="cd-price">'+dayPrice+'€ p.P.</span>';
     if (dow===5) el.classList.add('mid');
     else if (dow===6||dow===0) el.classList.add('expensive');
@@ -1395,15 +1396,18 @@ async function pickDate(dt, ds, dow) {
   // Pricing
   const isSocial = S.eventKey==='schule'||S.eventKey==='verein';
   const isKinder  = S.eventKey==='kinder';
+  const isFirma   = S.eventKey==='firma';
   if (isKinder) {
     S.pricePerPerson = (dow===6||dow===0)?KINDER_PRICES.weekend:KINDER_PRICES.weekday;
+  } else if (isFirma) {
+    S.pricePerPerson = PRICES.weekend; // Firmen & Teams: immer 35€
   } else if (!isSocial) {
     S.pricePerPerson = dow===5?PRICES.friday:(dow===6||dow===0?PRICES.weekend:PRICES.weekday);
   }
   // Price notes (nur für Standard-Events mit Tagespreisen)
   const nc=$('pnote-cheap'), ne=$('pnote-exp');
   nc.className='pnote'; ne.className='pnote';
-  if (!isSocial && !isKinder) {
+  if (!isSocial && !isKinder && !isFirma) {
     if(dow>=1&&dow<=4){nc.innerHTML='🎉 Weekday-Vorteil: Nur '+PRICES.weekday+' €/Person!';nc.classList.add('cheap');}
     else if(dow===6||dow===0){ne.innerHTML='📅 Wochenend-Tarif '+PRICES.weekend+' €/Person';ne.classList.add('exp');}
   }
@@ -1546,6 +1550,9 @@ function selEvent(btn) {
     S.basePrice=60; S.pricePerPerson=KINDER_PRICES.weekday; S.duration='2 Stunden';
     $('ageBox').style.display='block';
     $('kinderNote').classList.add('show');
+    $('weekday-callout').style.display='none';
+  } else if(S.eventKey==='firma'){
+    S.pricePerPerson=PRICES.weekend; // Firmen & Teams: immer 35€, kein Weekday-Rabatt
     $('weekday-callout').style.display='none';
   } else {
     $('weekday-callout').style.display='flex';
