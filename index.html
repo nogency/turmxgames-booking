@@ -2562,14 +2562,8 @@ checkStep1();
     const snav4 = document.querySelector('#step4 .snav');
     if (snav4) snav4.style.display = 'none';
 
-    // ── Direkt zu Step 4 springen ──
-    updateSummary();
-    document.querySelectorAll('.sp').forEach(s => s.classList.remove('active'));
-    $('step4').classList.add('active');
-    S.step = 4;
-
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // ── Direkt zu Step 4 springen (initialisiert Stripe/PayPal) ──
+    goStep(4);
 
   } catch(e) {
     console.error('[FastCheckout]', e);

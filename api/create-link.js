@@ -10,7 +10,7 @@ const RESOURCE_IDS = [
 ];
 
 function generateId(len = 6) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no confusable chars
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let id = '';
   for (let i = 0; i < len; i++) id += chars[Math.floor(Math.random() * chars.length)];
   return id;
@@ -30,6 +30,34 @@ async function bFetch(path, method, body, apiKey) {
     err.status = resp.status; err.details = data; throw err;
   }
   return data;
+}
+
+/** Sucht existierenden Bookla-Client per E-Mail oder legt ihn neu an. */
+async function findOrCreateClient(companyId, { email, firstName, lastName, phone }, apiKey) {
+  // 1. Nach vorhandenem Client suchen
+  const search = await bFetch(
+    `/companies/${companyId}/clients/search?email=${encodeURIComponent(email)}`,
+    'GET', null, apiKey
+  ).catch(() => []);
+
+  if (Array.isArray(search) && search.length > 0) {
+    return search[0].id;
+  }
+
+  // 2. Neuen Client anlegen
+  const created = await bFetch(
+    `/companies/${companyId}/clients`,
+    'POST',
+    {
+      email,
+      firstName:      firstName || '',
+      lastName:       lastName  || '',
+      externalUserID: email,          // E-Mail als stabile externe ID
+      ...(phone && { phone }),
+    },
+    apiKey
+  );
+  return created.id;
 }
 
 module.exports = async function handler(req, res) {
@@ -72,7 +100,7 @@ module.exports = async function handler(req, res) {
     attempts++;
   } while (attempts < 5 && await redis.exists(`bl:${id}`));
 
-  // ── Bookla-Slot vorbuchen (Status: pending) ──────────────────────────────
+  // ── Bookla-Slot vorbuchen ─────────────────────────────────────────────────
   let bookingId = null;
   const apiKey    = process.env.BOOKLA_API_KEY;
   const companyId = process.env.BOOKLA_COMPANY_ID;
@@ -86,7 +114,14 @@ module.exports = async function handler(req, res) {
       const from = `${date}T00:00:00Z`;
       const to   = `${date}T23:59:59Z`;
 
-      // Freie Ressource ermitteln
+      // ── 1. Bookla-Client suchen oder anlegen ──
+      const clientID = await findOrCreateClient(
+        companyId,
+        { email, firstName, lastName, phone },
+        apiKey
+      ).catch(e => { console.warn('[Bookla] Client anlegen fehlgeschlagen:', e.message); return null; });
+
+      // ── 2. Freie Ressource ermitteln ──
       const availability = await Promise.all(
         RESOURCE_IDS.map(rid =>
           bFetch(
@@ -112,7 +147,7 @@ module.exports = async function handler(req, res) {
       }
 
       if (freeResourceId) {
-        // Buchung im Merchant-API anlegen
+        // ── 3. Buchung anlegen (Merchant API) ──
         const bkData = await bFetch(
           `/companies/${companyId}/bookings`,
           'POST',
@@ -121,29 +156,33 @@ module.exports = async function handler(req, res) {
             resourceID: freeResourceId,
             startTime,
             spots,
-            client: {
-              email,
-              firstName: firstName || 'Kunde',
-              lastName:  lastName  || '',
+            ...(clientID && { clientID }),
+            metaData: {
+              notes:         `Admin-Link ${id} — ausstehende Zahlung`,
+              paymentStatus: 'pending',
+              adminLink:     id,
             },
-            metaData: { notes: `Admin-Link ${id} — ausstehende Zahlung` },
           },
           apiKey
         );
-        bookingId = bkData.id || bkData.bookingID || null;
+        bookingId = bkData.id || null;
+        console.log('[Bookla] Vorbuchen erfolgreich:', bookingId, 'clientID:', clientID);
 
+        // ── 4. Status auf "pending" setzen (best-effort) ──
         if (bookingId) {
-          // Status auf "pending" setzen
-          await bFetch(
+          const putResp = await bFetch(
             `/companies/${companyId}/bookings/${bookingId}`,
             'PUT',
             { status: 'pending' },
             apiKey
-          ).catch(e => console.warn('[Bookla] Set-pending fehlgeschlagen:', e.message));
-          console.log('[Bookla] Vorbuchen erfolgreich:', bookingId);
+          ).catch(e => {
+            console.warn('[Bookla] Set-pending fehlgeschlagen:', e.message, JSON.stringify(e.details));
+            return null;
+          });
+          if (putResp) console.log('[Bookla] Status → pending OK');
         }
       } else {
-        console.warn('[Bookla] Kein freier Slot für', date, time, '– Link ohne Vorbuchen erstellt');
+        console.warn('[Bookla] Kein freier Slot für', date, time);
       }
     } catch (e) {
       console.warn('[Bookla] Vorbuchen fehlgeschlagen, Link wird trotzdem erstellt:', e.message, e.details);
