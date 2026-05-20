@@ -351,12 +351,21 @@ module.exports = async function handler(req, res) {
         }
 
         // Bookla-Buchung auf "confirmed" setzen (PATCH, nicht PUT!)
-        const confirmed = await booklaFetch(
-          `/companies/${companyId}/bookings/${bookingId}`,
-          'PATCH',
-          { status: 'confirmed' },
-          apiKey
-        );
+        // Best-effort: falls Bookla-Key keine Update-Berechtigung hat,
+        // trotzdem Erfolg zurückgeben — Zahlung + Rechnung dürfen nicht scheitern.
+        let confirmed = { bookingId };
+        try {
+          confirmed = await booklaFetch(
+            `/companies/${companyId}/bookings/${bookingId}`,
+            'PATCH',
+            { status: 'confirmed' },
+            apiKey
+          );
+          console.log('[Bookla] Status → confirmed OK');
+        } catch (patchErr) {
+          console.error('[Bookla] Status-Update fehlgeschlagen (manuell prüfen):', patchErr.message, patchErr.details);
+          // Zahlung trotzdem als erfolgreich werten
+        }
 
         return res.status(200).json(confirmed);
       }
