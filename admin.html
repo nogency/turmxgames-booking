@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TurmX Admin — Buchungslink erstellen</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#C0392B;--dark:#0c0c0c;--lc:#1e1e1e;--lb:#161616;--bd:rgba(255,255,255,.1);--td:#f0ede8;--tm:rgba(240,237,232,.55);--tmu:rgba(240,237,232,.35)}
+body{background:var(--dark);color:var(--td);font-family:'Barlow',sans-serif;font-size:14px;min-height:100vh}
+
+/* ── AUTH SCREEN ── */
+#authScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.auth-box{background:var(--lc);border:1px solid var(--bd);border-radius:12px;padding:36px 32px;max-width:360px;width:100%;text-align:center}
+.auth-logo{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;letter-spacing:3px;color:var(--red);margin-bottom:6px}
+.auth-sub{font-size:11px;color:var(--tmu);letter-spacing:2px;text-transform:uppercase;margin-bottom:28px}
+.auth-box input{width:100%;background:var(--lb);border:1.5px solid var(--bd);border-radius:7px;color:var(--td);font-family:inherit;font-size:15px;padding:12px 14px;outline:none;transition:border-color .2s;margin-bottom:12px}
+.auth-box input:focus{border-color:var(--red)}
+.auth-btn{width:100%;background:var(--red);color:#fff;border:none;border-radius:7px;padding:13px;font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;transition:filter .15s}
+.auth-btn:hover{filter:brightness(1.1)}
+.auth-err{color:#e74c3c;font-size:12px;margin-top:8px;display:none}
+
+/* ── MAIN ── */
+#mainScreen{display:none;max-width:760px;margin:0 auto;padding:32px 20px 60px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--bd)}
+.hlogo{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;letter-spacing:2px;color:var(--red)}
+.hbadge{font-size:10px;color:var(--tmu);letter-spacing:2px;text-transform:uppercase;background:rgba(255,255,255,.05);padding:4px 10px;border-radius:20px;border:1px solid var(--bd)}
+.logout-btn{background:none;border:none;color:var(--tmu);font-size:11px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:color .15s}
+.logout-btn:hover{color:var(--td)}
+
+/* ── FORM ── */
+.section{background:var(--lc);border:1px solid var(--bd);border-radius:10px;padding:22px 20px;margin-bottom:16px}
+.section-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;color:var(--tmu);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--bd)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:1/-1}
+label{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--tmu);text-transform:uppercase}
+input[type=text],input[type=email],input[type=tel],input[type=date],input[type=time],input[type=number],select{background:var(--lb);border:1.5px solid var(--bd);border-radius:7px;color:var(--td);font-family:inherit;font-size:14px;padding:10px 12px;outline:none;transition:border-color .2s;width:100%}
+input:focus,select:focus{border-color:var(--red)}
+select option{background:#1e1e1e;color:var(--td)}
+
+/* Extras */
+.extras-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px}
+.excheck{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--lb);border:1.5px solid var(--bd);border-radius:7px;cursor:pointer;transition:border-color .2s,background .2s;user-select:none}
+.excheck.sel{border-color:var(--red);background:rgba(192,57,43,.08)}
+.excheck input[type=checkbox]{display:none}
+.excheck-box{width:16px;height:16px;border-radius:3px;border:2px solid var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;transition:all .2s}
+.excheck.sel .excheck-box{background:var(--red);border-color:var(--red);color:#fff}
+.excheck-box::after{content:'✓'}
+.excheck-label{font-size:12px;font-weight:600;color:var(--td);line-height:1.2}
+.excheck-price{font-size:10px;color:var(--tmu)}
+#ffCheck{display:none}
+
+/* Price preview */
+.price-preview{background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.25);border-radius:8px;padding:14px 16px;margin-top:16px}
+.price-rows{display:flex;flex-direction:column;gap:4px}
+.price-row{display:flex;justify-content:space-between;font-size:13px;color:var(--tm)}
+.price-row.total{border-top:1px solid rgba(255,255,255,.1);padding-top:8px;margin-top:4px;font-family:'Barlow Condensed',sans-serif;font-size:18px;color:var(--td);font-weight:700}
+
+/* Validity */
+.validity-row{display:flex;align-items:center;gap:10px}
+.validity-row input[type=number]{max-width:80px}
+.validity-note{font-size:11px;color:var(--tmu);line-height:1.5}
+
+/* Submit */
+.submit-area{margin-top:24px}
+.gen-btn{width:100%;background:var(--red);color:#fff;border:none;border-radius:9px;padding:16px;font-family:'Barlow Condensed',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;transition:filter .15s;display:flex;align-items:center;justify-content:center;gap:10px}
+.gen-btn:hover{filter:brightness(1.1)}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Result */
+#resultBox{display:none;background:var(--lc);border:1.5px solid rgba(46,125,50,.4);border-radius:10px;padding:20px;margin-top:16px}
+.result-title{font-size:11px;font-weight:600;letter-spacing:2px;color:#4caf50;text-transform:uppercase;margin-bottom:10px}
+.link-display{display:flex;align-items:center;gap:8px;background:var(--lb);border-radius:7px;padding:10px 14px;margin-bottom:12px}
+.link-url{flex:1;font-size:13px;color:var(--td);word-break:break-all;font-family:monospace}
+.copy-btn{background:var(--red);color:#fff;border:none;border-radius:5px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:filter .15s;letter-spacing:1px}
+.copy-btn:hover{filter:brightness(1.1)}
+.copy-btn.copied{background:#2e7d32}
+.send-email-btn{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:7px;color:var(--td);font-family:inherit;font-size:13px;font-weight:600;padding:11px;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.send-email-btn:hover{background:rgba(255,255,255,.1)}
+.send-email-btn:disabled{opacity:.5;cursor:not-allowed}
+.result-note{font-size:11px;color:var(--tmu);margin-top:10px;text-align:center}
+
+/* Error */
+.form-err{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:7px;padding:10px 14px;font-size:12px;color:#e74c3c;margin-top:12px;display:none}
+
+@media(max-width:540px){
+  .frow{grid-template-columns:1fr}
+  .extras-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">TURMX</div>
+    <div class="auth-sub">Admin · Buchungslink</div>
+    <input type="password" id="pwdInput" placeholder="Passwort" onkeydown="if(event.key==='Enter')doAuth()">
+    <button class="auth-btn" onclick="doAuth()">Anmelden</button>
+    <div class="auth-err" id="authErr">Falsches Passwort</div>
+  </div>
+</div>
+
+<!-- MAIN SCREEN -->
+<div id="mainScreen">
+  <header>
+    <div>
+      <div class="hlogo">TURMX GAMES</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="hbadge">Admin · Buchungslink</div>
+      <button class="logout-btn" onclick="doLogout()">Abmelden</button>
+    </div>
+  </header>
+
+  <!-- EVENT & TERMIN -->
+  <div class="section">
+    <div class="section-title">Event &amp; Termin</div>
+    <div class="frow">
+      <div class="fg">
+        <label>Event-Art *</label>
+        <select id="aEventKey" onchange="onEventChange()">
+          <option value="jga">JGA</option>
+          <option value="friends">Geburtstag / Freunde</option>
+          <option value="firma">Firmen &amp; Teams</option>
+          <option value="kinder">Kindergeburtstag</option>
+          <option value="schule">Schulausflug</option>
+          <option value="verein">Verein</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Datum *</label>
+        <input type="date" id="aDate" onchange="onDateChange()">
+      </div>
+      <div class="fg">
+        <label>Uhrzeit *</label>
+        <input type="time" id="aTime" value="18:00" step="1800">
+      </div>
+      <div class="fg">
+        <label>Personenanzahl *</label>
+        <input type="number" id="aGroupSize" min="4" max="32" value="8" onchange="calcPrice()">
+      </div>
+    </div>
+  </div>
+
+  <!-- PREISE & EXTRAS -->
+  <div class="section">
+    <div class="section-title">Preis &amp; Extras</div>
+    <div class="frow">
+      <div class="fg">
+        <label>Grundgebühr (€)</label>
+        <input type="number" id="aBasePrice" value="40" step="0.01" onchange="calcPrice()">
+      </div>
+      <div class="fg">
+        <label>Preis / Person (€)</label>
+        <input type="number" id="aPricePerPerson" value="35" step="0.01" onchange="calcPrice()">
+      </div>
+      <div class="fg full">
+        <label>Rabatt-Code (optional)</label>
+        <input type="text" id="aPromoCode" placeholder="z.B. SOMMER10" style="text-transform:uppercase">
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      <label>Extras</label>
+      <div class="extras-grid" style="margin-top:8px">
+        <div class="excheck" id="exDrinks" onclick="toggleEx('drinks')">
+          <div class="excheck-box"></div>
+          <div>
+            <div class="excheck-label">Getränkeflat</div>
+            <div class="excheck-price" id="drinksPriceLabel">12,90 € × Pers.</div>
+          </div>
+        </div>
+        <div class="excheck" id="exInsurance" onclick="toggleEx('insurance')">
+          <div class="excheck-box"></div>
+          <div>
+            <div class="excheck-label">Versicherung</div>
+            <div class="excheck-price">14,90 € einmalig</div>
+          </div>
+        </div>
+        <div class="excheck" id="exFreefall" onclick="toggleEx('freefall')" style="display:none">
+          <div class="excheck-box"></div>
+          <div>
+            <div class="excheck-label">Freefall Mutprobe</div>
+            <div class="excheck-price">30,00 € einmalig</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preisvorschau -->
+    <div class="price-preview">
+      <div class="price-rows" id="priceRows">
+        <div class="price-row"><span>Grundgebühr</span><span id="prBase">40,00 €</span></div>
+        <div class="price-row"><span id="prPPLabel">8 Pers. × 35,00 €</span><span id="prPP">280,00 €</span></div>
+        <div class="price-row total"><span>GESAMT</span><span id="prTotal">320,00 €</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KUNDENDATEN -->
+  <div class="section">
+    <div class="section-title">Kundendaten</div>
+    <div class="frow">
+      <div class="fg">
+        <label>Vorname *</label>
+        <input type="text" id="aFirst" placeholder="Max">
+      </div>
+      <div class="fg">
+        <label>Nachname</label>
+        <input type="text" id="aLast" placeholder="Mustermann">
+      </div>
+      <div class="fg">
+        <label>E-Mail *</label>
+        <input type="email" id="aEmail" placeholder="max@beispiel.de">
+      </div>
+      <div class="fg">
+        <label>Telefon</label>
+        <input type="tel" id="aPhone" placeholder="+49 172 ...">
+      </div>
+    </div>
+
+    <!-- Firmendaten (nur für firma) -->
+    <div id="firmaFields" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--bd)">
+      <div style="font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--tmu);text-transform:uppercase;margin-bottom:10px">Firmendaten</div>
+      <div class="frow">
+        <div class="fg full">
+          <label>Firmenname</label>
+          <input type="text" id="aCompany" placeholder="Musterfirma GmbH">
+        </div>
+        <div class="fg full">
+          <label>Straße &amp; Hausnummer</label>
+          <input type="text" id="aStreet" placeholder="Musterstraße 1">
+        </div>
+        <div class="fg">
+          <label>PLZ</label>
+          <input type="text" id="aZip" placeholder="50321">
+        </div>
+        <div class="fg">
+          <label>Stadt</label>
+          <input type="text" id="aCity" placeholder="Brühl">
+        </div>
+        <div class="fg">
+          <label>USt-ID (optional)</label>
+          <input type="text" id="aUstId" placeholder="DE123456789">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GÜLTIGKEIT -->
+  <div class="section">
+    <div class="section-title">Link-Gültigkeit</div>
+    <div class="validity-row">
+      <div class="fg">
+        <label>Gültig für (Tage)</label>
+        <input type="number" id="aExpiry" value="7" min="1" max="30">
+      </div>
+      <div class="validity-note">Nach Ablauf ist der Link ungültig.<br>Empfehlung: 7 Tage für normale Buchungen.</div>
+    </div>
+  </div>
+
+  <!-- SUBMIT -->
+  <div class="submit-area">
+    <button class="gen-btn" id="genBtn" onclick="generateLink()">
+      <span>🔗</span> Buchungslink generieren
+    </button>
+    <div class="form-err" id="formErr"></div>
+
+    <!-- RESULT -->
+    <div id="resultBox">
+      <div class="result-title">✓ Link erstellt</div>
+      <div class="link-display">
+        <div class="link-url" id="linkUrl">—</div>
+        <button class="copy-btn" id="copyBtn" onclick="copyLink()">Kopieren</button>
+      </div>
+      <button class="send-email-btn" id="sendEmailBtn" onclick="sendEmail()">
+        ✉️ &nbsp;Per E-Mail an Kunden senden
+      </button>
+      <div class="result-note" id="resultNote">Link gültig für <span id="expiryNote">7</span> Tage · Einmal-Zahlung für den Kunden</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const API = '/api';
+const PRICES = { jga:{base:40,pp:35}, friends:{base:40,pp:35}, firma:{base:40,pp:35}, kinder:{base:60,pp:24}, schule:{base:0,pp:25}, verein:{base:0,pp:25} };
+const DRINKS_PRICE = { kinder:7.90, default:12.90 };
+
+let adminSecret = '';
+let state = { drinks:false, insurance:false, freefall:false };
+let generatedId = null;
+
+// ── AUTH ─────────────────────────────────────────────────
+function doAuth(){
+  const pwd = document.getElementById('pwdInput').value.trim();
+  if (!pwd) return;
+  adminSecret = pwd;
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display  = 'block';
+  document.getElementById('authErr').style.display     = 'none';
+  initForm();
+}
+
+function doLogout(){
+  adminSecret = '';
+  generatedId = null;
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('mainScreen').style.display = 'none';
+  document.getElementById('pwdInput').value = '';
+}
+
+// ── INIT ─────────────────────────────────────────────────
+function initForm(){
+  // Set min date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('aDate').min = today;
+  calcPrice();
+}
+
+// ── EVENT TYPE CHANGE ────────────────────────────────────
+function onEventChange(){
+  const key = document.getElementById('aEventKey').value;
+  const p = PRICES[key] || PRICES.jga;
+  document.getElementById('aBasePrice').value = p.base;
+  document.getElementById('aPricePerPerson').value = p.pp;
+  document.getElementById('firmaFields').style.display = key==='firma' ? 'block' : 'none';
+  document.getElementById('exFreefall').style.display  = key==='jga'   ? 'flex'  : 'none';
+  if (key !== 'jga' && state.freefall) { state.freefall=false; document.getElementById('exFreefall').classList.remove('sel'); }
+  const dp = key==='kinder' ? DRINKS_PRICE.kinder : DRINKS_PRICE.default;
+  document.getElementById('drinksPriceLabel').textContent = dp.toFixed(2).replace('.',',') + ' € × Pers.';
+  calcPrice();
+}
+
+function onDateChange(){
+  // Auto-set price based on day of week
+  const date = document.getElementById('aDate').value;
+  if (!date) return;
+  const key = document.getElementById('aEventKey').value;
+  if (key === 'schule' || key === 'verein' || key === 'firma') return;
+  const dow = new Date(date + 'T12:00:00').getDay();
+  let pp = 35;
+  if (key === 'kinder') { pp = (dow===6||dow===0) ? 30 : 24; }
+  else if (dow>=1&&dow<=4) pp = 28;
+  else if (dow===5) pp = 30;
+  else pp = 35;
+  document.getElementById('aPricePerPerson').value = pp;
+  calcPrice();
+}
+
+// ── EXTRAS ───────────────────────────────────────────────
+function toggleEx(type){
+  state[type] = !state[type];
+  const el = type==='drinks' ? 'exDrinks' : type==='insurance' ? 'exInsurance' : 'exFreefall';
+  document.getElementById(el).classList.toggle('sel', state[type]);
+  calcPrice();
+}
+
+// ── PRICE CALC ───────────────────────────────────────────
+function calcPrice(){
+  const qty     = parseInt(document.getElementById('aGroupSize').value) || 1;
+  const base    = parseFloat(document.getElementById('aBasePrice').value) || 0;
+  const pp      = parseFloat(document.getElementById('aPricePerPerson').value) || 0;
+  const key     = document.getElementById('aEventKey').value;
+  const dp      = key==='kinder' ? DRINKS_PRICE.kinder : DRINKS_PRICE.default;
+  let total = base + pp * qty;
+  if (state.drinks)    total += dp * qty;
+  if (state.insurance) total += 14.90;
+  if (state.freefall)  total += 30.00;
+
+  const fmt = v => v.toFixed(2).replace('.',',') + ' €';
+  document.getElementById('prBase').textContent   = fmt(base);
+  document.getElementById('prPPLabel').textContent = qty + ' Pers. × ' + fmt(pp);
+  document.getElementById('prPP').textContent     = fmt(pp * qty);
+  document.getElementById('prTotal').textContent  = fmt(total);
+}
+
+// ── GENERATE LINK ────────────────────────────────────────
+async function generateLink(){
+  const btn = document.getElementById('genBtn');
+  const err = document.getElementById('formErr');
+  err.style.display = 'none';
+  document.getElementById('resultBox').style.display = 'none';
+
+  // Validate
+  const eventKey = document.getElementById('aEventKey').value;
+  const date     = document.getElementById('aDate').value;
+  const time     = document.getElementById('aTime').value;
+  const qty      = parseInt(document.getElementById('aGroupSize').value);
+  const email    = document.getElementById('aEmail').value.trim();
+  const first    = document.getElementById('aFirst').value.trim();
+
+  if (!date)  return showErr('Bitte Datum angeben');
+  if (!time)  return showErr('Bitte Uhrzeit angeben');
+  if (!email) return showErr('Bitte E-Mail angeben');
+  if (!first) return showErr('Bitte Vorname angeben');
+
+  btn.disabled = true;
+  btn.innerHTML = '⏳ &nbsp;Wird erstellt…';
+
+  try {
+    const res = await fetch(API + '/create-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminSecret },
+      body: JSON.stringify({
+        eventKey,
+        eventName: document.getElementById('aEventKey').options[document.getElementById('aEventKey').selectedIndex].text,
+        date, time,
+        groupSize:      qty,
+        pricePerPerson: parseFloat(document.getElementById('aPricePerPerson').value),
+        basePrice:      parseFloat(document.getElementById('aBasePrice').value),
+        drinksFlat:     state.drinks,
+        insurance:      state.insurance,
+        freefall:       state.freefall,
+        promoCode:      document.getElementById('aPromoCode').value.trim() || null,
+        firstName:      first,
+        lastName:       document.getElementById('aLast').value.trim(),
+        email,
+        phone:          document.getElementById('aPhone').value.trim(),
+        companyName:    document.getElementById('aCompany').value.trim() || null,
+        companyStreet:  document.getElementById('aStreet').value.trim()  || null,
+        companyZip:     document.getElementById('aZip').value.trim()     || null,
+        companyCity:    document.getElementById('aCity').value.trim()    || null,
+        ustId:          document.getElementById('aUstId').value.trim()   || null,
+        expiresInDays:  parseInt(document.getElementById('aExpiry').value) || 7,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Fehler beim Erstellen');
+
+    generatedId = data.id;
+    document.getElementById('linkUrl').textContent = data.url;
+    document.getElementById('expiryNote').textContent = document.getElementById('aExpiry').value;
+    document.getElementById('resultBox').style.display = 'block';
+    document.getElementById('copyBtn').textContent = 'Kopieren';
+    document.getElementById('copyBtn').classList.remove('copied');
+    document.getElementById('sendEmailBtn').disabled = false;
+    document.getElementById('sendEmailBtn').innerHTML = '✉️ &nbsp;Per E-Mail an Kunden senden';
+
+  } catch(e) {
+    showErr(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🔗 &nbsp;Buchungslink generieren';
+  }
+}
+
+// ── COPY ─────────────────────────────────────────────────
+function copyLink(){
+  const url = document.getElementById('linkUrl').textContent;
+  navigator.clipboard.writeText(url).then(()=>{
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Kopiert';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Kopieren'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+
+// ── SEND EMAIL ───────────────────────────────────────────
+async function sendEmail(){
+  const btn = document.getElementById('sendEmailBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ &nbsp;Wird gesendet…';
+  try {
+    const res = await fetch(API + '/send-booking-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminSecret },
+      body: JSON.stringify({ id: generatedId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'E-Mail fehlgeschlagen');
+    btn.innerHTML = '✓ &nbsp;E-Mail gesendet';
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '✉️ &nbsp;Per E-Mail an Kunden senden';
+    showErr('E-Mail Fehler: ' + e.message);
+  }
+}
+
+// ── HELPERS ──────────────────────────────────────────────
+function showErr(msg){
+  const el = document.getElementById('formErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>

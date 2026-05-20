@@ -467,6 +467,22 @@ footer a:hover{color:rgba(255,255,255,.65)}
 .ff-price-note{font-size:10px;color:rgba(255,255,255,.35);text-align:right;line-height:1.6}
 .ff-close-btn{display:block;width:100%;padding:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.45);font-size:11px;letter-spacing:1px;cursor:pointer;transition:background .15s;margin-top:14px;border-radius:7px;font-family:inherit;text-transform:uppercase}
 .ff-close-btn:hover{background:rgba(255,255,255,.11);color:rgba(255,255,255,.7)}
+
+/* ── FAST CHECKOUT (personalisierter Link) ── */
+#fc-banner{display:none;background:linear-gradient(135deg,rgba(192,57,43,.15),rgba(192,57,43,.05));border:1px solid rgba(192,57,43,.3);border-radius:10px;padding:14px 18px;margin-bottom:18px;align-items:center;gap:12px}
+#fc-banner.show{display:flex}
+.fc-icon{font-size:22px;flex-shrink:0}
+.fc-banner-text{flex:1}
+.fc-banner-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;letter-spacing:1px;color:var(--td);font-weight:700}
+.fc-banner-sub{font-size:11px;color:var(--tmu);margin-top:2px}
+#fc-customer{display:none;background:var(--lc);border:1.5px solid var(--lbdr);border-radius:9px;padding:14px 16px;margin-bottom:16px}
+#fc-customer.show{display:block}
+.fc-cust-label{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--tmu);text-transform:uppercase;margin-bottom:10px}
+.fc-cust-rows{display:flex;flex-direction:column;gap:6px}
+.fc-cust-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--td)}
+.fc-cust-icon{font-size:14px;color:var(--tmu);width:18px;text-align:center;flex-shrink:0}
+.fc-lock{display:inline-flex;align-items:center;gap:4px;font-size:9px;color:var(--tmu);background:rgba(255,255,255,.05);border:1px solid var(--bd);padding:2px 7px;border-radius:10px;margin-left:auto;flex-shrink:0}
+
 /* Info icon on extra row */
 .extra-info-btn{background:none;border:none;color:var(--tmu);cursor:pointer;padding:1px 4px;line-height:1;transition:color .15s;flex-shrink:0;margin-left:2px}
 .extra-info-btn:hover{color:var(--red)}
@@ -904,8 +920,41 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <!-- STEP 4: Zahlung -->
       <div class="sp" id="step4">
-        <div class="stitle-sub">Schritt 4 · Zahlung</div>
-        <div class="stitle">Jetzt bezahlen</div>
+        <div class="stitle-sub" id="step4-sub">Schritt 4 · Zahlung</div>
+        <div class="stitle" id="step4-title">Jetzt bezahlen</div>
+
+        <!-- Fast-Checkout Banner (nur bei personalisierten Links) -->
+        <div id="fc-banner">
+          <div class="fc-icon">🔐</div>
+          <div class="fc-banner-text">
+            <div class="fc-banner-title">Persönliche Buchung — vorbereitet von TurmX</div>
+            <div class="fc-banner-sub">Überprüfe die Details und bezahle direkt</div>
+          </div>
+        </div>
+
+        <!-- Gesperrte Kundendaten (nur bei personalisierten Links) -->
+        <div id="fc-customer">
+          <div class="fc-cust-label">Rechnungsempfänger</div>
+          <div class="fc-cust-rows">
+            <div class="fc-cust-row">
+              <span class="fc-cust-icon">👤</span>
+              <span id="fc-name">—</span>
+              <span class="fc-lock">🔒 gesperrt</span>
+            </div>
+            <div class="fc-cust-row">
+              <span class="fc-cust-icon">✉️</span>
+              <span id="fc-email">—</span>
+            </div>
+            <div class="fc-cust-row" id="fc-phone-row" style="display:none">
+              <span class="fc-cust-icon">📞</span>
+              <span id="fc-phone">—</span>
+            </div>
+            <div class="fc-cust-row" id="fc-company-row" style="display:none">
+              <span class="fc-cust-icon">🏢</span>
+              <span id="fc-company">—</span>
+            </div>
+          </div>
+        </div>
 
         <!-- Summary -->
         <div class="sumbox">
@@ -1214,6 +1263,9 @@ function dlPush(obj){ window.dataLayer.push(obj); }
 const API          = '/api/bookla';
 const INVOICE_API  = '/api/invoice';
 const INQUIRY_API  = '/api/inquiry';
+const LINK_API     = '/api/get-link';
+
+let fastCheckoutMode = false;
 const CONFIG_API   = '/api/config';
 const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
 let _cfg = null; // populated by loadConfig() on page load
@@ -2420,6 +2472,83 @@ checkStep1();
   if(!btn) return;
   if(btn.classList.contains('sbtn')) { $('morePanel').classList.add('open'); selSpecial(btn); }
   else selEvent(btn);
+})();
+
+// ── FAST CHECKOUT (?b=ID → personaliserter Buchungslink) ──
+(async function(){
+  const id = new URLSearchParams(window.location.search).get('b');
+  if (!id) return;
+
+  try {
+    const r = await fetch(`${LINK_API}?id=${encodeURIComponent(id)}`);
+    if (!r.ok) throw new Error('Link ungültig oder abgelaufen');
+    const d = await r.json();
+
+    fastCheckoutMode = true;
+
+    // ── State befüllen ──
+    S.eventKey      = d.eventKey || 'jga';
+    S.eventName     = d.eventName || d.eventKey;
+    S.qty           = parseInt(d.groupSize) || 4;
+    S.pricePerPerson= parseFloat(d.pricePerPerson) || 35;
+    S.basePrice     = parseFloat(d.basePrice) || 40;
+    S.drinksFlat    = !!d.drinksFlat;
+    S.insurance     = !!d.insurance;
+    S.freefall      = !!d.freefall;
+    if (d.date) {
+      S.date    = new Date(d.date + 'T12:00:00');
+      S.dateStr = d.date;
+    }
+    S.time = d.time || null;
+
+    // ── Kontaktfelder im Hintergrund befüllen (für Bookla/Rechnung) ──
+    if ($('fname'))   $('fname').value   = d.firstName  || '';
+    if ($('lname'))   $('lname').value   = d.lastName   || '';
+    if ($('email'))   $('email').value   = d.email      || '';
+    if ($('phone'))   $('phone').value   = d.phone      || '';
+    if ($('company')) $('company').value = d.companyName || '';
+    if ($('companyStreet')) $('companyStreet').value = d.companyStreet || '';
+    if ($('companyZip'))    $('companyZip').value    = d.companyZip    || '';
+    if ($('companyCity'))   $('companyCity').value   = d.companyCity   || '';
+    if ($('ustid'))   $('ustid').value   = d.ustId     || '';
+
+    // ── Gesperrte Kundenkarte befüllen ──
+    const fullName = [d.firstName, d.lastName].filter(Boolean).join(' ');
+    $('fc-name').textContent  = fullName  || '—';
+    $('fc-email').textContent = d.email   || '—';
+    if (d.phone) { $('fc-phone').textContent = d.phone; $('fc-phone-row').style.display = 'flex'; }
+    if (d.companyName) { $('fc-company').textContent = d.companyName; $('fc-company-row').style.display = 'flex'; }
+
+    // ── UI anpassen ──
+    $('fc-banner').classList.add('show');
+    $('fc-customer').classList.add('show');
+    $('step4-sub').style.display   = 'none';
+    $('step4-title').style.display = 'none';
+    // Schritte-Header ausblenden
+    const shdr = document.querySelector('.shdr');
+    if (shdr) shdr.style.display = 'none';
+    // Zurück-Button in Step 4 ausblenden
+    const snav4 = document.querySelector('#step4 .snav');
+    if (snav4) snav4.style.display = 'none';
+
+    // ── Direkt zu Step 4 springen ──
+    updateSummary();
+    document.querySelectorAll('.sp').forEach(s => s.classList.remove('active'));
+    $('step4').classList.add('active');
+    S.step = 4;
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch(e) {
+    console.error('[FastCheckout]', e);
+    // Zeige Fehlermeldung statt leerer Seite
+    document.querySelector('.bcard').insertAdjacentHTML('afterbegin',
+      `<div style="background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:9px;padding:16px 18px;margin-bottom:20px;font-size:13px;color:#e74c3c">
+        ⚠️ Dieser Buchungslink ist ungültig oder abgelaufen. Bitte kontaktiere uns unter <a href="tel:01725850055" style="color:#e74c3c">0172 585 00 55</a>.
+      </div>`
+    );
+  }
 })();
 </script>
 
