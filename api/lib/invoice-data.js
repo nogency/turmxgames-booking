@@ -27,7 +27,7 @@ function buildInvoiceData(params) {
     bookingId, serviceName, groupSize, amount, paymentMethod,
     date, time, firstName, lastName, email, phone,
     companyName, companyStreet, companyZip, companyCity, ustId,
-    drinksFlat, drinksPrice, insurance, baseAmount,
+    drinksFlat, drinksPrice, insurance, freefall, baseAmount,
   } = params;
 
   const spots = parseInt(groupSize) || 1;
@@ -60,6 +60,15 @@ function buildInvoiceData(params) {
       name: 'Flex-Versicherung',
       qtyLabel: '1×',
       tax: calculateTax(14.90),
+    });
+  }
+
+  // 4. Freefall Mutprobe (30,00 € pauschal, nur JGA)
+  if (freefall) {
+    items.push({
+      name: 'Blindfold Freefall – Die Mutprobe',
+      qtyLabel: '1×',
+      tax: calculateTax(30.00),
     });
   }
 
