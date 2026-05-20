@@ -451,6 +451,25 @@ footer a:hover{color:rgba(255,255,255,.65)}
 /* Small CTA under min/max */
 .inq-hint-link{font-size:11px;color:var(--red);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:opacity .15s;white-space:nowrap}
 .inq-hint-link:hover{opacity:.72}
+
+/* ── FREEFALL DETAIL MODAL ── */
+.ff-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .22s}
+.ff-overlay.show{opacity:1;pointer-events:all}
+.ff-modal{background:#141414;border-radius:14px;max-width:400px;width:100%;overflow:hidden;transform:translateY(28px);transition:transform .28s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 32px 80px rgba(0,0,0,.6)}
+.ff-overlay.show .ff-modal{transform:translateY(0)}
+.ff-img{width:100%;height:230px;object-fit:cover;object-position:center 20%;display:block}
+.ff-body{padding:18px 20px 16px}
+.ff-badge{display:inline-flex;align-items:center;gap:4px;background:var(--red);color:#fff;font-size:9px;font-weight:800;letter-spacing:2px;padding:3px 9px;border-radius:3px;margin-bottom:10px;text-transform:uppercase}
+.ff-title{font-family:"Barlow Condensed",sans-serif;font-size:24px;letter-spacing:1.5px;color:#fff;line-height:1.05;margin-bottom:10px;text-transform:uppercase}
+.ff-desc{font-size:12px;color:rgba(255,255,255,.6);line-height:1.75;margin-bottom:16px}
+.ff-price-bar{display:flex;align-items:flex-end;justify-content:space-between;border-top:1px solid rgba(255,255,255,.1);padding-top:14px}
+.ff-price-tag{font-family:"Barlow Condensed",sans-serif;font-size:32px;color:var(--red);font-weight:700;line-height:1}
+.ff-price-note{font-size:10px;color:rgba(255,255,255,.35);text-align:right;line-height:1.6}
+.ff-close-btn{display:block;width:100%;padding:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.45);font-size:11px;letter-spacing:1px;cursor:pointer;transition:background .15s;margin-top:14px;border-radius:7px;font-family:inherit;text-transform:uppercase}
+.ff-close-btn:hover{background:rgba(255,255,255,.11);color:rgba(255,255,255,.7)}
+/* Info icon on extra row */
+.extra-info-btn{background:none;border:none;color:var(--tmu);cursor:pointer;padding:1px 4px;line-height:1;transition:color .15s;flex-shrink:0;margin-left:2px}
+.extra-info-btn:hover{color:var(--red)}
 </style>
 </head>
 <body>
@@ -578,6 +597,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="mb-insurance-row" style="display:none;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--lbdr)">
       <div style="font-size:11px;color:var(--tmu)">Versicherung</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--red)">14,90 €</div>
+    </div>
+    <div id="mb-freefall-row" style="display:none;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--lbdr)">
+      <div style="font-size:11px;color:var(--tmu)">Freefall Mutprobe</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--red)">30,00 €</div>
     </div>
 
     <div style="height:10px"></div>
@@ -815,6 +838,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </div>
             <div class="extra-price">14,90 €</div>
           </div>
+
+          <!-- Freefall Mutprobe – nur für JGA -->
+          <div class="extra-opt" id="extra-freefall" onclick="toggleExtra('freefall')">
+            <div class="extra-check"></div>
+            <div class="extra-info">
+              <div class="extra-name">
+                <span class="ms sm fill">paragliding</span> Blindfold Freefall — Die Mutprobe
+                <button class="extra-info-btn" onclick="event.stopPropagation();openFreefallModal()" title="Mehr erfahren"><span class="ms sm fill">info</span></button>
+              </div>
+              <div class="extra-desc">Mit verbundenen Augen vom Turmx-Turm — für Braut oder Bräutigam</div>
+            </div>
+            <div class="extra-price">30,00 €</div>
+          </div>
         </div>
 
         <div class="snav">
@@ -878,6 +914,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <div class="sumrow"><span class="sumkey">Personen</span><span class="sumval" id="pay-persons">—</span></div>
           <div class="sumrow" id="pay-drinks-row" style="display:none"><span class="sumkey">Getränkeflat</span><span class="sumval" id="pay-drinks-val">—</span></div>
           <div class="sumrow" id="pay-insurance-row" style="display:none"><span class="sumkey">Versicherung</span><span class="sumval">14,90 €</span></div>
+          <div class="sumrow" id="pay-freefall-row" style="display:none"><span class="sumkey">Freefall Mutprobe</span><span class="sumval">30,00 €</span></div>
           <div class="sumrow sumtot"><span class="sumkey">GESAMT</span><span class="sumval" id="pay-total">—</span></div>
         </div>
 
@@ -1025,6 +1062,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <span class="spkey"><span class="ms sm fill" style="font-size:13px;vertical-align:middle">shield</span> Versicherung</span>
           <div style="text-align:right">
             <div class="spval">14,90 €</div>
+            <div class="spnote">einmalig</div>
+          </div>
+        </div>
+        <div class="side-extra-row" id="side-freefall-row">
+          <span class="spkey"><span class="ms sm fill" style="font-size:13px;vertical-align:middle">paragliding</span> Freefall Mutprobe</span>
+          <div style="text-align:right">
+            <div class="spval">30,00 €</div>
             <div class="spnote">einmalig</div>
           </div>
         </div>
@@ -1187,7 +1231,7 @@ const S = {
   eventKey:'jga', eventName:'JGA',
   date:null, dateStr:null, time:null,
   qty:4, pricePerPerson:28, basePrice:40, duration:'2,5 Stunden',
-  drinksFlat:false, insurance:false,
+  drinksFlat:false, insurance:false, freefall:false,
   kindAge:null, payMethod:'cc',
   doodleSlots: new Set(),
 };
@@ -1320,6 +1364,7 @@ function stopCountdown() {
   let extras = 0;
   if (S.drinksFlat) extras += getDrinksPrice() * S.qty;
   if (S.insurance) extras += 14.90;
+  if (S.freefall)  extras += 30.00;
   return Math.round((base + extras) * 100) / 100;
 }
 
@@ -1558,6 +1603,10 @@ function selEvent(btn) {
     $('weekday-callout').style.display='flex';
   }
   if(S.eventKey==='firma') $('firmaSection').style.display='block';
+  // Freefall nur für JGA
+  const ffEl=$('extra-freefall');
+  if(ffEl) ffEl.style.display=S.eventKey==='jga'?'flex':'none';
+  if(S.eventKey!=='jga' && S.freefall){S.freefall=false;if(ffEl)ffEl.classList.remove('sel');}
   availDates=new Set(); renderCal();
   updateDrinksDesc();
   updateSummary();
@@ -1620,10 +1669,14 @@ function toggleExtra(type){
     S.drinksFlat=!S.drinksFlat;
     $('extra-drinks').classList.toggle('sel',S.drinksFlat);
     dlPush({event:S.drinksFlat?'add_extra':'remove_extra',extra:'getraenkeflat',price:getDrinksPrice()*S.qty});
-  } else {
+  } else if(type==='insurance'){
     S.insurance=!S.insurance;
     $('extra-insurance').classList.toggle('sel',S.insurance);
     dlPush({event:S.insurance?'add_extra':'remove_extra',extra:'versicherung',price:14.90});
+  } else if(type==='freefall'){
+    S.freefall=!S.freefall;
+    $('extra-freefall').classList.toggle('sel',S.freefall);
+    dlPush({event:S.freefall?'add_extra':'remove_extra',extra:'freefall_mutprobe',price:30});
   }
   updateSummary();
 }
@@ -1720,10 +1773,12 @@ function updateSummary(){
   $('side-drinks-val').textContent = fmtEur(drinksTotal);
   $('side-drinks-sub').textContent = fmtEurShort(getDrinksPrice()) + ' × ' + S.qty;
   $('side-insurance-row').classList.toggle('show', S.insurance);
+  $('side-freefall-row').classList.toggle('show', S.freefall);
   // Extras Step 4
   const pdr=$('pay-drinks-row');if(pdr)pdr.style.display=S.drinksFlat?'flex':'none';
   const pdv=$('pay-drinks-val');if(pdv)pdv.textContent=fmtEur(drinksTotal);
   const pir=$('pay-insurance-row');if(pir)pir.style.display=S.insurance?'flex':'none';
+  const pfr=$('pay-freefall-row');if(pfr)pfr.style.display=S.freefall?'flex':'none';
 
   // Step 4
   const pe=$('pay-event');if(pe)pe.textContent=S.eventName;
@@ -1763,6 +1818,8 @@ function updateSummary(){
   $('mb-drinks-sub').textContent=fmtEurShort(getDrinksPrice())+' × '+S.qty;
   const mbIns=$('mb-insurance-row');
   if(mbIns)mbIns.style.display=S.insurance?'flex':'none';
+  const mbFf=$('mb-freefall-row');
+  if(mbFf)mbFf.style.display=S.freefall?'flex':'none';
 
   // Keep Apple Pay sheet amount in sync
   updatePRAmount();
@@ -2078,10 +2135,11 @@ async function callInvoiceAPI(bookingId){
         serviceName:S.eventName,
         groupSize:S.qty,
         amount:getTotal(),
-        baseAmount:Math.round((getTotal()-(S.drinksFlat?getDrinksPrice()*S.qty:0)-(S.insurance?14.90:0))*100)/100,
+        baseAmount:Math.round((getTotal()-(S.drinksFlat?getDrinksPrice()*S.qty:0)-(S.insurance?14.90:0)-(S.freefall?30:0))*100)/100,
         drinksFlat:S.drinksFlat||false,
         drinksPrice:getDrinksPrice(),
         insurance:S.insurance||false,
+        freefall:S.freefall||false,
         paymentMethod:S.payMethod,
         date:S.dateStr,
         time:S.time,
@@ -2111,6 +2169,7 @@ function buildBookingNotes(payMethod){
     promoState.code?'Rabatt-Code: '+promoState.code+' (−'+promoState.discountAmount.toFixed(2).replace('.',',')+'€)':null,
     'Getränkeflat: '+(S.drinksFlat?'Ja ('+S.qty+' × '+getDrinksPrice().toFixed(2).replace('.',',')+'€)':'Nein'),
     'Versicherung: '+(S.insurance?'Ja (14,90€)':'Nein'),
+    'Freefall Mutprobe: '+(S.freefall?'Ja (30,00€)':'Nein'),
     'Zahlung: '+pmLabel,
     S.kindAge?'Alter Geburtstagskind: '+S.kindAge:null,
     $('company')?.value?.trim()?'Firma: '+$('company').value.trim():null,
@@ -2270,6 +2329,19 @@ function closeInquiryModal(e){
   $('inqOverlay').classList.remove('show');
   document.body.style.overflow='';
 }
+
+// ═══════════════════════════════════════════════════════
+// FREEFALL DETAIL MODAL
+// ═══════════════════════════════════════════════════════
+function openFreefallModal(){
+  $('ffOverlay').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeFreefallModal(e){
+  if(e && e.target!==$('ffOverlay')) return;
+  $('ffOverlay').classList.remove('show');
+  document.body.style.overflow='';
+}
 async function submitInquiry(){
   const name=$('inqName').value.trim();
   const email=$('inqEmail').value.trim();
@@ -2350,6 +2422,30 @@ checkStep1();
   else selEvent(btn);
 })();
 </script>
+
+<!-- ── FREEFALL DETAIL MODAL ── -->
+<div class="ff-overlay" id="ffOverlay" onclick="closeFreefallModal(event)">
+  <div class="ff-modal" role="dialog" aria-modal="true">
+    <img class="ff-img" src="/freefall-jga.jpg" alt="Blindfold Freefall Mutprobe" onerror="this.style.display='none'">
+    <div class="ff-body">
+      <div class="ff-badge"><span class="ms sm fill" style="font-size:11px;vertical-align:middle">bolt</span> Nur beim JGA</div>
+      <div class="ff-title">Blindfold Freefall<br>Die Mutprobe</div>
+      <div class="ff-desc">
+        Das ultimative Adrenalin-Erlebnis für Braut oder Bräutigam: Augenbinde drauf, kein Warnen, kein Zögern — und dann geht's vom Turmx-Turm in den freien Fall.<br><br>
+        Euer Showmaster begleitet sie nach oben, legt die Binde an — und die Gruppe schaut von oben mit Jubel zu. Einer muss es tun. Mutig genug?<br><br>
+        <strong style="color:rgba(255,255,255,.85)">Inklusive:</strong> Professionelle Einweisung, Sicherheits-Harness &amp; Helm — und einen Moment, den ihr alle nie vergessen werdet.
+      </div>
+      <div class="ff-price-bar">
+        <div>
+          <div class="ff-price-tag">30,00 €</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:3px">einmalig · 1 Person</div>
+        </div>
+        <div class="ff-price-note">Nur buchbar<br>zum JGA-Event</div>
+      </div>
+      <button class="ff-close-btn" onclick="closeFreefallModal()">Schließen</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── INQUIRY MODAL ── -->
 <div class="inq-overlay" id="inqOverlay" onclick="closeInquiryModal(event)">
