@@ -350,10 +350,10 @@ module.exports = async function handler(req, res) {
           );
         }
 
-        // Bookla-Buchung auf "confirmed" setzen
+        // Bookla-Buchung auf "confirmed" setzen (PATCH, nicht PUT!)
         const confirmed = await booklaFetch(
           `/companies/${companyId}/bookings/${bookingId}`,
-          'PUT',
+          'PATCH',
           { status: 'confirmed' },
           apiKey
         );

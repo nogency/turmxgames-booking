@@ -168,18 +168,18 @@ module.exports = async function handler(req, res) {
         bookingId = bkData.id || null;
         console.log('[Bookla] Vorbuchen erfolgreich:', bookingId, 'clientID:', clientID);
 
-        // ── 4. Status auf "pending" setzen (best-effort) ──
+        // ── 4. Status auf "pending" setzen (PATCH, nicht PUT!) ──
         if (bookingId) {
-          const putResp = await bFetch(
+          const patchResp = await bFetch(
             `/companies/${companyId}/bookings/${bookingId}`,
-            'PUT',
+            'PATCH',
             { status: 'pending' },
             apiKey
           ).catch(e => {
             console.warn('[Bookla] Set-pending fehlgeschlagen:', e.message, JSON.stringify(e.details));
             return null;
           });
-          if (putResp) console.log('[Bookla] Status → pending OK');
+          if (patchResp) console.log('[Bookla] Status → pending OK');
         }
       } else {
         console.warn('[Bookla] Kein freier Slot für', date, time);
