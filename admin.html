@@ -138,11 +138,14 @@ select option{background:#1e1e1e;color:var(--td)}
       </div>
       <div class="fg">
         <label>Uhrzeit *</label>
-        <input type="time" id="aTime" value="18:00" step="1800">
+        <select id="aTime">
+          <option value="">— Erst Datum wählen —</option>
+        </select>
+        <div id="aTimeHint" style="font-size:10px;color:var(--tmu);margin-top:4px;display:none"></div>
       </div>
       <div class="fg">
         <label>Personenanzahl *</label>
-        <input type="number" id="aGroupSize" min="4" max="32" value="8" onchange="calcPrice()">
+        <input type="number" id="aGroupSize" min="4" max="32" value="8" onchange="calcPrice();loadAvailableTimes()">
       </div>
     </div>
   </div>
@@ -337,20 +340,80 @@ function onEventChange(){
   calcPrice();
 }
 
-function onDateChange(){
-  // Auto-set price based on day of week
+async function onDateChange(){
   const date = document.getElementById('aDate').value;
   if (!date) return;
+
+  // Auto-set price based on day of week
   const key = document.getElementById('aEventKey').value;
-  if (key === 'schule' || key === 'verein' || key === 'firma') return;
-  const dow = new Date(date + 'T12:00:00').getDay();
-  let pp = 35;
-  if (key === 'kinder') { pp = (dow===6||dow===0) ? 30 : 24; }
-  else if (dow>=1&&dow<=4) pp = 28;
-  else if (dow===5) pp = 30;
-  else pp = 35;
-  document.getElementById('aPricePerPerson').value = pp;
-  calcPrice();
+  if (key !== 'schule' && key !== 'verein' && key !== 'firma') {
+    const dow = new Date(date + 'T12:00:00').getDay();
+    let pp = 35;
+    if (key === 'kinder') { pp = (dow===6||dow===0) ? 30 : 24; }
+    else if (dow>=1&&dow<=4) pp = 28;
+    else if (dow===5) pp = 30;
+    else pp = 35;
+    document.getElementById('aPricePerPerson').value = pp;
+    calcPrice();
+  }
+
+  await loadAvailableTimes();
+}
+
+async function loadAvailableTimes(){
+  const date   = document.getElementById('aDate').value;
+  const qty    = parseInt(document.getElementById('aGroupSize').value) || 4;
+  const sel    = document.getElementById('aTime');
+  const hint   = document.getElementById('aTimeHint');
+  if (!date) return;
+
+  const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
+
+  sel.innerHTML = '<option value="">⏳ Lädt verfügbare Zeiten…</option>';
+  sel.disabled  = true;
+  hint.style.display = 'none';
+
+  try {
+    const r = await fetch('/api/bookla?action=available-times', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ serviceId: SERVICE_ID, date, groupSize: qty }),
+    });
+    const times = await r.json();
+
+    sel.innerHTML = '';
+    if (!Array.isArray(times) || times.length === 0) {
+      sel.innerHTML = '<option value="">Keine Slots von Bookla</option>';
+      hint.textContent = 'ℹ️ Keine verfügbaren Zeiten für dieses Datum.';
+      hint.style.display = 'block';
+    } else {
+      const avail = times.filter(t => t.available);
+      if (avail.length === 0) {
+        sel.innerHTML = '<option value="">Alle Slots belegt</option>';
+        hint.textContent = '⚠️ Alle Slots sind für dieses Datum belegt.';
+        hint.style.display = 'block';
+      } else {
+        sel.innerHTML = '<option value="">— Zeit wählen —</option>';
+        avail.forEach(t => {
+          const dt    = new Date(t.startAt);
+          const label = dt.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Berlin' });
+          const opt   = document.createElement('option');
+          opt.value       = label;   // "HH:MM" Berlin-Zeit
+          opt.textContent = label + ' Uhr';
+          sel.appendChild(opt);
+        });
+        hint.textContent   = '✓ ' + avail.length + ' Slot(s) verfügbar';
+        hint.style.display = 'block';
+      }
+    }
+  } catch(e) {
+    console.error('[TimeLoad]', e);
+    sel.innerHTML  = '<option value="">Fehler beim Laden</option>';
+    hint.textContent = '⚠️ Zeiten konnten nicht geladen werden.';
+    hint.style.display = 'block';
+  } finally {
+    sel.disabled = false;
+  }
 }
 
 // ── EXTRAS ───────────────────────────────────────────────

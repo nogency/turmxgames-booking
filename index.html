@@ -1285,6 +1285,7 @@ const S = {
   qty:4, pricePerPerson:28, basePrice:40, duration:'2,5 Stunden',
   drinksFlat:false, insurance:false, freefall:false,
   kindAge:null, payMethod:'cc',
+  bookingId:null,
   doodleSlots: new Set(),
 };
 
@@ -2209,6 +2210,31 @@ async function callInvoiceAPI(bookingId){
   }catch(e){console.error('[Invoice]',e);}
 }
 
+// ─────────────────────────────────────────────────────────
+// CONFIRM ADMIN BOOKING (Fast-Checkout: Buchung bereits in Bookla)
+// ─────────────────────────────────────────────────────────
+async function confirmAdminBooking(paypalAuthId){
+  try{
+    const r=await fetch(API+'?action=confirm-admin-booking',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ bookingId:S.bookingId, paypalAuthId:paypalAuthId||null }),
+    });
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||'Bestätigung fehlgeschlagen');
+    const ref='BKL-'+String(S.bookingId).slice(-6).toUpperCase();
+    callInvoiceAPI(S.bookingId);
+    dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:S.payMethod,items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
+    showSuccess(ref);
+  }catch(e){
+    console.error('[AdminBooking]',e);
+    alert('Buchung fehlgeschlagen: '+e.message+'\n\nBitte kontaktiere uns unter 0172 585 00 55.');
+    const btn=$('payBtn');
+    if(btn){btn.disabled=false;btn.innerHTML='Jetzt verbindlich buchen';}
+    const nav=document.querySelector('#step4 .snav');
+    if(nav)nav.style.display='flex';
+  }
+}
+
 function buildBookingNotes(payMethod){
   const pm = payMethod || S.payMethod;
   const pmLabel = {cc:'Kreditkarte',sepa:'SEPA-Lastschrift',paypal:'PayPal',invoice:'Auf Rechnung'}[pm] || pm;
@@ -2233,6 +2259,8 @@ function buildBookingNotes(payMethod){
 }
 
 async function submitBooking(paymentId, paypalAuthId){
+  // Fast-Checkout: Buchung wurde bereits beim Link-Erstellen in Bookla angelegt
+  if(fastCheckoutMode && S.bookingId){ await confirmAdminBooking(paypalAuthId); return; }
   try{
     const payload={
       serviceId:SERVICE_ID, date:S.dateStr, time:S.time, groupSize:S.qty,
@@ -2262,6 +2290,8 @@ async function submitBooking(paymentId, paypalAuthId){
 }
 
 async function submitBookingInvoice(){
+  // Fast-Checkout: Buchung bereits in Bookla — nur bestätigen
+  if(fastCheckoutMode && S.bookingId){ await confirmAdminBooking(null); return; }
   const payload={
     serviceId:SERVICE_ID,date:S.dateStr,time:S.time,groupSize:S.qty,
     firstName:$('fname')?.value?.trim(),lastName:$('lname')?.value?.trim(),
@@ -2499,7 +2529,8 @@ checkStep1();
       S.date    = new Date(d.date + 'T12:00:00');
       S.dateStr = d.date;
     }
-    S.time = d.time || null;
+    S.time      = d.time      || null;
+    S.bookingId = d.bookingId || null;
 
     // ── Kontaktfelder im Hintergrund befüllen (für Bookla/Rechnung) ──
     if ($('fname'))   $('fname').value   = d.firstName  || '';

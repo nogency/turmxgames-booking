@@ -335,6 +335,33 @@ module.exports = async function handler(req, res) {
       }
 
       // ─────────────────────────────────────────────
+      // 4c. Admin-Buchung bestätigen (nach Kundenzahlung)
+      //     Setzt Bookla-Status auf "confirmed" und
+      //     zieht ggf. PayPal-Autorisierung ein.
+      // ─────────────────────────────────────────────
+      case 'confirm-admin-booking': {
+        const { bookingId, paypalAuthId } = req.body || {};
+        if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
+
+        // PayPal einziehen (falls Autorisierung vorhanden)
+        if (paypalAuthId) {
+          await capturePaypalAuth(paypalAuthId).catch(e =>
+            console.error('[PayPal] Capture fehlgeschlagen:', e.message)
+          );
+        }
+
+        // Bookla-Buchung auf "confirmed" setzen
+        const confirmed = await booklaFetch(
+          `/companies/${companyId}/bookings/${bookingId}`,
+          'PUT',
+          { status: 'confirmed' },
+          apiKey
+        );
+
+        return res.status(200).json(confirmed);
+      }
+
+      // ─────────────────────────────────────────────
       // 5. Promo Code validieren
       //    Gibt zurück: { canApply, price, discountAmount }
       // ─────────────────────────────────────────────
