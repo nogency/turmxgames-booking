@@ -1,7 +1,7 @@
-const { buildInvoiceData } = require('./lib/invoice-data');
-const { generateInvoicePDF } = require('./lib/pdf');
-const { sendInvoiceEmail } = require('./lib/email');
-const { uploadInvoiceToDrive } = require('./lib/drive');
+const { buildInvoiceData } = require('./_lib/invoice-data');
+const { generateInvoicePDF } = require('./_lib/pdf');
+const { sendInvoiceEmail } = require('./_lib/email');
+const { uploadInvoiceToDrive } = require('./_lib/drive');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');

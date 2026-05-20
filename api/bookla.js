@@ -297,10 +297,10 @@ module.exports = async function handler(req, res) {
         if (!bookingData) throw lastError || new Error('Alle Slots belegt');
 
         // Rechnung generieren und verschicken
-        const { buildInvoiceData } = require('./lib/invoice-data');
-        const { generateInvoicePDF } = require('./lib/pdf');
-        const { sendInvoiceEmail } = require('./lib/email');
-        const { uploadInvoiceToDrive } = require('./lib/drive');
+        const { buildInvoiceData } = require('./_lib/invoice-data');
+        const { generateInvoicePDF } = require('./_lib/pdf');
+        const { sendInvoiceEmail } = require('./_lib/email');
+        const { uploadInvoiceToDrive } = require('./_lib/drive');
 
         const invoiceData = buildInvoiceData({
           bookingId: bookingData.id,
