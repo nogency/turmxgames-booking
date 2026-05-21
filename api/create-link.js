@@ -102,6 +102,7 @@ module.exports = async function handler(req, res) {
 
   // ── Bookla-Slot vorbuchen ─────────────────────────────────────────────────
   let bookingId = null;
+  let clientId  = null;   // außerhalb des try-Blocks, damit wir ihn in Redis speichern können
   const apiKey    = process.env.BOOKLA_API_KEY;
   const companyId = process.env.BOOKLA_COMPANY_ID;
 
@@ -115,7 +116,7 @@ module.exports = async function handler(req, res) {
       const to   = `${date}T23:59:59Z`;
 
       // ── 1. Bookla-Client suchen oder anlegen ──
-      const clientID = await findOrCreateClient(
+      clientId = await findOrCreateClient(
         companyId,
         { email, firstName, lastName, phone },
         apiKey
@@ -156,7 +157,7 @@ module.exports = async function handler(req, res) {
             resourceID: freeResourceId,
             startTime,
             spots,
-            ...(clientID && { clientID }),
+            ...(clientId && { clientID: clientId }),
             metaData: {
               notes:         `Admin-Link ${id} — ausstehende Zahlung`,
               paymentStatus: 'pending',
@@ -166,14 +167,18 @@ module.exports = async function handler(req, res) {
           apiKey
         );
         bookingId = bkData.id || null;
-        console.log('[Bookla] Vorbuchen erfolgreich:', bookingId, 'clientID:', clientID);
+        console.log('[Bookla] Vorbuchen erfolgreich:', bookingId, 'clientID:', clientId);
 
         // ── 4. Status auf "pending" setzen (PATCH, nicht PUT!) ──
+        // clientID mitsenden damit Bookla den Client nicht leert!
         if (bookingId) {
           const patchResp = await bFetch(
             `/companies/${companyId}/bookings/${bookingId}`,
             'PATCH',
-            { status: 'pending' },
+            {
+              status: 'pending',
+              ...(clientId && { clientID: clientId }),
+            },
             apiKey
           ).catch(e => {
             console.warn('[Bookla] Set-pending fehlgeschlagen:', e.message, JSON.stringify(e.details));
@@ -209,6 +214,7 @@ module.exports = async function handler(req, res) {
     companyCity:    companyCity   || null,
     ustId:          ustId         || null,
     bookingId:      bookingId,
+    clientId:       clientId,
     createdAt:      new Date().toISOString(),
   };
 

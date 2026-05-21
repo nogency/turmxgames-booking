@@ -2215,9 +2215,16 @@ async function callInvoiceAPI(bookingId){
 // ─────────────────────────────────────────────────────────
 async function confirmAdminBooking(paypalAuthId){
   try{
+    const adminLinkId = new URLSearchParams(window.location.search).get('b');
+    const notes = buildBookingNotes(S.payMethod);
     const r=await fetch(API+'?action=confirm-admin-booking',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ bookingId:S.bookingId, paypalAuthId:paypalAuthId||null }),
+      body:JSON.stringify({
+        bookingId:    S.bookingId,
+        paypalAuthId: paypalAuthId||null,
+        notes,
+        adminLinkId:  adminLinkId||null,
+      }),
     });
     const data=await r.json();
     if(!r.ok) throw new Error(data.error||'Bestätigung fehlgeschlagen');

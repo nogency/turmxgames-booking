@@ -340,7 +340,7 @@ module.exports = async function handler(req, res) {
       //     zieht ggf. PayPal-Autorisierung ein.
       // ─────────────────────────────────────────────
       case 'confirm-admin-booking': {
-        const { bookingId, paypalAuthId } = req.body || {};
+        const { bookingId, paypalAuthId, notes, adminLinkId } = req.body || {};
         if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
 
         // PayPal einziehen (falls Autorisierung vorhanden)
@@ -350,21 +350,50 @@ module.exports = async function handler(req, res) {
           );
         }
 
-        // Bookla-Buchung auf "confirmed" setzen (PATCH, nicht PUT!)
-        // Best-effort: falls Bookla-Key keine Update-Berechtigung hat,
-        // trotzdem Erfolg zurückgeben — Zahlung + Rechnung dürfen nicht scheitern.
+        // ── clientID aus Redis holen ──
+        // Bookla leert den Client beim PATCH wenn clientID nicht mitgesendet wird.
+        // Daher speichern wir die clientID beim Link-Erstellen in Redis und lesen sie hier wieder aus.
+        let storedClientId = null;
+        if (adminLinkId) {
+          try {
+            const { Redis } = require('@upstash/redis');
+            const redis = new Redis({
+              url:   process.env.KV_REST_API_URL,
+              token: process.env.KV_REST_API_TOKEN,
+            });
+            const raw = await redis.get(`bl:${adminLinkId}`);
+            if (raw) {
+              const stored = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              storedClientId = stored.clientId || null;
+            }
+            console.log('[Bookla] clientID aus Redis:', storedClientId);
+          } catch (e) {
+            console.warn('[Redis] clientId-Lookup fehlgeschlagen:', e.message);
+          }
+        }
+
+        // ── Bookla-Buchung auf "confirmed" setzen ──
+        // Best-effort: falls PATCH scheitert, trotzdem Erfolg — Zahlung + Rechnung müssen durch.
         let confirmed = { bookingId };
         try {
+          const patchBody = {
+            status: 'confirmed',
+            metaData: {
+              notes:         notes || null,
+              paymentStatus: 'paid',
+              adminLink:     adminLinkId || null,
+            },
+            ...(storedClientId && { clientID: storedClientId }),
+          };
           confirmed = await booklaFetch(
             `/companies/${companyId}/bookings/${bookingId}`,
             'PATCH',
-            { status: 'confirmed' },
+            patchBody,
             apiKey
           );
-          console.log('[Bookla] Status → confirmed OK');
+          console.log('[Bookla] Status → confirmed OK, clientID:', storedClientId);
         } catch (patchErr) {
           console.error('[Bookla] Status-Update fehlgeschlagen (manuell prüfen):', patchErr.message, patchErr.details);
-          // Zahlung trotzdem als erfolgreich werten
         }
 
         return res.status(200).json(confirmed);
