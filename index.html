@@ -2135,6 +2135,20 @@ async function initExpressPayPal(){
 // PAYMENT HANDLER
 // ═══════════════════════════════════════════════════════
 async function handlePayment(){
+  // ── Pflichtfelder prüfen BEVOR PayPal/Stripe überhaupt startet ──
+  // Verhindert autorisierte Zahlungen die dann nie gebucht werden können
+  // (passiert wenn Nutzer per Refresh/Zurück-Taste auf Step 4 landet)
+  if(!fastCheckoutMode){
+    if(!S.dateStr || !S.time){
+      alert('⚠️ Kein Termin ausgewählt.\n\nBitte wähle zuerst Datum und Uhrzeit aus.');
+      goStep(2); return;
+    }
+    if(!$('email')?.value?.trim()){
+      alert('⚠️ Bitte E-Mail-Adresse eingeben.');
+      goStep(3); return;
+    }
+  }
+
   const btn=$('payBtn'), orig=btn.innerHTML;
   btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Verarbeitung…';
   try{
