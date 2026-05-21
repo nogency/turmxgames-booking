@@ -86,6 +86,49 @@ select option{background:#1e1e1e;color:var(--td)}
 /* Error */
 .form-err{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:7px;padding:10px 14px;font-size:12px;color:#e74c3c;margin-top:12px;display:none}
 
+/* ── ADMIN CALENDAR ── */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-nav-btn{background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:6px;color:var(--td);padding:5px 16px;cursor:pointer;font-size:18px;line-height:1;transition:background .15s}
+.cal-nav-btn:hover{background:rgba(255,255,255,.13)}
+.cal-month-label{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:2px;color:var(--td);text-transform:uppercase}
+.admin-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.acal-lbl{text-align:center;font-size:9px;color:var(--tmu);padding:4px 0;text-transform:uppercase;letter-spacing:1px}
+.acd{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;border:1.5px solid transparent;transition:all .15s;position:relative;min-height:38px}
+.acd.empty{pointer-events:none}
+.acd.past{color:rgba(255,255,255,.18);background:rgba(255,255,255,.02);cursor:default;pointer-events:none}
+.acd.avail{background:rgba(46,125,50,.12);border-color:rgba(46,125,50,.3);color:#a5d6a7}
+.acd.avail:hover{background:rgba(46,125,50,.28);border-color:rgba(46,125,50,.6)}
+.acd.unavail{background:rgba(231,76,60,.06);color:rgba(255,255,255,.22);cursor:default}
+.acd.today .acd-day::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--red)}
+.acd.sel{border-color:var(--red)!important;background:rgba(192,57,43,.25)!important;color:#fff!important}
+.acd.loading{background:rgba(255,255,255,.04);animation:shimmer 1.2s ease-in-out infinite}
+@keyframes shimmer{0%,100%{opacity:.4}50%{opacity:.9}}
+.acd-day{font-size:13px;font-weight:700;position:relative}
+.acd-dot{width:5px;height:5px;border-radius:50%;margin-top:2px}
+.acd.avail .acd-dot{background:#4caf50}
+.acd.unavail .acd-dot{background:rgba(231,76,60,.4)}
+
+/* Date banner */
+.adate-banner{display:flex;align-items:center;gap:10px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.25);border-radius:8px;padding:11px 14px;margin-top:10px}
+.adate-banner-lbl{font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--tmu);text-transform:uppercase;margin-bottom:2px}
+.adate-banner-val{font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--td);font-weight:700}
+
+/* Time slots */
+.ts-label{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--tmu);text-transform:uppercase;margin:14px 0 8px}
+.ts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.tsb{background:var(--lb);border:1.5px solid var(--bd);border-radius:7px;padding:10px 12px;cursor:pointer;text-align:left;transition:all .15s;width:100%}
+.tsb.free{border-color:rgba(46,125,50,.45)}
+.tsb.free:hover{background:rgba(46,125,50,.12);border-color:#4caf50}
+.tsb.busy{border-color:rgba(231,76,60,.3);opacity:.65}
+.tsb.busy:hover{background:rgba(231,76,60,.08);border-color:rgba(231,76,60,.55);opacity:1}
+.tsb.sel{border-color:var(--red)!important;background:rgba(192,57,43,.18)!important;opacity:1!important}
+.tsb-time{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--td);letter-spacing:1px}
+.tsb-info{font-size:10px;color:var(--tmu);margin-top:3px;display:flex;align-items:center;gap:4px}
+.tsb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tsb-dot.g{background:#4caf50}
+.tsb-dot.r{background:#e74c3c}
+.tsb-dot.y{background:#ffc107}
+
 @media(max-width:540px){
   .frow{grid-template-columns:1fr}
   .extras-grid{grid-template-columns:1fr 1fr}
@@ -120,7 +163,7 @@ select option{background:#1e1e1e;color:var(--td)}
   <!-- EVENT & TERMIN -->
   <div class="section">
     <div class="section-title">Event &amp; Termin</div>
-    <div class="frow">
+    <div class="frow" style="margin-bottom:16px">
       <div class="fg">
         <label>Event-Art *</label>
         <select id="aEventKey" onchange="onEventChange()">
@@ -133,20 +176,36 @@ select option{background:#1e1e1e;color:var(--td)}
         </select>
       </div>
       <div class="fg">
-        <label>Datum *</label>
-        <input type="date" id="aDate" onchange="onDateChange()">
-      </div>
-      <div class="fg">
-        <label>Uhrzeit *</label>
-        <select id="aTime">
-          <option value="">— Erst Datum wählen —</option>
-        </select>
-        <div id="aTimeHint" style="font-size:10px;color:var(--tmu);margin-top:4px;display:none"></div>
-      </div>
-      <div class="fg">
         <label>Personenanzahl *</label>
-        <input type="number" id="aGroupSize" min="4" max="32" value="8" onchange="calcPrice();loadAvailableTimes()">
+        <input type="number" id="aGroupSize" min="1" max="32" value="8"
+               onchange="calcPrice();if(aSelDate)adminLoadSlots(aSelDate)">
       </div>
+    </div>
+
+    <!-- Hidden values written by calendar & slot selection -->
+    <input type="hidden" id="aDate">
+    <input type="hidden" id="aTime">
+
+    <!-- Calendar -->
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="adminCalPrev()" type="button">‹</button>
+      <span class="cal-month-label" id="aCalMonth">—</span>
+      <button class="cal-nav-btn" onclick="adminCalNext()" type="button">›</button>
+    </div>
+    <div class="admin-cal-grid" id="aCalGrid"></div>
+
+    <!-- Selected date banner (hidden until date chosen) -->
+    <div id="aDateBanner" style="display:none" class="adate-banner">
+      <div>
+        <div class="adate-banner-lbl">Gewähltes Datum</div>
+        <div class="adate-banner-val" id="aDateBannerVal">—</div>
+      </div>
+    </div>
+
+    <!-- Time slots (hidden until date chosen) -->
+    <div id="aSlotSection" style="display:none">
+      <div class="ts-label">Verfügbare Uhrzeiten</div>
+      <div class="ts-grid" id="aSlotGrid"></div>
     </div>
   </div>
 
@@ -318,13 +377,107 @@ function doLogout(){
   document.getElementById('pwdInput').value = '';
 }
 
-// ── INIT ─────────────────────────────────────────────────
-function initForm(){
-  // Set min date to today
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('aDate').min = today;
-  calcPrice();
+// ── ADMIN CALENDAR ───────────────────────────────────────
+const A_SVC    = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
+const A_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const A_DAYS_L = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+let aCY = new Date().getFullYear(), aCM = new Date().getMonth();
+let aAvailDates = new Set();
+let aSelDate = null;
+
+async function adminRenderCal(){
+  const g=document.getElementById('aCalGrid'), ml=document.getElementById('aCalMonth');
+  ml.textContent = A_MONTHS[aCM]+' '+aCY;
+  g.innerHTML='';
+  A_DAYS_L.forEach(d=>{const e=document.createElement('div');e.className='acal-lbl';e.textContent=d;g.appendChild(e);});
+  for(let i=0;i<35;i++){const e=document.createElement('div');e.className='acd loading';g.appendChild(e);}
+  try{
+    const r=await fetch('/api/bookla?action=available-dates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serviceId:A_SVC,year:aCY,month:aCM+1})});
+    const d=await r.json(); aAvailDates=new Set(Array.isArray(d)?d:(d.dates||[]));
+  }catch(e){aAvailDates=new Set();}
+  adminBuildCal();
 }
+
+function adminBuildCal(){
+  const g=document.getElementById('aCalGrid');
+  g.innerHTML='';
+  A_DAYS_L.forEach(d=>{const e=document.createElement('div');e.className='acal-lbl';e.textContent=d;g.appendChild(e);});
+  const today=new Date(), todayStr=today.toISOString().split('T')[0];
+  let sd=new Date(aCY,aCM,1).getDay(); sd=sd===0?6:sd-1;
+  const dim=new Date(aCY,aCM+1,0).getDate();
+  for(let i=0;i<sd;i++){const e=document.createElement('div');e.className='acd empty';g.appendChild(e);}
+  for(let d=1;d<=dim;d++){
+    const dt=new Date(aCY,aCM,d), ds=aCY+'-'+String(aCM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isPast=dt<new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    const isAvail=aAvailDates.size===0||aAvailDates.has(ds);
+    const el=document.createElement('div'); el.className='acd';
+    const dayEl=document.createElement('div'); dayEl.className='acd-day'; dayEl.textContent=d; el.appendChild(dayEl);
+    const dot=document.createElement('div'); dot.className='acd-dot'; el.appendChild(dot);
+    if(ds===todayStr) el.classList.add('today');
+    if(isPast) el.classList.add('past');
+    else if(isAvail){el.classList.add('avail');el.onclick=()=>adminPickDate(ds,dt);}
+    else{el.classList.add('unavail');el.title='Laut Bookla ausgebucht';}
+    if(aSelDate===ds) el.classList.add('sel');
+    g.appendChild(el);
+  }
+}
+
+async function adminPickDate(ds,dt){
+  aSelDate=ds;
+  document.getElementById('aDate').value=ds;
+  document.getElementById('aTime').value='';
+  const dow=dt.getDay(), key=document.getElementById('aEventKey').value;
+  if(key!=='schule'&&key!=='verein'&&key!=='firma'){
+    let pp=35;
+    if(key==='kinder'){pp=(dow===6||dow===0)?30:24;}
+    else if(dow>=1&&dow<=4) pp=28; else if(dow===5) pp=30; else pp=35;
+    document.getElementById('aPricePerPerson').value=pp; calcPrice();
+  }
+  adminBuildCal();
+  const wdays=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  document.getElementById('aDateBannerVal').textContent=wdays[dt.getDay()]+', '+dt.toLocaleDateString('de-DE',{day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('aDateBanner').style.display='flex';
+  await adminLoadSlots(ds);
+}
+
+async function adminLoadSlots(ds){
+  const qty=parseInt(document.getElementById('aGroupSize').value)||4;
+  const sec=document.getElementById('aSlotSection'), grid=document.getElementById('aSlotGrid');
+  sec.style.display='block';
+  grid.innerHTML='<div style="font-size:12px;color:var(--tmu);padding:6px 0">⏳ Lade Slots…</div>';
+  try{
+    const r=await fetch('/api/bookla?action=available-times',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serviceId:A_SVC,date:ds,groupSize:qty})});
+    const times=await r.json();
+    grid.innerHTML='';
+    if(!Array.isArray(times)||times.length===0){
+      grid.innerHTML='<div style="font-size:12px;color:var(--tmu);padding:6px 0">Keine Slots zurückgegeben.</div>'; return;
+    }
+    const curTime=document.getElementById('aTime').value;
+    times.forEach(t=>{
+      const label=new Date(t.startAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'});
+      const btn=document.createElement('button'); btn.type='button';
+      btn.className='tsb '+(t.available?'free':'busy');
+      const dotCls=t.available?'g':'r';
+      const info=t.available?(t.freeSlots+' Slot'+(t.freeSlots>1?'s':'')+' frei · '+t.spots+' Plätze'):'ausgebucht';
+      btn.innerHTML=`<div class="tsb-time">${label} Uhr</div><div class="tsb-info"><span class="tsb-dot ${dotCls}"></span>${info}</div>`;
+      if(curTime===label) btn.classList.add('sel');
+      btn.onclick=()=>adminPickSlot(label,btn);
+      grid.appendChild(btn);
+    });
+  }catch(e){grid.innerHTML='<div style="font-size:12px;color:#e74c3c;padding:6px 0">⚠️ Fehler beim Laden.</div>';}
+}
+
+function adminPickSlot(label,btn){
+  document.getElementById('aTime').value=label;
+  document.querySelectorAll('#aSlotGrid .tsb').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function adminCalPrev(){aCM--;if(aCM<0){aCM=11;aCY--;}adminRenderCal();}
+function adminCalNext(){aCM++;if(aCM>11){aCM=0;aCY++;}adminRenderCal();}
+
+// ── INIT ─────────────────────────────────────────────────
+function initForm(){ calcPrice(); adminRenderCal(); }
 
 // ── EVENT TYPE CHANGE ────────────────────────────────────
 function onEventChange(){
@@ -337,83 +490,8 @@ function onEventChange(){
   if (key !== 'jga' && state.freefall) { state.freefall=false; document.getElementById('exFreefall').classList.remove('sel'); }
   const dp = key==='kinder' ? DRINKS_PRICE.kinder : DRINKS_PRICE.default;
   document.getElementById('drinksPriceLabel').textContent = dp.toFixed(2).replace('.',',') + ' € × Pers.';
+  if(aSelDate) adminLoadSlots(aSelDate);
   calcPrice();
-}
-
-async function onDateChange(){
-  const date = document.getElementById('aDate').value;
-  if (!date) return;
-
-  // Auto-set price based on day of week
-  const key = document.getElementById('aEventKey').value;
-  if (key !== 'schule' && key !== 'verein' && key !== 'firma') {
-    const dow = new Date(date + 'T12:00:00').getDay();
-    let pp = 35;
-    if (key === 'kinder') { pp = (dow===6||dow===0) ? 30 : 24; }
-    else if (dow>=1&&dow<=4) pp = 28;
-    else if (dow===5) pp = 30;
-    else pp = 35;
-    document.getElementById('aPricePerPerson').value = pp;
-    calcPrice();
-  }
-
-  await loadAvailableTimes();
-}
-
-async function loadAvailableTimes(){
-  const date   = document.getElementById('aDate').value;
-  const qty    = parseInt(document.getElementById('aGroupSize').value) || 4;
-  const sel    = document.getElementById('aTime');
-  const hint   = document.getElementById('aTimeHint');
-  if (!date) return;
-
-  const SERVICE_ID = '8bd533a6-a6a2-4abb-b170-134b6aab74ce';
-
-  sel.innerHTML = '<option value="">⏳ Lädt verfügbare Zeiten…</option>';
-  sel.disabled  = true;
-  hint.style.display = 'none';
-
-  try {
-    const r = await fetch('/api/bookla?action=available-times', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ serviceId: SERVICE_ID, date, groupSize: qty }),
-    });
-    const times = await r.json();
-
-    sel.innerHTML = '';
-    if (!Array.isArray(times) || times.length === 0) {
-      sel.innerHTML = '<option value="">Keine Slots von Bookla</option>';
-      hint.textContent = 'ℹ️ Keine verfügbaren Zeiten für dieses Datum.';
-      hint.style.display = 'block';
-    } else {
-      const avail = times.filter(t => t.available);
-      if (avail.length === 0) {
-        sel.innerHTML = '<option value="">Alle Slots belegt</option>';
-        hint.textContent = '⚠️ Alle Slots sind für dieses Datum belegt.';
-        hint.style.display = 'block';
-      } else {
-        sel.innerHTML = '<option value="">— Zeit wählen —</option>';
-        avail.forEach(t => {
-          const dt    = new Date(t.startAt);
-          const label = dt.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Berlin' });
-          const opt   = document.createElement('option');
-          opt.value       = label;   // "HH:MM" Berlin-Zeit
-          opt.textContent = label + ' Uhr';
-          sel.appendChild(opt);
-        });
-        hint.textContent   = '✓ ' + avail.length + ' Slot(s) verfügbar';
-        hint.style.display = 'block';
-      }
-    }
-  } catch(e) {
-    console.error('[TimeLoad]', e);
-    sel.innerHTML  = '<option value="">Fehler beim Laden</option>';
-    hint.textContent = '⚠️ Zeiten konnten nicht geladen werden.';
-    hint.style.display = 'block';
-  } finally {
-    sel.disabled = false;
-  }
 }
 
 // ── EXTRAS ───────────────────────────────────────────────
