@@ -1029,6 +1029,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <div class="ssl"><span class="ms sm fill" style="color:#22c55e">verified_user</span> <span>256-bit SSL · Powered by Stripe &amp; PayPal · PCI DSS zertifiziert</span></div>
 
+        <!-- Fehlermeldung Zahlungsabwicklung -->
+        <div id="payError" style="display:none;background:rgba(231,76,60,.1);border:1.5px solid rgba(231,76,60,.45);border-radius:10px;padding:14px 16px;margin:14px 0 4px;font-size:13.5px;line-height:1.65;color:#c0392b">
+          <strong style="display:block;font-size:14.5px;margin-bottom:5px">⚠️ Buchung fehlgeschlagen</strong>
+          <span id="payErrorMsg"></span>
+          <div style="margin-top:9px;padding-top:9px;border-top:1px solid rgba(231,76,60,.2);font-size:13px">
+            Bitte versuche es erneut oder ruf uns an:
+            <a href="tel:01725850055" style="color:#c0392b;font-weight:700;white-space:nowrap">📞 0172 585 00 55</a>
+          </div>
+        </div>
+
         <div class="snav">
           <button class="bbk" onclick="goStep(3)">← Zurück</button>
           <button class="bnxt" id="payBtn" onclick="handlePayment()">
@@ -2083,8 +2093,7 @@ async function _ppOnApprove(d,a){
   const auth=await a.order.authorize();
   const authId=auth?.purchase_units?.[0]?.payments?.authorizations?.[0]?.id;
   if(!authId){
-    alert('PayPal Fehler: Autorisierung fehlgeschlagen. Bitte erneut versuchen.');
-    const nav=document.querySelector('#step4 .snav');if(nav)nav.style.display='flex';
+    showPayError('PayPal-Autorisierung fehlgeschlagen. Bitte erneut versuchen.');
     return;
   }
   const p=auth.payer;
@@ -2093,7 +2102,7 @@ async function _ppOnApprove(d,a){
   if(p?.email_address&&!$('email')?.value&&$('email'))$('email').value=p.email_address;
   await submitBooking(null, authId);
 }
-function _ppOnError(e){alert('PayPal Fehler: '+e);const nav=document.querySelector('#step4 .snav');if(nav)nav.style.display='flex';}
+function _ppOnError(e){showPayError('PayPal Fehler: '+(e?.message||String(e)));}
 
 let ppReady=false;
 async function initPayPal(){
@@ -2132,6 +2141,22 @@ async function initExpressPayPal(){
 }
 
 // ═══════════════════════════════════════════════════════
+// PAYMENT ERROR BANNER
+// ═══════════════════════════════════════════════════════
+function showPayError(msg){
+  const el=$('payError'), msgEl=$('payErrorMsg');
+  if(!el||!msgEl){alert(msg);return;}
+  msgEl.textContent=msg||'Unbekannter Fehler';
+  el.style.display='block';
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  // PayBtn wieder freigeben
+  const btn=$('payBtn');
+  if(btn){btn.disabled=false;btn.innerHTML='Jetzt buchen · <span id="payBtnTotal">'+fmtEur(getTotal())+'</span>';}
+  const nav=document.querySelector('#step4 .snav');if(nav)nav.style.display='flex';
+}
+function hidePayError(){const el=$('payError');if(el)el.style.display='none';}
+
+// ═══════════════════════════════════════════════════════
 // PAYMENT HANDLER
 // ═══════════════════════════════════════════════════════
 async function handlePayment(){
@@ -2150,6 +2175,7 @@ async function handlePayment(){
   }
 
   const btn=$('payBtn'), orig=btn.innerHTML;
+  hidePayError();
   btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Verarbeitung…';
   try{
     if(S.payMethod==='invoice'){await submitBookingInvoice();return;}
@@ -2186,7 +2212,7 @@ async function handlePayment(){
     }
   }catch(e){
     btn.disabled=false;btn.innerHTML=orig;
-    alert('Zahlung fehlgeschlagen: '+e.message);
+    showPayError(e.message||'Zahlung fehlgeschlagen. Bitte erneut versuchen.');
   }
 }
 
@@ -2248,11 +2274,7 @@ async function confirmAdminBooking(paypalAuthId){
     showSuccess(ref);
   }catch(e){
     console.error('[AdminBooking]',e);
-    alert('Buchung fehlgeschlagen: '+e.message+'\n\nBitte kontaktiere uns unter 0172 585 00 55.');
-    const btn=$('payBtn');
-    if(btn){btn.disabled=false;btn.innerHTML='Jetzt verbindlich buchen';}
-    const nav=document.querySelector('#step4 .snav');
-    if(nav)nav.style.display='flex';
+    showPayError(e.message||'Buchung fehlgeschlagen. Bitte erneut versuchen.');
   }
 }
 
@@ -2302,11 +2324,7 @@ async function submitBooking(paymentId, paypalAuthId){
     showSuccess(ref);
   }catch(e){
     console.error('[Booking error]',e);
-    alert('Buchung fehlgeschlagen: '+e.message+'\n\nBitte kontaktiere uns unter 0172 585 00 55.');
-    const btn=$('payBtn');
-    if(btn){btn.disabled=false;btn.innerHTML='Jetzt verbindlich buchen';}
-    const nav=document.querySelector('#step4 .snav');
-    if(nav)nav.style.display='flex';
+    showPayError(e.message||'Buchung fehlgeschlagen. Bitte erneut versuchen.');
   }
 }
 
