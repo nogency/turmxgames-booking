@@ -149,13 +149,16 @@ module.exports = async function handler(req, res) {
         const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode, paypalAuthId } = req.body || {};
 
         if (!serviceId || !date || !time || !email) {
+          const missing = ['serviceId','date','time','email'].filter(f=>!({serviceId,date,time,email}[f]));
+          console.error('[create-booking] 400 — fehlende Felder:', missing.join(', '),
+            '| date:', date||'null', '| time:', time||'null', '| email:', email||'(leer)');
           // PayPal-Autorisierung sofort voiden → Hold beim Kunden fällt sofort weg
           if (paypalAuthId) {
             await voidPaypalAuth(paypalAuthId).catch(e =>
               console.error('[PayPal] Void bei 400 fehlgeschlagen:', e.message)
             );
           }
-          return res.status(400).json({ error: 'serviceId, date, time, email required' });
+          return res.status(400).json({ error: 'Pflichtfeld fehlt: ' + missing.join(', ') });
         }
 
         const spots = parseInt(groupSize) || 1;
