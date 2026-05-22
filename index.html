@@ -2089,7 +2089,18 @@ function updatePRAmount(){
 // PAYPAL
 // ═══════════════════════════════════════════════════════
 // Shared PayPal handlers
-function _ppCreateOrder(d,a){return a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]});}
+function _ppCreateOrder(d,a){
+  // Pflichtfelder prüfen BEVOR PayPal-Popup öffnet
+  if(!fastCheckoutMode && (!S.dateStr || !S.time)){
+    showPayError('Bitte zuerst Datum und Uhrzeit auswählen.');
+    return Promise.reject(new Error('Kein Termin ausgewählt'));
+  }
+  if(!fastCheckoutMode && !$('email')?.value?.trim()){
+    showPayError('Bitte E-Mail-Adresse eingeben.');
+    return Promise.reject(new Error('Keine E-Mail'));
+  }
+  return a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]});
+}
 async function _ppOnApprove(d,a){
   // Authorize only — Geld wird erst nach erfolgreicher Bookla-Buchung eingezogen
   const auth=await a.order.authorize();

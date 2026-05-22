@@ -149,6 +149,12 @@ module.exports = async function handler(req, res) {
         const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode, paypalAuthId } = req.body || {};
 
         if (!serviceId || !date || !time || !email) {
+          // PayPal-Autorisierung sofort voiden → Hold beim Kunden fällt sofort weg
+          if (paypalAuthId) {
+            await voidPaypalAuth(paypalAuthId).catch(e =>
+              console.error('[PayPal] Void bei 400 fehlgeschlagen:', e.message)
+            );
+          }
           return res.status(400).json({ error: 'serviceId, date, time, email required' });
         }
 
