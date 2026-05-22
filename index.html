@@ -1956,6 +1956,8 @@ function goStep(n, fromHistory=false){
 
 // Browser back/forward → navigate between steps
 window.addEventListener('popstate',(e)=>{
+  // Buchung bereits abgeschlossen → UI bleibt auf Erfolgsseite, keine Navigation
+  if($('successScreen')?.classList.contains('show')) return;
   const step=e.state?.step;
   if(step>=1&&step<=4){
     goStep(step,true);
@@ -2220,34 +2222,36 @@ async function handlePayment(){
 // SUBMIT BOOKING
 // ═══════════════════════════════════════════════════════
 async function callInvoiceAPI(bookingId){
-  try{
-    await fetch(INVOICE_API+'?action=create-invoice',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        bookingId,
-        serviceName:S.eventName,
-        groupSize:S.qty,
-        amount:getTotal(),
-        baseAmount:Math.round((getTotal()-(S.drinksFlat?getDrinksPrice()*S.qty:0)-(S.insurance?14.90:0)-(S.freefall?30:0))*100)/100,
-        drinksFlat:S.drinksFlat||false,
-        drinksPrice:getDrinksPrice(),
-        insurance:S.insurance||false,
-        freefall:S.freefall||false,
-        paymentMethod:S.payMethod,
-        date:S.dateStr,
-        time:S.time,
-        firstName:$('fname')?.value?.trim(),
-        lastName:$('lname')?.value?.trim(),
-        email:$('email')?.value?.trim(),
-        phone:$('phone')?.value?.trim()||null,
-        companyName:$('company')?.value?.trim()||null,
-        companyStreet:$('companyStreet')?.value?.trim()||null,
-        companyZip:$('companyZip')?.value?.trim()||null,
-        companyCity:$('companyCity')?.value?.trim()||null,
-        ustId:$('ustid')?.value?.trim()||null,
-      }),
-    });
-  }catch(e){console.error('[Invoice]',e);}
+  const r = await fetch(INVOICE_API+'?action=create-invoice',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      bookingId,
+      serviceName:S.eventName,
+      groupSize:S.qty,
+      amount:getTotal(),
+      baseAmount:Math.round((getTotal()-(S.drinksFlat?getDrinksPrice()*S.qty:0)-(S.insurance?14.90:0)-(S.freefall?30:0))*100)/100,
+      drinksFlat:S.drinksFlat||false,
+      drinksPrice:getDrinksPrice(),
+      insurance:S.insurance||false,
+      freefall:S.freefall||false,
+      paymentMethod:S.payMethod,
+      date:S.dateStr,
+      time:S.time,
+      firstName:$('fname')?.value?.trim(),
+      lastName:$('lname')?.value?.trim(),
+      email:$('email')?.value?.trim(),
+      phone:$('phone')?.value?.trim()||null,
+      companyName:$('company')?.value?.trim()||null,
+      companyStreet:$('companyStreet')?.value?.trim()||null,
+      companyZip:$('companyZip')?.value?.trim()||null,
+      companyCity:$('companyCity')?.value?.trim()||null,
+      ustId:$('ustid')?.value?.trim()||null,
+    }),
+  });
+  if(!r.ok){
+    const d=await r.json().catch(()=>({}));
+    throw new Error('[Invoice] '+r.status+' – '+(d?.error||'Unbekannter Fehler'));
+  }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -2269,9 +2273,11 @@ async function confirmAdminBooking(paypalAuthId){
     const data=await r.json();
     if(!r.ok) throw new Error(data.error||'Bestätigung fehlgeschlagen');
     const ref='BKL-'+String(S.bookingId).slice(-6).toUpperCase();
-    callInvoiceAPI(S.bookingId);
-    dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:S.payMethod,items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
     showSuccess(ref);
+    dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:S.payMethod,items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
+    callInvoiceAPI(S.bookingId).catch(e=>{
+      console.error('[KRITISCH] Invoice-Versand fehlgeschlagen nach Admin-Buchung!',e.message,'bookingId:',S.bookingId,'email:',$('email')?.value);
+    });
   }catch(e){
     console.error('[AdminBooking]',e);
     showPayError(e.message||'Buchung fehlgeschlagen. Bitte erneut versuchen.');
@@ -2319,9 +2325,11 @@ async function submitBooking(paymentId, paypalAuthId){
     if(!r.ok)throw new Error(booking.error||'Buchung fehlgeschlagen');
     if(!booking.id)throw new Error('Keine Buchungs-ID erhalten');
     const ref='BKL-'+String(booking.id).slice(-6).toUpperCase();
-    callInvoiceAPI(booking.id);
-    dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:S.payMethod,items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
     showSuccess(ref);
+    dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:S.payMethod,items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
+    callInvoiceAPI(booking.id).catch(e=>{
+      console.error('[KRITISCH] Invoice-Versand fehlgeschlagen!',e.message,'bookingId:',booking.id,'email:',$('email')?.value);
+    });
   }catch(e){
     console.error('[Booking error]',e);
     showPayError(e.message||'Buchung fehlgeschlagen. Bitte erneut versuchen.');
