@@ -81,7 +81,7 @@ module.exports = async function handler(req, res) {
       //    einzige Buchung drin ist (spotsAvailable === totalSpots)
       // ─────────────────────────────────────────────
       case 'available-times': {
-        const { serviceId, date, groupSize } = req.body || {};
+        const { serviceId, date, groupSize, admin } = req.body || {};
         if (!serviceId || !date) return res.status(400).json({ error: 'serviceId + date required' });
 
         const from  = `${date}T00:00:00Z`;
@@ -118,22 +118,32 @@ module.exports = async function handler(req, res) {
           const timeKey = st.substring(0, 16);
           let freeSlotsCount  = 0;
           let totalSpotsAvail = 0;
+          let totalCapacity   = 0;
 
           slotArrays.forEach(slotArr => {
             const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === timeKey);
             if (match) {
               const available = match.spotsAvailable || 0;
               const total     = match.totalSpots || 0;
-              if (available === total && total > 0) freeSlotsCount++;
-              totalSpotsAvail += available;
+              totalCapacity  += total;
+              if (admin) {
+                // Admin-Modus: jede Ressource mit mind. 1 freiem Platz zählt als "frei"
+                if (available > 0) freeSlotsCount++;
+                totalSpotsAvail += available;
+              } else {
+                // Kunden-Modus: Slot nur frei wenn komplett unbelegt (exklusiv)
+                if (available === total && total > 0) freeSlotsCount++;
+                totalSpotsAvail += available;
+              }
             }
           });
 
           return {
-            startAt:   st,
-            available: freeSlotsCount > 0,
-            spots:     totalSpotsAvail,
-            freeSlots: freeSlotsCount,
+            startAt:       st,
+            available:     freeSlotsCount > 0,
+            spots:         totalSpotsAvail,
+            freeSlots:     freeSlotsCount,
+            totalCapacity, // Gesamtkapazität aller Ressourcen (für Admin-Anzeige)
           };
         });
 
@@ -363,6 +373,7 @@ module.exports = async function handler(req, res) {
         // Bookla leert den Client beim PATCH wenn clientID nicht mitgesendet wird.
         // Daher speichern wir die clientID beim Link-Erstellen in Redis und lesen sie hier wieder aus.
         let storedClientId = null;
+        let storedPayload  = null;
         if (adminLinkId) {
           try {
             const { Redis } = require('@upstash/redis');
@@ -372,37 +383,44 @@ module.exports = async function handler(req, res) {
             });
             const raw = await redis.get(`bl:${adminLinkId}`);
             if (raw) {
-              const stored = typeof raw === 'string' ? JSON.parse(raw) : raw;
-              storedClientId = stored.clientId || null;
+              storedPayload  = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              storedClientId = storedPayload.clientId || null;
             }
-            console.log('[Bookla] clientID aus Redis:', storedClientId);
+            console.log('[Bookla] Redis-Payload geladen, clientID:', storedClientId,
+              '| bookingIds:', storedPayload?.bookingIds?.join(', ') || bookingId || '—');
           } catch (e) {
-            console.warn('[Redis] clientId-Lookup fehlgeschlagen:', e.message);
+            console.warn('[Redis] Lookup fehlgeschlagen:', e.message);
           }
         }
 
-        // ── Bookla-Buchung auf "confirmed" setzen ──
-        // Best-effort: falls PATCH scheitert, trotzdem Erfolg — Zahlung + Rechnung müssen durch.
-        let confirmed = { bookingId };
-        try {
-          const patchBody = {
-            status: 'confirmed',
-            metaData: {
-              notes:         notes || null,
-              paymentStatus: 'paid',
-              adminLink:     adminLinkId || null,
-            },
-            ...(storedClientId && { clientID: storedClientId }),
-          };
-          confirmed = await booklaFetch(
-            `/companies/${companyId}/bookings/${bookingId}`,
-            'PATCH',
-            patchBody,
-            apiKey
-          );
-          console.log('[Bookla] Status → confirmed OK, clientID:', storedClientId);
-        } catch (patchErr) {
-          console.error('[Bookla] Status-Update fehlgeschlagen (manuell prüfen):', patchErr.message, patchErr.details);
+        // ── Alle Bookla-Buchungen auf "confirmed" setzen ──
+        const allIds = (storedPayload?.bookingIds?.length > 0)
+          ? storedPayload.bookingIds
+          : (bookingId ? [bookingId] : []);
+
+        const patchBody = {
+          status: 'confirmed',
+          metaDataUpdate: {
+            notes:         notes || null,
+            paymentStatus: 'paid',
+            adminLink:     adminLinkId || null,
+          },
+        };
+
+        let confirmed = { bookingId: allIds[0] || bookingId };
+        for (const bid of allIds) {
+          try {
+            const result = await booklaFetch(
+              `/companies/${companyId}/bookings/${bid}`,
+              'PATCH',
+              patchBody,
+              apiKey
+            );
+            if (bid === allIds[0]) confirmed = result;
+            console.log('[Bookla] Status → confirmed OK:', bid, '| clientID:', storedClientId);
+          } catch (patchErr) {
+            console.error('[Bookla] Status-Update fehlgeschlagen für', bid, '(manuell prüfen):', patchErr.message, patchErr.details);
+          }
         }
 
         return res.status(200).json(confirmed);

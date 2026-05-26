@@ -101,8 +101,9 @@ module.exports = async function handler(req, res) {
   } while (attempts < 5 && await redis.exists(`bl:${id}`));
 
   // ── Bookla-Slot vorbuchen ─────────────────────────────────────────────────
-  let bookingId = null;
-  let clientId  = null;   // außerhalb des try-Blocks, damit wir ihn in Redis speichern können
+  let bookingId  = null;
+  let bookingIds = [];    // bei Gruppen > Einzelkapazität mehrere Ressourcen
+  let clientId   = null;  // außerhalb des try-Blocks, damit wir ihn in Redis speichern können
   const apiKey    = process.env.BOOKLA_API_KEY;
   const companyId = process.env.BOOKLA_COMPANY_ID;
 
@@ -122,70 +123,85 @@ module.exports = async function handler(req, res) {
         apiKey
       ).catch(e => { console.warn('[Bookla] Client anlegen fehlgeschlagen:', e.message); return null; });
 
-      // ── 2. Freie Ressource ermitteln ──
+      // ── 2. Alle freien Ressourcen ermitteln (mit verfügbarer Kapazität) ──
+      // Abfrage mit spots=1 damit wir alle Ressourcen mit irgendeiner freien Kapazität sehen
       const availability = await Promise.all(
         RESOURCE_IDS.map(rid =>
           bFetch(
             `/client/companies/${companyId}/services/${SERVICE_ID}/times`,
             'POST',
-            { from, to, spots, resourceIDs: [rid] },
+            { from, to, spots: 1, resourceIDs: [rid] },
             apiKey
           ).catch(() => null)
         )
       );
 
-      let freeResourceId = null;
+      // Alle Ressourcen mit verfügbarer Kapazität für diesen Slot sammeln
+      const freeResources = [];
       for (let i = 0; i < RESOURCE_IDS.length; i++) {
         const data = availability[i];
         if (!data?.times) continue;
         const rid = RESOURCE_IDS[i];
         const slotArr = data.times[rid] || Object.values(data.times).flat() || [];
         const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === utcTimeKey);
-        if (match && match.spotsAvailable === match.totalSpots && match.totalSpots > 0) {
-          freeResourceId = rid;
-          break;
+        if (match && (match.spotsAvailable || 0) > 0) {
+          freeResources.push({ rid, spotsAvailable: match.spotsAvailable, totalSpots: match.totalSpots });
         }
       }
 
-      if (freeResourceId) {
-        // ── 3. Buchung anlegen (Merchant API) ──
-        const bkData = await bFetch(
-          `/companies/${companyId}/bookings`,
-          'POST',
-          {
-            serviceID:  SERVICE_ID,
-            resourceID: freeResourceId,
-            startTime,
-            spots,
-            ...(clientId && { clientID: clientId }),
-            metaData: {
-              notes:         `Admin-Link ${id} — ausstehende Zahlung`,
-              paymentStatus: 'pending',
-              adminLink:     id,
-            },
-          },
-          apiKey
-        );
-        bookingId = bkData.id || null;
-        console.log('[Bookla] Vorbuchen erfolgreich:', bookingId, 'clientID:', clientId);
+      if (freeResources.length > 0) {
+        // ── 3. Spots auf Ressourcen verteilen & Buchungen anlegen ──
+        // Bei Gruppen > Einzelkapazität werden mehrere Ressourcen gebucht
+        const bookingResults = [];
+        let remaining = spots;
 
-        // ── 4. Status auf "pending" setzen (PATCH, nicht PUT!) ──
-        // clientID mitsenden damit Bookla den Client nicht leert!
-        if (bookingId) {
-          const patchResp = await bFetch(
-            `/companies/${companyId}/bookings/${bookingId}`,
-            'PATCH',
-            {
-              status: 'pending',
-              ...(clientId && { clientID: clientId }),
-            },
-            apiKey
-          ).catch(e => {
-            console.warn('[Bookla] Set-pending fehlgeschlagen:', e.message, JSON.stringify(e.details));
-            return null;
-          });
-          if (patchResp) console.log('[Bookla] Status → pending OK');
+        for (const resource of freeResources) {
+          if (remaining <= 0) break;
+          const spotsForThis = Math.min(remaining, resource.spotsAvailable);
+          try {
+            const bkData = await bFetch(
+              `/companies/${companyId}/bookings`,
+              'POST',
+              {
+                serviceID:  SERVICE_ID,
+                resourceID: resource.rid,
+                startTime,
+                spots:      spotsForThis,
+                ...(clientId && { clientID: clientId }),
+                metaData: {
+                  notes:         `Admin-Link ${id} — ausstehende Zahlung`,
+                  paymentStatus: 'pending',
+                  adminLink:     id,
+                },
+              },
+              apiKey
+            );
+            if (bkData.id) {
+              bookingResults.push({ id: bkData.id, spots: spotsForThis });
+              remaining -= spotsForThis;
+              console.log('[Bookla] Vorbuchen:', bkData.id, spotsForThis+'×', 'resource:', resource.rid);
+
+              // Status auf "pending" setzen
+              await bFetch(
+                `/companies/${companyId}/bookings/${bkData.id}`,
+                'PATCH',
+                { status: 'pending', ...(clientId && { clientID: clientId }) },
+                apiKey
+              ).catch(e => console.warn('[Bookla] Set-pending fehlgeschlagen:', e.message));
+            }
+          } catch (e) {
+            console.warn('[Bookla] Buchung für Ressource fehlgeschlagen:', resource.rid, e.message);
+          }
         }
+
+        if (remaining > 0) {
+          console.warn('[Bookla] Nicht alle Personen untergebracht:', remaining, 'übrig von', spots);
+        }
+
+        // Alle Booking-IDs speichern (bookingId = erste für Rückwärtskompatibilität)
+        bookingIds = bookingResults.map(r => r.id);
+        bookingId  = bookingIds[0] || null;
+        console.log('[Bookla] Vorgebucht:', bookingIds.length, 'Ressource(n), IDs:', bookingIds.join(', '));
       } else {
         console.warn('[Bookla] Kein freier Slot für', date, time);
       }
@@ -214,6 +230,7 @@ module.exports = async function handler(req, res) {
     companyCity:    companyCity   || null,
     ustId:          ustId         || null,
     bookingId:      bookingId,
+    bookingIds:     bookingIds.length > 0 ? bookingIds : (bookingId ? [bookingId] : []),
     clientId:       clientId,
     createdAt:      new Date().toISOString(),
   };

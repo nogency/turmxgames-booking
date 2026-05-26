@@ -206,6 +206,11 @@ select option{background:#1e1e1e;color:var(--td)}
     <div id="aSlotSection" style="display:none">
       <div class="ts-label">Verfügbare Uhrzeiten</div>
       <div class="ts-grid" id="aSlotGrid"></div>
+      <!-- Multi-Slot-Hinweis (erscheint wenn Gruppe > 16 Personen) -->
+      <div id="multiSlotHint" style="display:none;margin-top:12px;background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.3);border-radius:8px;padding:11px 14px;font-size:12px;color:#ffc107;line-height:1.5">
+        ⚠️ <strong>Hinweis:</strong> Für <span id="hintPersons">—</span> Personen werden <span id="hintSlots">—</span> Slots benötigt (max. 16 Pers. / Ressource).<br>
+        Bitte die übrigen Ressourcen in <strong>Bookla manuell blockieren</strong>, um Doppelbuchungen zu vermeiden.
+      </div>
     </div>
   </div>
 
@@ -446,7 +451,7 @@ async function adminLoadSlots(ds){
   sec.style.display='block';
   grid.innerHTML='<div style="font-size:12px;color:var(--tmu);padding:6px 0">⏳ Lade Slots…</div>';
   try{
-    const r=await fetch('/api/bookla?action=available-times',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serviceId:A_SVC,date:ds,groupSize:qty})});
+    const r=await fetch('/api/bookla?action=available-times',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serviceId:A_SVC,date:ds,groupSize:1,admin:true})});
     const times=await r.json();
     grid.innerHTML='';
     if(!Array.isArray(times)||times.length===0){
@@ -465,6 +470,20 @@ async function adminLoadSlots(ds){
       grid.appendChild(btn);
     });
   }catch(e){grid.innerHTML='<div style="font-size:12px;color:#e74c3c;padding:6px 0">⚠️ Fehler beim Laden.</div>';}
+  updateMultiSlotHint();
+}
+
+function updateMultiSlotHint(){
+  const qty=parseInt(document.getElementById('aGroupSize').value)||0;
+  const hint=document.getElementById('multiSlotHint');
+  if(!hint) return;
+  if(qty>16){
+    document.getElementById('hintPersons').textContent=qty;
+    document.getElementById('hintSlots').textContent=Math.ceil(qty/16);
+    hint.style.display='block';
+  } else {
+    hint.style.display='none';
+  }
 }
 
 function adminPickSlot(label,btn){
