@@ -993,7 +993,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           </button>
           <button class="pbtn" id="ptab-invoice" onclick="pickPay('invoice',this)">
             <div class="pbtn-name"><span class="ms sm fill">receipt_long</span> RECHNUNG</div>
-            <div class="pbtn-sub">Nur Firmen</div>
+            <div class="pbtn-sub">Firmen · Schulen</div>
           </button>
         </div>
 
@@ -1024,7 +1024,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <!-- Invoice -->
         <div class="pform" id="pform-invoice">
-          <div class="info-box"><span class="ms sm fill">receipt_long</span> Rechnung wird per E-Mail zugesandt. Zahlungsziel: 14 Tage vor Event.<br>Nur für Firmenbuchungen mit USt-ID verfügbar.</div>
+          <div class="info-box"><span class="ms sm fill">receipt_long</span> Rechnung wird per E-Mail zugesandt. Zahlungsziel: 14 Tage vor Event.<br>Verfügbar für Firmen (mit USt-ID) sowie Schulen und Vereine.</div>
         </div>
 
         <div class="ssl"><span class="ms sm fill" style="color:#22c55e">verified_user</span> <span>256-bit SSL · Powered by Stripe &amp; PayPal · PCI DSS zertifiziert</span></div>
@@ -1665,7 +1665,11 @@ function selEvent(btn) {
   } else {
     $('weekday-callout').style.display='flex';
   }
-  if(S.eventKey==='firma') $('firmaSection').style.display='block';
+  if(S.eventKey==='firma'){
+    $('firmaSection').style.display='block';
+    const fsLbl=document.querySelector('#firmaSection .firma-lbl');
+    if(fsLbl) fsLbl.textContent='🏢 Firmendaten';
+  }
   // Freefall nur für JGA
   const ffEl=$('extra-freefall');
   if(ffEl) ffEl.style.display=S.eventKey==='jga'?'flex':'none';
@@ -1690,7 +1694,9 @@ function selSpecial(btn) {
   $('ageBox').style.display='none';
   $('kinderNote').classList.remove('show');
   $('socialNote').classList.add('show');
-  $('firmaSection').style.display='none';
+  $('firmaSection').style.display='block';
+  const fsLbl=document.querySelector('#firmaSection .firma-lbl');
+  if(fsLbl) fsLbl.textContent='🏫 Institutionsdaten';
   availDates=new Set(); renderCal();
   updateDrinksDesc();
   updateSummary();
@@ -1993,11 +1999,12 @@ function updateInvoiceTab(){
   const tab=$('ptab-invoice');
   if(!tab)return;
   const isFirma=S.eventKey==='firma';
+  const isSocial=S.eventKey==='schule'||S.eventKey==='verein';
   const hasCompany=!!$('company')?.value?.trim();
   const hasUstId=!!$('ustid')?.value?.trim();
-  const allowed=isFirma&&hasCompany&&hasUstId;
+  const allowed=(isSocial&&hasCompany)||(isFirma&&hasCompany&&hasUstId);
   tab.disabled=!allowed;
-  tab.title=allowed?'':'Nur für Firmenbuchungen mit eingetragener Firma und USt-ID';
+  tab.title=allowed?'':(isSocial?'Bitte Schule / Vereinsname eintragen':'Nur für Firmenbuchungen mit eingetragener Firma und USt-ID');
   // If currently selected but no longer valid → switch to Karte
   if(!allowed&&S.payMethod==='invoice'){
     pickPay('cc',$('ptab-cc'));
