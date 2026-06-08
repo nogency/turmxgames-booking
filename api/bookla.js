@@ -362,35 +362,50 @@ module.exports = async function handler(req, res) {
         const { bookingId, paypalAuthId, notes, adminLinkId } = req.body || {};
         if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
 
-        // PayPal einziehen (falls Autorisierung vorhanden)
+        // ── Auth: adminLinkId muss vorhanden sein, in Redis existieren
+        //    und bookingId muss zum Link passen ──
+        if (!adminLinkId) {
+          console.warn('[confirm-admin-booking] Kein adminLinkId — Zugriff verweigert');
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        let storedClientId = null;
+        let storedPayload  = null;
+        try {
+          const { Redis } = require('@upstash/redis');
+          const redis = new Redis({
+            url:   process.env.KV_REST_API_URL,
+            token: process.env.KV_REST_API_TOKEN,
+          });
+          const raw = await redis.get(`bl:${adminLinkId}`);
+          if (!raw) {
+            console.warn('[confirm-admin-booking] Redis-Eintrag nicht gefunden für Link:', adminLinkId);
+            return res.status(401).json({ error: 'Link ungültig oder abgelaufen' });
+          }
+          storedPayload  = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          storedClientId = storedPayload.clientId || null;
+
+          // bookingId muss zu diesem Link gehören (falls bookingIds gespeichert)
+          const storedIds = storedPayload.bookingIds?.length > 0
+            ? storedPayload.bookingIds
+            : (storedPayload.bookingId ? [storedPayload.bookingId] : []);
+          if (storedIds.length > 0 && !storedIds.includes(bookingId)) {
+            console.warn('[confirm-admin-booking] bookingId', bookingId, 'gehört nicht zu Link', adminLinkId);
+            return res.status(401).json({ error: 'Unauthorized' });
+          }
+
+          console.log('[Bookla] Auth OK — clientID:', storedClientId,
+            '| bookingIds:', storedIds.join(', ') || bookingId || '—');
+        } catch (e) {
+          console.error('[Redis] Auth-Check fehlgeschlagen:', e.message);
+          return res.status(500).json({ error: 'Auth-Check fehlgeschlagen, bitte erneut versuchen' });
+        }
+
+        // PayPal einziehen — erst nach erfolgreichem Auth-Check
         if (paypalAuthId) {
           await capturePaypalAuth(paypalAuthId).catch(e =>
             console.error('[PayPal] Capture fehlgeschlagen:', e.message)
           );
-        }
-
-        // ── clientID aus Redis holen ──
-        // Bookla leert den Client beim PATCH wenn clientID nicht mitgesendet wird.
-        // Daher speichern wir die clientID beim Link-Erstellen in Redis und lesen sie hier wieder aus.
-        let storedClientId = null;
-        let storedPayload  = null;
-        if (adminLinkId) {
-          try {
-            const { Redis } = require('@upstash/redis');
-            const redis = new Redis({
-              url:   process.env.KV_REST_API_URL,
-              token: process.env.KV_REST_API_TOKEN,
-            });
-            const raw = await redis.get(`bl:${adminLinkId}`);
-            if (raw) {
-              storedPayload  = typeof raw === 'string' ? JSON.parse(raw) : raw;
-              storedClientId = storedPayload.clientId || null;
-            }
-            console.log('[Bookla] Redis-Payload geladen, clientID:', storedClientId,
-              '| bookingIds:', storedPayload?.bookingIds?.join(', ') || bookingId || '—');
-          } catch (e) {
-            console.warn('[Redis] Lookup fehlgeschlagen:', e.message);
-          }
         }
 
         // ── Alle Bookla-Buchungen auf "confirmed" setzen ──
