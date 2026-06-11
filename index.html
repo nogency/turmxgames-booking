@@ -2209,6 +2209,7 @@ async function handlePayment(){
       await submitBooking(result.paymentIntent.id); return;
     }
     if(S.payMethod==='sepa'){
+      if(!stripe){showPayError('Stripe konnte nicht geladen werden. Bitte die Seite neu laden und es erneut versuchen.');btn.disabled=false;btn.innerHTML=orig;return;}
       const sepaName=$('sepaName')?.value?.trim();
       const sepaEmail=$('sepaEmail')?.value?.trim();
       if(!sepaName){alert('Bitte Kontoinhaber eingeben.');btn.disabled=false;btn.innerHTML=orig;return;}
