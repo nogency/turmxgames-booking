@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Umgebungsvariablen / Secrets — NIE committen
+.env
+.env.*
+.env.local
+
+# Vercel
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+.idea/
+.vscode/
