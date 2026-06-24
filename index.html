@@ -2058,6 +2058,8 @@ async function initExpressCheckout(){
     if(!hasStripe&&!hasPayPal)$('expressSec').style.display='none';
   });
   ecEl.on('confirm',async(event)=>{
+    if(isSubmitting)return;   // Doppel-Absenden verhindern
+    isSubmitting=true;
     try{
       const r=await fetch(API+'?action=create-payment-intent',{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -2080,6 +2082,7 @@ async function initExpressCheckout(){
       if(error){alert(error.message);return;}
       await submitBooking();
     }catch(err){console.error('[EC]',err);}
+    finally{isSubmitting=false;}
   });
   ecEl.mount('#prButton');
   ecMounted=true;
@@ -2109,18 +2112,24 @@ function _ppCreateOrder(d,a){
   return a.order.create({purchase_units:[{amount:{value:getTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games – '+S.eventName}]});
 }
 async function _ppOnApprove(d,a){
-  // Authorize only — Geld wird erst nach erfolgreicher Bookla-Buchung eingezogen
-  const auth=await a.order.authorize();
-  const authId=auth?.purchase_units?.[0]?.payments?.authorizations?.[0]?.id;
-  if(!authId){
-    showPayError('PayPal-Autorisierung fehlgeschlagen. Bitte erneut versuchen.');
-    return;
+  if(isSubmitting) return;   // Doppel-Absenden verhindern
+  isSubmitting=true;
+  try{
+    // Authorize only — Geld wird erst nach erfolgreicher Bookla-Buchung eingezogen
+    const auth=await a.order.authorize();
+    const authId=auth?.purchase_units?.[0]?.payments?.authorizations?.[0]?.id;
+    if(!authId){
+      showPayError('PayPal-Autorisierung fehlgeschlagen. Bitte erneut versuchen.');
+      return;
+    }
+    const p=auth.payer;
+    if(p?.name?.given_name&&!$('fname')?.value&&$('fname'))$('fname').value=p.name.given_name;
+    if(p?.name?.surname&&!$('lname')?.value&&$('lname'))$('lname').value=p.name.surname;
+    if(p?.email_address&&!$('email')?.value&&$('email'))$('email').value=p.email_address;
+    await submitBooking(null, authId);
+  }finally{
+    isSubmitting=false;
   }
-  const p=auth.payer;
-  if(p?.name?.given_name&&!$('fname')?.value&&$('fname'))$('fname').value=p.name.given_name;
-  if(p?.name?.surname&&!$('lname')?.value&&$('lname'))$('lname').value=p.name.surname;
-  if(p?.email_address&&!$('email')?.value&&$('email'))$('email').value=p.email_address;
-  await submitBooking(null, authId);
 }
 function _ppOnError(e){showPayError('PayPal Fehler: '+(e?.message||String(e)));}
 
@@ -2179,7 +2188,10 @@ function hidePayError(){const el=$('payError');if(el)el.style.display='none';}
 // ═══════════════════════════════════════════════════════
 // PAYMENT HANDLER
 // ═══════════════════════════════════════════════════════
+// Globale Sperre gegen Doppel-Absenden (Mehrfach-Tap auf Button / Mobile-Bar / PayPal / Express)
+let isSubmitting=false;
 async function handlePayment(){
+  if(isSubmitting) return;   // bereits eine Buchung im Gange → 2. Tap ignorieren
   // ── Pflichtfelder prüfen BEVOR PayPal/Stripe überhaupt startet ──
   // Verhindert autorisierte Zahlungen die dann nie gebucht werden können
   // (passiert wenn Nutzer per Refresh/Zurück-Taste auf Step 4 landet)
@@ -2194,6 +2206,7 @@ async function handlePayment(){
     }
   }
 
+  isSubmitting=true;   // Sperre erst NACH der Validierung setzen
   const btn=$('payBtn'), orig=btn.innerHTML;
   hidePayError();
   btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Verarbeitung…';
@@ -2234,6 +2247,8 @@ async function handlePayment(){
   }catch(e){
     btn.disabled=false;btn.innerHTML=orig;
     showPayError(e.message||'Zahlung fehlgeschlagen. Bitte erneut versuchen.');
+  }finally{
+    isSubmitting=false;   // Sperre immer freigeben (Erfolg, Fehler, früher Return)
   }
 }
 
