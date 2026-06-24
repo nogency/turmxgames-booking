@@ -2001,10 +2001,11 @@ function updateInvoiceTab(){
   const isFirma=S.eventKey==='firma';
   const isSocial=S.eventKey==='schule'||S.eventKey==='verein';
   const hasCompany=!!$('company')?.value?.trim();
-  const hasUstId=!!$('ustid')?.value?.trim();
-  const allowed=(isSocial&&hasCompany)||(isFirma&&hasCompany&&hasUstId);
+  // Auf Rechnung: Firmen + Schulen/Vereine brauchen nur einen eingetragenen Namen.
+  // USt-ID ist optional — auch Kleinunternehmer/Firmen ohne USt-ID können auf Rechnung buchen.
+  const allowed=(isSocial||isFirma)&&hasCompany;
   tab.disabled=!allowed;
-  tab.title=allowed?'':(isSocial?'Bitte Schule / Vereinsname eintragen':'Nur für Firmenbuchungen mit eingetragener Firma und USt-ID');
+  tab.title=allowed?'':(isSocial?'Bitte Schule / Vereinsname eintragen':'Bitte Firmenname eintragen');
   // If currently selected but no longer valid → switch to Karte
   if(!allowed&&S.payMethod==='invoice'){
     pickPay('cc',$('ptab-cc'));
