@@ -2357,6 +2357,12 @@ async function submitBooking(paymentId, paypalAuthId){
     };
     const r=await fetch(API+'?action=create-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const booking=await r.json();
+    // Buchung läuft bereits (Duplikat) oder Ergebnis unklar → NICHT als Fehler behandeln,
+    // NICHT erneut absenden. Die (erste) Buchung ist/wird angelegt, Bestätigung kommt per E-Mail.
+    if((r.status===202&&booking?.processing)||(r.status===409&&booking?.duplicate)){
+      showSuccess('Bestätigung folgt per E-Mail');
+      return;
+    }
     if(!r.ok)throw new Error(booking.error||'Buchung fehlgeschlagen');
     if(!booking.id)throw new Error('Keine Buchungs-ID erhalten');
     const ref='BKL-'+String(booking.id).slice(-6).toUpperCase();

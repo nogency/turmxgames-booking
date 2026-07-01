@@ -177,6 +177,42 @@ module.exports = async function handler(req, res) {
         const startTime = berlinDt.toISO();
         const utcTimeKey = berlinDt.toUTC().toISO().substring(0, 16);
 
+        // ── Idempotenz-Lock gegen Mehrfachbuchungen ──────────────────────────
+        // Verhindert, dass dieselbe Buchung (Kunde + Slot + Personenzahl) mehrfach
+        // angelegt wird — z.B. bei Timeout-Retry, Seiten-Reload oder Doppel-Tab/-Gerät.
+        // Greift dort, wo die Frontend-Sperre prinzipiell nicht hinreicht.
+        const idemKey = `idemp:${String(email).toLowerCase().trim()}:${serviceId}:${startTime}:${spots}`;
+        let idemRedis = null;
+        try {
+          const { Redis } = require('@upstash/redis');
+          idemRedis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
+          const acquired = await idemRedis.set(
+            idemKey,
+            JSON.stringify({ status: 'pending', ts: Date.now() }),
+            { nx: true, ex: 180 }
+          );
+          if (!acquired) {
+            // Identische Buchung läuft bereits oder ist schon erfolgt → KEINE neue anlegen.
+            // PayPal-Hold dieses Duplikats sofort freigeben (die erste Buchung hat ihren eigenen).
+            if (paypalAuthId) await voidPaypalAuth(paypalAuthId).catch(() => {});
+            const existingRaw = await idemRedis.get(idemKey);
+            const existing = typeof existingRaw === 'string' ? JSON.parse(existingRaw) : existingRaw;
+            if (existing && existing.status === 'done' && existing.booking) {
+              console.log('[Idempotenz] Duplikat → bestehende Buchung zurückgegeben:', idemKey);
+              return res.status(200).json(existing.booking);
+            }
+            console.warn('[Idempotenz] Duplikat während Verarbeitung blockiert:', idemKey);
+            return res.status(409).json({
+              error: 'Diese Buchung wird gerade verarbeitet. Du erhältst gleich eine Bestätigung per E-Mail.',
+              duplicate: true,
+            });
+          }
+        } catch (e) {
+          // Redis-Problem darf den Kunden NICHT blockieren — lieber buchen als abweisen.
+          console.error('[Idempotenz] Lock fehlgeschlagen, fahre ohne Lock fort:', e.message);
+          idemRedis = null;
+        }
+
         // ── Schritt 1: Aktuelle Verfügbarkeit pro Ressource prüfen ──
         const from = `${date}T00:00:00Z`;
         const to   = `${date}T23:59:59Z`;
@@ -204,7 +240,8 @@ module.exports = async function handler(req, res) {
         });
 
         if (freeResourceIds.length === 0) {
-          // Slot nicht verfügbar — PayPal-Autorisierung freigeben
+          // Slot nicht verfügbar — Lock lösen (echter Neuversuch möglich) + PayPal freigeben
+          if (idemRedis) await idemRedis.del(idemKey).catch(() => {});
           if (paypalAuthId) await voidPaypalAuth(paypalAuthId).catch(e => console.error('[PayPal] Void failed:', e.message));
           return res.status(409).json({ error: 'Dieser Slot ist leider nicht mehr verfügbar.' });
         }
@@ -213,6 +250,7 @@ module.exports = async function handler(req, res) {
         const clientPayload = { email, firstName, lastName, ...(phone && { phone }) };
 
         let lastError = null;
+        let uncertain = false;   // Bookla-Antwort unklar (5xx/Timeout) → Buchung evtl. doch angelegt
         for (const resourceId of freeResourceIds) {
           try {
             const bookingBody = {
@@ -227,6 +265,12 @@ module.exports = async function handler(req, res) {
             };
             const data = await booklaFetch('/client/bookings', 'POST', bookingBody, apiKey);
 
+            // Idempotenz: Ergebnis speichern → identische Folge-Aufrufe (Retry) bekommen
+            // genau DIESE Buchung zurück statt einer neuen.
+            if (idemRedis) {
+              await idemRedis.set(idemKey, JSON.stringify({ status: 'done', booking: data }), { ex: 180 }).catch(() => {});
+            }
+
             // Bookla-Buchung erfolgreich — PayPal-Autorisierung einziehen
             if (paypalAuthId) {
               await capturePaypalAuth(paypalAuthId).catch(e =>
@@ -237,11 +281,35 @@ module.exports = async function handler(req, res) {
             return res.status(201).json(data);
           } catch(e) {
             lastError = e;
-            continue;
+            // NUR bei eindeutigem 4xx (z.B. Slot inzwischen belegt) ist sicher, dass NICHTS
+            // gebucht wurde → nächsten freien Slot versuchen (Robustheit bleibt erhalten).
+            // Bei 5xx / Timeout / Netzwerkfehler ist UNKLAR, ob Bookla die Buchung doch
+            // angelegt hat → NICHT weiterbuchen (sonst Duplikat auf dem nächsten Slot).
+            const st = e && e.status;
+            if (st && st >= 400 && st < 500) {
+              continue;
+            }
+            uncertain = true;
+            break;
           }
         }
 
-        // Alle Slots fehlgeschlagen — PayPal-Autorisierung freigeben
+        if (uncertain) {
+          // Unklare Bookla-Antwort: Buchung könnte trotz Fehler existieren.
+          // KEINEN weiteren Slot buchen. Lock NICHT lösen → blockt Retry-Duplikate für die TTL.
+          // PayPal-Hold freigeben (es wurde nichts eingezogen).
+          if (paypalAuthId) await voidPaypalAuth(paypalAuthId).catch(e => console.error('[PayPal] Void failed:', e.message));
+          console.error('[create-booking] Unklare Bookla-Antwort — kein Retry, Lock bleibt:',
+            lastError && lastError.status, lastError && lastError.message);
+          return res.status(202).json({
+            processing: true,
+            error: 'Deine Buchung wird verarbeitet. Solltest du keine Bestätigung per E-Mail erhalten, melde dich bitte kurz bei uns.',
+          });
+        }
+
+        // Alle freien Slots gaben eine eindeutige Absage (4xx) → wirklich nichts gebucht.
+        // Lock lösen (echter Neuversuch möglich) + PayPal freigeben.
+        if (idemRedis) await idemRedis.del(idemKey).catch(() => {});
         if (paypalAuthId) await voidPaypalAuth(paypalAuthId).catch(e => console.error('[PayPal] Void failed:', e.message));
         throw lastError || new Error('Alle Slots belegt');
       }
