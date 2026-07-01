@@ -889,11 +889,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <div class="ferr" id="errEmail">Bitte gültige E-Mail-Adresse eingeben.</div>
         </div>
         <div class="fg">
-          <label class="flbl">TELEFON <span style="font-size:9px;color:var(--tmu)">(optional)</span></label>
+          <label class="flbl">TELEFON <span style="color:var(--red)">*</span></label>
           <div style="display:flex;gap:7px">
             <div style="background:var(--lb);border:1.5px solid var(--lbdr);border-radius:4px;padding:9px 11px;color:var(--tmu);font-size:12px;display:flex;align-items:center;gap:5px;white-space:nowrap">📞 +49</div>
             <input type="tel" class="finput" id="phone" placeholder="0151 23456789">
           </div>
+          <div class="ferr" id="errPhone">Bitte Telefonnummer eingeben.</div>
         </div>
 
         <!-- Firmendaten -->
@@ -1916,6 +1917,11 @@ function step3Next(){
   em.classList.toggle('invalid',!validEmail);
   $('errEmail').classList.toggle('show',!validEmail);
   if(!validEmail)ok=false;
+  const ph=$('phone');
+  const validPhone=(ph.value.match(/\d/g)||[]).length>=5;
+  ph.classList.toggle('invalid',!validPhone);
+  $('errPhone').classList.toggle('show',!validPhone);
+  if(!validPhone)ok=false;
   if(S.eventKey==='firma'){
     const cn=$('company'),cs=$('companyStreet'),cz=$('companyZip'),cc=$('companyCity');
     [cn,cs,cz,cc].forEach(f=>{f.classList.toggle('invalid',!f.value.trim());if(!f.value.trim())ok=false;});
