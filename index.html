@@ -2339,6 +2339,9 @@ function buildBookingNotes(payMethod){
     'Versicherung: '+(S.insurance?'Ja (14,90€)':'Nein'),
     'Freefall Mutprobe: '+(S.freefall?'Ja (30,00€)':'Nein'),
     'Zahlung: '+pmLabel,
+    // Telefon in die Notes: Bookla's Client-API kennt KEIN phone-Feld (Spec geprüft) —
+    // nur über die Notes kommt die Nummer in Bookla-Mail & Dashboard an.
+    $('phone')?.value?.trim()?'Telefon: '+$('phone').value.trim():null,
     S.kindAge?'Alter Geburtstagskind: '+S.kindAge:null,
     $('company')?.value?.trim()?'Firma: '+$('company').value.trim():null,
     document.querySelector('#acc-visit .ropt.sel .rlabel')?.textContent?.trim()||null,

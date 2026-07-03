@@ -169,7 +169,8 @@ module.exports = async function handler(req, res) {
                 spots:      spotsForThis,
                 ...(clientId && { clientID: clientId }),
                 metaData: {
-                  notes:         `Admin-Link ${id} — ${[firstName, lastName].filter(Boolean).join(' ')} — ausstehende Zahlung`,
+                  // Telefon in die Notes: Bookla's Client-API kennt kein phone-Feld
+                  notes:         `Admin-Link ${id} — ${[firstName, lastName].filter(Boolean).join(' ')}${phone ? ` — Tel: ${phone}` : ''} — ausstehende Zahlung`,
                   paymentStatus: 'pending',
                   adminLink:     id,
                 },
