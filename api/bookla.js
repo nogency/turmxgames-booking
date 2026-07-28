@@ -511,7 +511,12 @@ module.exports = async function handler(req, res) {
 
       // ─────────────────────────────────────────────
       // 5. Promo Code validieren
-      //    Gibt zurück: { canApply, price, discountAmount }
+      //    Gibt zurück: { canApply, discountType, discountValue, maxDiscountCents }
+      //    WICHTIG: Bookla-Preise ≠ unsere Paketpreise (Frontend hardcoded,
+      //    basePrice + Wochentags-Staffel). Deshalb NIE Rabattbeträge aus
+      //    Bookla-Preisdifferenzen ableiten — stattdessen die Code-DEFINITION
+      //    (Typ + Wert) aus der Merchant-API holen; das Frontend rechnet damit
+      //    in seiner eigenen Preiswelt.
       // ─────────────────────────────────────────────
       case 'validate-code': {
         const { code, serviceId, date, time, groupSize } = req.body || {};
@@ -522,11 +527,11 @@ module.exports = async function handler(req, res) {
         const spots = parseInt(groupSize) || 1;
         const berlinDtV  = DateTime.fromISO(`${date}T${time}:00`, { zone: 'Europe/Berlin' });
         const startTime  = berlinDtV.toISO();
-        const utcTimeKey = berlinDtV.toUTC().toISO().substring(0, 16);
         const resourceId = RESOURCE_IDS[0];
 
-        // Parallel: Code validieren + echten Slot-Preis aus times holen
-        const [data, timesData] = await Promise.all([
+        // Parallel: Code validieren (Gatekeeper: Limits, Zeitraum, Gültigkeit)
+        // + Code-Definition aus der Merchant-API (Typ percent/amount + Wert)
+        const [data, codeList] = await Promise.all([
           booklaFetch(
             `/client/codes/${encodeURIComponent(code)}/validate`,
             'POST',
@@ -534,34 +539,26 @@ module.exports = async function handler(req, res) {
             apiKey
           ),
           booklaFetch(
-            `/client/companies/${companyId}/services/${serviceId}/times`,
-            'POST',
-            { from: `${date}T00:00:00Z`, to: `${date}T23:59:59Z`, spots, resourceIDs: [resourceId] },
-            apiKey
-          ).catch(() => null),
+            `/companies/${companyId}/plugins/promocodes/list`,
+            'GET', null, apiKey
+          ).catch(e => { console.warn('[validate-code] Promo-Liste fehlgeschlagen:', e.message); return null; }),
         ]);
 
-        // Slot-Preis (Basispreis ohne Rabatt) aus times-Response extrahieren
-        let booklaBaseCents = null;
-        if (timesData?.times) {
-          const slotArr = timesData.times[resourceId] || Object.values(timesData.times).flat() || [];
-          const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === utcTimeKey);
-          console.log('[validate-code] slot match:', JSON.stringify(match));
-          // Bookla kann price als Cent-Ganzzahl oder als Float-Euro liefern
-          if (match?.price != null) {
-            booklaBaseCents = match.price > 500 ? match.price : Math.round(match.price * 100);
-          } else if (match?.totalPrice != null) {
-            booklaBaseCents = match.totalPrice > 500 ? match.totalPrice : Math.round(match.totalPrice * 100);
+        let discountType = null, discountValue = null, maxDiscountCents = null;
+        const list = Array.isArray(codeList) ? codeList : (codeList?.items || codeList?.promoCodes || null);
+        if (Array.isArray(list)) {
+          const def = list.find(c => (c.code || '').toUpperCase() === String(code).toUpperCase());
+          if (def) {
+            discountType = def.discountType || null;   // 'percent' | 'amount'
+            discountValue = discountType === 'percent'
+              ? (def.discountPercent ?? null)
+              : (def.discountAmount ?? null);          // amount = Cents
+            maxDiscountCents = def.maxDiscountAmount || null;
           }
         }
 
-        // Rabatt = echter Slot-Basispreis minus Bookla-Neupreis (beide in Cent)
-        const discountAmount = (booklaBaseCents != null && data.price != null)
-          ? Math.max(0, booklaBaseCents - data.price)
-          : null;
-
-        console.log('[validate-code]', { booklaBaseCents, discountedPrice: data.price, discountAmount });
-        return res.status(200).json({ ...data, discountAmount, booklaBaseCents });
+        console.log('[validate-code]', { code, canApply: data.canApply, discountType, discountValue, maxDiscountCents });
+        return res.status(200).json({ ...data, discountType, discountValue, maxDiscountCents });
       }
 
       // ─────────────────────────────────────────────

@@ -1342,6 +1342,22 @@ function startCountdown() {
 // ═══════════════════════════════════════════════════════
 let promoState = { code: null, discountAmount: 0, newPrice: null };
 
+// Rabatt (EUR) aus der Bookla-Code-Definition auf UNSEREN Basispreis anwenden.
+// percent → Prozentsatz vom Basispreis (ohne Extras), optional gedeckelt (maxDiscountCents)
+// amount  → Festbetrag in Cents, preisunabhängig übertragbar
+// Nie mehr als den Basispreis rabattieren; Extras bleiben immer unangetastet.
+function computePromoDiscount(d) {
+  const baseOnly = S.basePrice + S.pricePerPerson * S.qty;
+  let disc = 0;
+  if (d.discountType === 'percent' && d.discountValue > 0) {
+    disc = baseOnly * d.discountValue / 100;
+    if (d.maxDiscountCents > 0) disc = Math.min(disc, d.maxDiscountCents / 100);
+  } else if (d.discountType === 'amount' && d.discountValue > 0) {
+    disc = d.discountValue / 100;
+  }
+  return Math.round(Math.min(disc, baseOnly) * 100) / 100;
+}
+
 async function applyPromo() {
   const input = $('promoInput');
   const btn   = $('promoBtn');
@@ -1380,21 +1396,27 @@ async function applyPromo() {
       promoState = { code: null, discountAmount: 0, newPrice: null };
     } else {
       console.log('[Promo raw]', d);
-      // Backend berechnet discountAmount (Cent) aus Bookla-Basispreis - Bookla-Neupreis.
-      // So ist der Rabatt unabhängig von unserem dynamischen Frontend-Preis immer korrekt.
-      const discountCents = (typeof d.discountAmount === 'number' && d.discountAmount > 0)
-        ? d.discountAmount
-        : Math.max(0, getTotal() * 100 - (d.price || 0));
-      promoState = {
-        code:           code,
-        discountAmount: discountCents / 100,
-        newPrice:       Math.max(0, getTotal() - discountCents / 100),
-      };
-      msg.className = 'promo-msg ok';
-      msg.textContent = '✓ Code angewendet! Du sparst ' + fmtEur(promoState.discountAmount) + '.';
-      input.disabled = true;
-      btn.textContent = '✓';
-      btn.style.background = 'var(--cheap)';
+      // Rabatt aus der Code-DEFINITION (Typ + Wert aus Bookla) in UNSERER
+      // Preiswelt berechnen. Bookla-Preise weichen von unseren Paketpreisen ab —
+      // deshalb nie Beträge aus Bookla-Preisdifferenzen übernehmen.
+      const discountEur = computePromoDiscount(d);
+      if (discountEur <= 0) {
+        msg.className = 'promo-msg err';
+        msg.textContent = '❌ Für diesen Termin ergibt der Code keinen Rabatt.';
+        promoState = { code: null, discountAmount: 0, newPrice: null };
+      } else {
+        const baseOnly = S.basePrice + S.pricePerPerson * S.qty;
+        promoState = {
+          code:           code,
+          discountAmount: discountEur,
+          newPrice:       Math.max(0, baseOnly - discountEur),
+        };
+        msg.className = 'promo-msg ok';
+        msg.textContent = '✓ Code angewendet! Du sparst ' + fmtEur(promoState.discountAmount) + '.';
+        input.disabled = true;
+        btn.textContent = '✓';
+        btn.style.background = 'var(--cheap)';
+      }
       updateSummary();
     }
   } catch(e) {
@@ -1777,10 +1799,11 @@ function chgQty(d){
     .then(r=>r.json())
     .then(d=>{
       if (d.canApply) {
-        const originalPrice = (S.basePrice + S.pricePerPerson * S.qty) * 100;
-        const discount = Math.max(0, originalPrice - (d.price || 0));
-        promoState.discountAmount = discount / 100;
-        promoState.newPrice = (d.price || 0) / 100;
+        // Gleiche Rechnung wie applyPromo: Code-Definition auf UNSEREN Basispreis
+        const discountEur = computePromoDiscount(d);
+        const baseOnly = S.basePrice + S.pricePerPerson * S.qty;
+        promoState.discountAmount = discountEur;
+        promoState.newPrice = discountEur > 0 ? Math.max(0, baseOnly - discountEur) : null;
         $('promoMsg').textContent = '✓ Code angewendet! Du sparst '+fmtEur(promoState.discountAmount)+'.';
       }
       updateSummary();
