@@ -6,7 +6,10 @@ function calculateTax(brutto) {
 }
 
 function formatInvoiceNumber(bookingId) {
-  return `RE-${bookingId}`;
+  // AB- statt RE-: Das Dokument ist eine Auftragsbestätigung, KEINE Rechnung.
+  // Die eigentliche Rechnung wird nach dem Event via InvoiceNinja gestellt
+  // (ein Rechnungskreis, §14c-Risiko doppelter USt-Ausweis vermeiden).
+  return `AB-${bookingId}`;
 }
 
 function formatDate(isoDateOrDate) {

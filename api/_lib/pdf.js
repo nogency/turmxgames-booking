@@ -35,11 +35,13 @@ function generateInvoicePDF(data) {
     }
 
     // ── TITLE top right ──
-    doc.font('Helvetica-Bold').fontSize(22).fillColor('#C0392B')
-       .text('RECHNUNG', 0, 45, { align: 'right' });
+    // Bewusst KEINE Rechnung: Auftragsbestätigung ohne formalen USt-Ausweis.
+    // Die Rechnung folgt nach dem Event via InvoiceNinja (§14c-Risiko vermeiden).
+    doc.font('Helvetica-Bold').fontSize(19).fillColor('#C0392B')
+       .text('AUFTRAGSBESTÄTIGUNG', 0, 45, { align: 'right' });
     doc.font('Helvetica').fontSize(9).fillColor('#444')
-       .text(`Rechnungsnummer: ${data.invoiceNumber}`, { align: 'right' })
-       .text(`Rechnungsdatum: ${data.invoiceDate}`, { align: 'right' })
+       .text(`Bestätigungsnummer: ${data.invoiceNumber}`, { align: 'right' })
+       .text(`Datum: ${data.invoiceDate}`, { align: 'right' })
        .text(`Leistungsdatum: ${data.serviceDate}`, { align: 'right' });
 
     // ── COMPANY ADDRESS ──
@@ -55,7 +57,7 @@ function generateInvoicePDF(data) {
     doc.y = d1y + 16;
 
     // ── CUSTOMER SECTION ──
-    doc.font('Helvetica-Bold').fontSize(8).fillColor('#888').text('RECHNUNGSEMPFÄNGER', LEFT);
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#888').text('AUFTRAGGEBER', LEFT);
     doc.moveDown(0.3);
     doc.font('Helvetica').fontSize(10).fillColor('#1a1a1a');
 
@@ -74,17 +76,18 @@ function generateInvoicePDF(data) {
     if (data.phone) doc.text(data.phone);
 
     // ── TABLE ──
+    // Nur Bruttobeträge — KEIN formaler USt-Ausweis (Netto/MwSt-Spalten),
+    // damit das Dokument nicht als Rechnung i.S.d. §14 UStG gewertet werden kann.
     const tableY = doc.y + 20;
-    const c = { desc: LEFT, qty: LEFT + 255, netto: LEFT + 320, mwst: LEFT + 390, brutto: LEFT + 453 };
+    const c = { desc: LEFT, qty: LEFT + 300, brutto: LEFT + 400 };
+    const bruttoW = RIGHT - c.brutto;
 
     // Header row
     doc.rect(LEFT, tableY, W, 22).fill('#f4f2ee');
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#555');
     doc.text('LEISTUNG', c.desc + 6, tableY + 7);
     doc.text('MENGE', c.qty, tableY + 7);
-    doc.text('NETTO', c.netto, tableY + 7);
-    doc.text('MWST 19%', c.mwst, tableY + 7);
-    doc.text('BRUTTO', c.brutto, tableY + 7);
+    doc.text('BETRAG', c.brutto, tableY + 7, { width: bruttoW - 6, align: 'right' });
 
     // Data rows (eine pro Position)
     const ROW_H = 26;
@@ -97,11 +100,9 @@ function generateInvoicePDF(data) {
 
     items.forEach((item, idx) => {
       doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a');
-      doc.text(item.name,          c.desc + 6, rowY, { width: 240 });
+      doc.text(item.name,          c.desc + 6, rowY, { width: 285 });
       doc.text(item.qtyLabel,      c.qty,      rowY);
-      doc.text(fmtEur(item.tax.netto),  c.netto,    rowY);
-      doc.text(fmtEur(item.tax.mwst),   c.mwst,     rowY);
-      doc.text(fmtEur(item.tax.brutto), c.brutto,   rowY);
+      doc.text(fmtEur(item.tax.brutto), c.brutto, rowY, { width: bruttoW - 6, align: 'right' });
       // Trennlinie zwischen Zeilen (nicht nach letzter)
       if (idx < items.length - 1) {
         const sepY = rowY + ROW_H - 4;
@@ -110,25 +111,24 @@ function generateInvoicePDF(data) {
       rowY += ROW_H;
     });
 
-    // Totals
+    // Totals — nur Gesamtbetrag inkl. MwSt., keine Aufschlüsselung
     const totY = rowY + 4;
     doc.moveTo(LEFT, totY).lineTo(RIGHT, totY).strokeColor('#e0ddd7').lineWidth(0.75).stroke();
-    const totLabelX = c.netto - 10;
-    const totValW = RIGHT - c.brutto;
 
-    doc.font('Helvetica').fontSize(9).fillColor('#444');
-    doc.text('Netto:', totLabelX, totY + 10, { width: 60, align: 'right' });
-    doc.text(fmtEur(data.tax.netto), c.brutto, totY + 10, { width: totValW, align: 'right' });
-    doc.text('MwSt. 19%:', totLabelX, totY + 24, { width: 60, align: 'right' });
-    doc.text(fmtEur(data.tax.mwst), c.brutto, totY + 24, { width: totValW, align: 'right' });
-
-    doc.rect(totLabelX - 10, totY + 38, RIGHT - totLabelX + 10, 22).fill('#f4f2ee');
+    doc.rect(LEFT, totY + 10, W, 22).fill('#f4f2ee');
     doc.font('Helvetica-Bold').fontSize(10).fillColor('#1a1a1a');
-    doc.text('GESAMT:', totLabelX, totY + 44, { width: 60, align: 'right' });
-    doc.text(fmtEur(data.tax.brutto), c.brutto, totY + 44, { width: totValW, align: 'right' });
+    doc.text('GESAMT (inkl. 19 % MwSt.):', LEFT + 6, totY + 16, { width: W - bruttoW - 12, align: 'right' });
+    doc.text(fmtEur(data.tax.brutto), c.brutto, totY + 16, { width: bruttoW - 6, align: 'right' });
+
+    // ── HINWEIS: keine Rechnung ──
+    const hintY = totY + 42;
+    doc.rect(LEFT, hintY, W, 30).fillAndStroke('#eef4fb', '#a9c7e8');
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#1c4e89')
+       .text('Dies ist keine Rechnung. Deine Rechnung erhältst du nach deinem Event per E-Mail.',
+             LEFT + 10, hintY + 10, { width: W - 20 });
 
     // ── ZAHLUNGSART ──
-    const payY = totY + 58;
+    const payY = hintY + 44;
     const isInvoice = data.paymentMethod === 'invoice';
     const payLabels = { cc: 'Kreditkarte', paypal: 'PayPal', sepa: 'SEPA-Lastschrift', invoice: 'Kauf auf Rechnung' };
     const payLabel = payLabels[data.paymentMethod] || data.paymentMethod;
