@@ -721,6 +721,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <div class="special-note" id="socialNote">Sondertarif 25 €/Person · 2 Stunden · Bitte Schul- oder Vereinsnachweis beim Check-in mitbringen.</div>
         </div>
 
+        <!-- Gutschein-Einstieg -->
+        <button class="emore-btn" onclick="openGiftcardModal()" style="margin-top:10px">
+          <span>🎁 Gutschein verschenken — digital oder per Post</span>
+          <span style="color:var(--red);font-weight:700">→</span>
+        </button>
+
         <!-- Mode tabs -->
         <div style="height:16px"></div>
         <div class="slabel">TERMIN WÄHLEN</div>
@@ -2792,5 +2798,300 @@ checkStep1();
     </div>
   </div>
 </div>
+
+<!-- ── GUTSCHEIN MODAL ── -->
+<style>
+.gc-typegrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.gc-type{border:1.5px solid var(--lbdr);border-radius:8px;background:#fff;padding:12px 10px;cursor:pointer;text-align:left;font-family:inherit}
+.gc-type.sel{border-color:var(--red);background:var(--rl)}
+.gc-type-name{font-size:13px;font-weight:700;color:var(--td);display:block}
+.gc-type-sub{font-size:10.5px;color:var(--tmu);display:block;margin-top:3px}
+.gc-chips{display:flex;gap:8px;margin:8px 0 14px;flex-wrap:wrap}
+.gc-chip{border:1.5px solid var(--lbdr);border-radius:20px;background:#fff;padding:7px 14px;font-size:12.5px;font-weight:700;color:var(--td);cursor:pointer;font-family:inherit}
+.gc-chip.sel{border-color:var(--red);background:var(--red);color:#fff}
+.gc-paybox{border:1.5px solid var(--lbdr);border-radius:8px;background:#fff;padding:10px;margin-top:6px}
+.gc-total{display:flex;justify-content:space-between;align-items:center;padding:12px 2px;font-size:13px;color:var(--tm);border-top:1px solid var(--lbdr);margin-top:14px}
+.gc-total strong{font-size:19px;color:var(--red)}
+</style>
+<div class="inq-overlay" id="gcOverlay" onclick="closeGiftcardModal(event)">
+  <div class="inq-modal" role="dialog" aria-modal="true">
+    <button class="inq-close" onclick="closeGiftcardModal()" aria-label="Schließen">×</button>
+
+    <!-- Form state -->
+    <div id="gcForm">
+      <div class="inq-icon"><span style="font-size:22px">🎁</span></div>
+      <div class="inq-title">GUTSCHEIN VERSCHENKEN</div>
+      <div class="inq-sub">Verschenke ein TurmX Games Erlebnis — als PDF per E-Mail oder als gedruckte Karte per Post.</div>
+
+      <div class="gc-typegrid">
+        <button class="gc-type sel" id="gc-type-digital" onclick="gcSetType('digital')">
+          <span class="gc-type-name">💌 Digital</span>
+          <span class="gc-type-sub">Sofort als PDF per E-Mail</span>
+        </button>
+        <button class="gc-type" id="gc-type-hardcopy" onclick="gcSetType('hardcopy')">
+          <span class="gc-type-name">🎁 Hardcopy</span>
+          <span class="gc-type-sub">Per Post · + 2,95 € Versand</span>
+        </button>
+      </div>
+
+      <div class="inq-field">
+        <label class="inq-label">Betrag (10 – 500 €) *</label>
+        <input class="inq-input" id="gcAmount" type="number" min="10" max="500" step="0.01" value="50" oninput="gcAmountInput()">
+      </div>
+      <div class="gc-chips">
+        <button class="gc-chip" onclick="gcSetAmount(10,this)">10 €</button>
+        <button class="gc-chip" onclick="gcSetAmount(25,this)">25 €</button>
+        <button class="gc-chip sel" onclick="gcSetAmount(50,this)">50 €</button>
+        <button class="gc-chip" onclick="gcSetAmount(111.11,this)">111,11 €</button>
+      </div>
+
+      <div class="inq-row">
+        <div class="inq-field">
+          <label class="inq-label">Vorname *</label>
+          <input class="inq-input" id="gcFname" type="text" placeholder="Max">
+        </div>
+        <div class="inq-field">
+          <label class="inq-label">Nachname *</label>
+          <input class="inq-input" id="gcLname" type="text" placeholder="Mustermann">
+        </div>
+      </div>
+      <div class="inq-field">
+        <label class="inq-label">E-Mail (für den Gutschein-Versand) *</label>
+        <input class="inq-input" id="gcEmail" type="email" placeholder="max@beispiel.de">
+      </div>
+
+      <div id="gcShipping" style="display:none">
+        <div class="inq-field">
+          <label class="inq-label">Straße &amp; Hausnummer *</label>
+          <input class="inq-input" id="gcStreet" type="text" placeholder="Musterstr. 12">
+        </div>
+        <div class="inq-row">
+          <div class="inq-field">
+            <label class="inq-label">PLZ *</label>
+            <input class="inq-input" id="gcZip" type="text" placeholder="50321">
+          </div>
+          <div class="inq-field">
+            <label class="inq-label">Ort *</label>
+            <input class="inq-input" id="gcCity" type="text" placeholder="Brühl">
+          </div>
+        </div>
+      </div>
+
+      <div class="gc-total"><span>Gesamt<span id="gcShipNote" style="display:none"> (inkl. 2,95 € Versand)</span></span><strong id="gcTotal">50,00 €</strong></div>
+
+      <div id="gcError" style="font-size:11px;color:#c0392b;margin-bottom:8px;display:none"></div>
+
+      <div id="gcExpress" style="margin-bottom:8px"></div>
+      <div id="gcPaypal" style="margin-bottom:8px"></div>
+      <div class="gc-paybox">
+        <label class="inq-label" style="margin-bottom:6px;display:block">Kreditkarte</label>
+        <div id="gcCard" style="padding:6px 2px"></div>
+        <div id="gcCardErr" style="font-size:11px;color:#c0392b;margin-top:4px"></div>
+      </div>
+      <button class="inq-submit" id="gcPayBtn" onclick="gcPayCard()" style="margin-top:10px">JETZT KAUFEN</button>
+      <p style="font-size:10px;color:var(--tmu);margin-top:8px;text-align:center">Einmalig einlösbar auf booking.turmxgames.de · 3 Jahre gültig · keine Barauszahlung</p>
+    </div>
+
+    <!-- Success state -->
+    <div id="gcSuccess" class="inq-success" style="display:none">
+      <div style="font-size:48px;margin-bottom:12px">🎁</div>
+      <div class="inq-title" style="font-size:20px">GUTSCHEIN ERSTELLT!</div>
+      <p style="font-size:13px;color:#555;margin:10px 0 6px;line-height:1.6" id="gcSuccessText"></p>
+      <div style="font-family:monospace;font-size:20px;font-weight:700;color:var(--red);letter-spacing:2px;margin:12px 0 20px" id="gcSuccessCode"></div>
+      <button class="inq-submit" style="max-width:200px;margin:0 auto;display:block" onclick="closeGiftcardModal()">SCHLIESSEN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// GUTSCHEIN-SHOP — eigenständiger Block, berührt den
+// Buchungs-Checkout nicht. API: /api/giftcard
+// ═══════════════════════════════════════════════════════
+const GC_API='/api/giftcard';
+let gcState={type:'digital',amount:50};
+let gcSubmitting=false;
+// Eigene Stripe-Instanz — bewusst getrennt vom Checkout (initStripe bleibt unberührt)
+let gcStripe=null,gcCardEl=null,gcElements=null,gcExpressEl=null,gcExpressElements=null,gcPpRendered=false;
+function gcEnsureStripe(){
+  if(gcStripe)return true;
+  if(typeof Stripe==='undefined'||!_cfg?.stripePk)return false;
+  try{gcStripe=Stripe(_cfg.stripePk);}catch(e){return false;}
+  return true;
+}
+
+function gcTotal(){return Math.round((gcState.amount+(gcState.type==='hardcopy'?2.95:0))*100)/100;}
+function gcRenderTotal(){
+  $('gcTotal').textContent=gcTotal().toFixed(2).replace('.',',')+' €';
+  $('gcShipNote').style.display=gcState.type==='hardcopy'?'inline':'none';
+  if(gcExpressElements){try{gcExpressElements.update({amount:Math.round(gcTotal()*100)});}catch(e){}}
+}
+function gcSetType(t){
+  gcState.type=t;
+  $('gc-type-digital').classList.toggle('sel',t==='digital');
+  $('gc-type-hardcopy').classList.toggle('sel',t==='hardcopy');
+  $('gcShipping').style.display=t==='hardcopy'?'block':'none';
+  gcRenderTotal();
+}
+function gcSetAmount(v,btn){
+  gcState.amount=v;
+  $('gcAmount').value=v;
+  document.querySelectorAll('.gc-chip').forEach(c=>c.classList.remove('sel'));
+  if(btn)btn.classList.add('sel');
+  gcRenderTotal();
+}
+function gcAmountInput(){
+  const v=parseFloat($('gcAmount').value);
+  gcState.amount=Number.isFinite(v)?v:0;
+  document.querySelectorAll('.gc-chip').forEach(c=>c.classList.remove('sel'));
+  gcRenderTotal();
+}
+function gcShowError(msg){const el=$('gcError');el.textContent=msg;el.style.display='block';}
+function gcHideError(){$('gcError').style.display='none';}
+
+function gcValidate(){
+  const a=gcState.amount;
+  if(!Number.isFinite(a)||a<10||a>500){gcShowError('Bitte einen Betrag zwischen 10 € und 500 € wählen.');return null;}
+  const fname=$('gcFname').value.trim(),lname=$('gcLname').value.trim(),email=$('gcEmail').value.trim();
+  if(!fname||!lname){gcShowError('Bitte Vor- und Nachname eingeben.');return null;}
+  if(!/\S+@\S+\.\S+/.test(email)){gcShowError('Bitte gültige E-Mail-Adresse eingeben.');return null;}
+  let shipping=null;
+  if(gcState.type==='hardcopy'){
+    shipping={street:$('gcStreet').value.trim(),zip:$('gcZip').value.trim(),city:$('gcCity').value.trim()};
+    if(!shipping.street||!shipping.zip||!shipping.city){gcShowError('Bitte die Versandadresse vollständig ausfüllen.');return null;}
+  }
+  gcHideError();
+  return {buyer:{firstName:fname,lastName:lname,email},shipping};
+}
+
+async function gcFinalize(payload){
+  const r=await fetch(GC_API+'?action=finalize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json();
+  if(!r.ok||!d.code)throw new Error(d.error||'Gutschein konnte nicht erstellt werden.');
+  return d;
+}
+function gcShowSuccess(d,email){
+  $('gcForm').style.display='none';
+  $('gcSuccess').style.display='block';
+  $('gcSuccessText').innerHTML=d.type==='hardcopy'
+    ?'Dein Gutschein wird gedruckt und per Post versendet. Eine Bestätigung ist unterwegs an <strong>'+email+'</strong>.'
+    :'Dein Gutschein-PDF ist unterwegs an <strong>'+email+'</strong>.';
+  $('gcSuccessCode').textContent=d.code;
+}
+
+// ── Kreditkarte ──
+async function gcPayCard(){
+  if(gcSubmitting)return;
+  const v=gcValidate();if(!v)return;
+  if(!gcMountCard()||!gcCardEl){gcShowError('Zahlung konnte nicht geladen werden. Bitte Seite neu laden.');return;}
+  gcSubmitting=true;
+  const btn=$('gcPayBtn'),orig=btn.textContent;
+  btn.disabled=true;btn.textContent='WIRD VERARBEITET…';
+  try{
+    const r=await fetch(GC_API+'?action=create-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:gcState.amount,type:gcState.type})});
+    const d=await r.json();
+    if(!r.ok||!d.clientSecret)throw new Error(d.error||'Zahlung konnte nicht angelegt werden.');
+    const result=await gcStripe.confirmCardPayment(d.clientSecret,{payment_method:{card:gcCardEl,billing_details:{name:v.buyer.firstName+' '+v.buyer.lastName,email:v.buyer.email}}});
+    if(result.error)throw new Error(result.error.message);
+    const done=await gcFinalize({paymentIntentId:d.paymentIntentId,type:gcState.type,buyer:v.buyer,shipping:v.shipping});
+    gcShowSuccess(done,v.buyer.email);
+  }catch(e){
+    gcShowError(e.message||'Zahlung fehlgeschlagen. Bitte erneut versuchen.');
+  }finally{
+    gcSubmitting=false;btn.disabled=false;btn.textContent=orig;
+  }
+}
+
+// ── PayPal ──
+async function gcInitPaypal(){
+  if(gcPpRendered)return;
+  const clientId=_cfg?.paypalClientId;
+  if(!clientId)return;
+  try{await loadPayPalSDK(clientId);}catch(e){return;}
+  const btns=paypalSDK.Buttons({
+    fundingSource:paypalSDK.FUNDING.PAYPAL,
+    style:{layout:'vertical',color:'gold',shape:'rect',label:'paypal',height:44},
+    createOrder:(dd,a)=>{
+      const v=gcValidate();
+      if(!v)return Promise.reject(new Error('Eingaben unvollständig'));
+      return a.order.create({purchase_units:[{amount:{value:gcTotal().toFixed(2),currency_code:'EUR'},description:'TurmX Games Gutschein'}]});
+    },
+    onApprove:async(dd,a)=>{
+      if(gcSubmitting)return;gcSubmitting=true;
+      try{
+        const v=gcValidate();if(!v)return;
+        const auth=await a.order.authorize();
+        const authId=auth?.purchase_units?.[0]?.payments?.authorizations?.[0]?.id;
+        if(!authId){gcShowError('PayPal-Autorisierung fehlgeschlagen. Bitte erneut versuchen.');return;}
+        const done=await gcFinalize({paypalAuthId:authId,type:gcState.type,buyer:v.buyer,shipping:v.shipping});
+        gcShowSuccess(done,v.buyer.email);
+      }catch(e){gcShowError(e.message||'PayPal-Zahlung fehlgeschlagen.');}
+      finally{gcSubmitting=false;}
+    },
+    onError:(e)=>gcShowError('PayPal Fehler: '+(e?.message||String(e))),
+  });
+  if(btns.isEligible()){await btns.render('#gcPaypal');gcPpRendered=true;}
+}
+
+// ── Apple Pay / Google Pay (Stripe Express Checkout) ──
+function gcInitExpress(){
+  if(gcExpressEl||!gcEnsureStripe())return;
+  try{
+    gcExpressElements=gcStripe.elements({mode:'payment',amount:Math.round(gcTotal()*100),currency:'eur'});
+    gcExpressEl=gcExpressElements.create('expressCheckout',{
+      paymentMethods:{paypal:'never',link:'never',amazonPay:'never'},
+      buttonType:{applePay:'buy',googlePay:'buy'},
+      buttonHeight:44,
+      layout:{maxColumns:1,maxRows:2,overflow:'auto'}
+    });
+    gcExpressEl.on('confirm',async()=>{
+      if(gcSubmitting)return;gcSubmitting=true;
+      try{
+        const v=gcValidate();if(!v)return;
+        const r=await fetch(GC_API+'?action=create-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:gcState.amount,type:gcState.type})});
+        const d=await r.json();
+        if(!r.ok||!d.clientSecret)throw new Error(d.error||'Zahlung konnte nicht angelegt werden.');
+        const{error}=await gcStripe.confirmPayment({elements:gcExpressElements,clientSecret:d.clientSecret,confirmParams:{return_url:window.location.href},redirect:'if_required'});
+        if(error)throw new Error(error.message);
+        const done=await gcFinalize({paymentIntentId:d.paymentIntentId,type:gcState.type,buyer:v.buyer,shipping:v.shipping});
+        gcShowSuccess(done,v.buyer.email);
+      }catch(e){gcShowError(e.message||'Zahlung fehlgeschlagen.');}
+      finally{gcSubmitting=false;}
+    });
+    gcExpressEl.mount('#gcExpress');
+  }catch(e){console.warn('[Giftcard] Express nicht verfügbar:',e.message);}
+}
+
+function gcMountCard(){
+  if(gcCardEl)return true;
+  if(!gcEnsureStripe())return false;
+  gcElements=gcStripe.elements();
+  gcCardEl=gcElements.create('card',{style:{base:{color:'#1a1a1a',fontFamily:'"Plus Jakarta Sans",sans-serif',fontSize:'14px','::placeholder':{color:'#aaa'}},invalid:{color:'#C0392B'}},hidePostalCode:true});
+  gcCardEl.mount('#gcCard');
+  gcCardEl.on('change',e=>{$('gcCardErr').textContent=e.error?e.error.message:'';});
+  return true;
+}
+function openGiftcardModal(){
+  $('gcForm').style.display='block';
+  $('gcSuccess').style.display='none';
+  gcHideError();
+  $('gcOverlay').classList.add('show');
+  document.body.style.overflow='hidden';
+  gcMountCard();
+  gcInitPaypal();
+  gcInitExpress();
+  gcRenderTotal();
+  if(typeof dlPush==='function')dlPush({event:'giftcard_open'});
+}
+function closeGiftcardModal(e){
+  if(e&&e.target!=$('gcOverlay'))return;
+  $('gcOverlay').classList.remove('show');
+  document.body.style.overflow='';
+}
+// Deep-Link: booking.turmxgames.de/#gutschein
+if(window.location.hash==='#gutschein'){
+  setTimeout(()=>openGiftcardModal(),400);
+}
+</script>
 </body>
 </html>
