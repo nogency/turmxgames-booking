@@ -336,6 +336,37 @@ module.exports = async function handler(req, res) {
         const startTime = berlinDt.toISO();
         const utcTimeKey = berlinDt.toUTC().toISO().substring(0, 16);
 
+        // ── Idempotenz-Lock gegen Mehrfachbuchungen (wie create-booking) ──
+        // Doppelklick, Retry oder Reload dürfen keine zweite Rechnungs-Buchung anlegen.
+        const idemKey = `idemp-inv:${String(email).toLowerCase().trim()}:${serviceId}:${startTime}:${spots}`;
+        let idemRedis = null;
+        try {
+          const { Redis } = require('@upstash/redis');
+          idemRedis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
+          const acquired = await idemRedis.set(
+            idemKey,
+            JSON.stringify({ status: 'pending', ts: Date.now() }),
+            { nx: true, ex: 180 }
+          );
+          if (!acquired) {
+            const existingRaw = await idemRedis.get(idemKey);
+            const existing = typeof existingRaw === 'string' ? JSON.parse(existingRaw) : existingRaw;
+            if (existing && existing.status === 'done' && existing.booking) {
+              console.log('[Idempotenz] Rechnungs-Duplikat → bestehende Buchung zurückgegeben:', idemKey);
+              return res.status(200).json(existing.booking);
+            }
+            console.warn('[Idempotenz] Rechnungs-Duplikat während Verarbeitung blockiert:', idemKey);
+            return res.status(409).json({
+              error: 'Diese Buchung wird gerade verarbeitet. Du erhältst gleich eine Bestätigung per E-Mail.',
+              duplicate: true,
+            });
+          }
+        } catch (e) {
+          // Redis-Problem darf den Kunden NICHT blockieren — lieber buchen als abweisen.
+          console.error('[Idempotenz] Lock fehlgeschlagen (Rechnung), fahre ohne Lock fort:', e.message);
+          idemRedis = null;
+        }
+
         const from = `${date}T00:00:00Z`;
         const to   = `${date}T23:59:59Z`;
 
@@ -360,11 +391,14 @@ module.exports = async function handler(req, res) {
         });
 
         if (freeResourceIds.length === 0) {
+          // Slot nicht verfügbar — Lock lösen, damit ein echter Neuversuch möglich ist
+          if (idemRedis) await idemRedis.del(idemKey).catch(() => {});
           return res.status(409).json({ error: 'Dieser Slot ist leider nicht mehr verfügbar.' });
         }
 
         let bookingData = null;
         let lastError = null;
+        let uncertain = false;   // Bookla-Antwort unklar (5xx/Timeout) → Buchung evtl. doch angelegt
         for (const resourceId of freeResourceIds) {
           try {
             bookingData = await booklaFetch('/client/bookings', 'POST', {
@@ -378,10 +412,30 @@ module.exports = async function handler(req, res) {
               ...(promoCode && { code: promoCode }),
             }, apiKey);
             break;
-          } catch (e) { lastError = e; }
+          } catch (e) {
+            lastError = e;
+            // NUR bei eindeutigem 4xx ist sicher, dass NICHTS gebucht wurde → nächsten Slot versuchen.
+            // Bei 5xx / Timeout / Netzwerkfehler NICHT weiterbuchen (sonst Duplikat auf dem nächsten Slot).
+            const st = e && e.status;
+            if (st && st >= 400 && st < 500) continue;
+            uncertain = true;
+            break;
+          }
         }
 
-        if (!bookingData) throw lastError || new Error('Alle Slots belegt');
+        if (!bookingData) {
+          if (uncertain) {
+            // Lock NICHT lösen → blockt Retry-Duplikate für die TTL
+            console.error('[create-booking-invoice] Unklare Bookla-Antwort — kein Retry, Lock bleibt:',
+              lastError && lastError.status, lastError && lastError.message);
+            return res.status(202).json({
+              processing: true,
+              error: 'Deine Buchung wird verarbeitet. Solltest du keine Bestätigung per E-Mail erhalten, melde dich bitte kurz bei uns.',
+            });
+          }
+          if (idemRedis) await idemRedis.del(idemKey).catch(() => {});
+          throw lastError || new Error('Alle Slots belegt');
+        }
 
         // Rechnung generieren und verschicken
         const { buildInvoiceData } = require('./_lib/invoice-data');
@@ -404,21 +458,38 @@ module.exports = async function handler(req, res) {
           companyName, companyStreet, companyZip, companyCity, ustId,
         });
 
-        const pdfBuffer = await generateInvoicePDF(invoiceData);
+        const result = { ...bookingData, invoiceId: invoiceData.invoiceNumber };
 
-        // Email + Drive parallel — Drive-Fehler brechen Buchung nicht ab
-        const [emailResult, driveResult] = await Promise.allSettled([
-          sendInvoiceEmail({ to: email, invoiceNumber: invoiceData.invoiceNumber, pdfBuffer }),
-          uploadInvoiceToDrive(pdfBuffer, `${invoiceData.invoiceNumber}.pdf`),
-        ]);
-        if (driveResult.status === 'rejected') {
-          console.error('[Drive] Upload fehlgeschlagen:', driveResult.reason?.message);
-        }
-        if (emailResult.status === 'rejected') {
-          throw emailResult.reason;
+        // Buchung steht → Ergebnis SOFORT für Retries sichern (vor PDF/Mail)
+        if (idemRedis) {
+          await idemRedis.set(idemKey, JSON.stringify({ status: 'done', booking: result }), { ex: 180 }).catch(() => {});
         }
 
-        return res.status(201).json({ ...bookingData, invoiceId: invoiceData.invoiceNumber });
+        // Auftragsbestätigung: Ein Fehler hier darf die bereits angelegte Buchung NICHT als
+        // gescheitert melden — sonst versucht der Kunde es erneut und bucht doppelt.
+        try {
+          const pdfBuffer = await generateInvoicePDF(invoiceData);
+
+          // Email + Drive parallel — Drive-Fehler brechen Buchung nicht ab
+          const [emailResult, driveResult] = await Promise.allSettled([
+            sendInvoiceEmail({ to: email, invoiceNumber: invoiceData.invoiceNumber, pdfBuffer }),
+            uploadInvoiceToDrive(pdfBuffer, `${invoiceData.invoiceNumber}.pdf`),
+          ]);
+          if (driveResult.status === 'rejected') {
+            console.error('[Drive] Upload fehlgeschlagen:', driveResult.reason?.message);
+          }
+          if (emailResult.status === 'rejected') {
+            throw emailResult.reason;
+          }
+        } catch (e) {
+          console.error('[KRITISCH] Auftragsbestätigung nicht versendet — Buchung existiert:',
+            bookingData.id, email, e && e.message);
+          await sendConfirmationFailedAlert({ bookingId: bookingData.id, email, date, time, spots, companyName, reason: e && e.message })
+            .catch(err => console.error('[KRITISCH] Admin-Alert fehlgeschlagen:', err && err.message));
+          return res.status(201).json({ ...result, confirmationFailed: true });
+        }
+
+        return res.status(201).json(result);
       }
 
       // ─────────────────────────────────────────────
@@ -672,4 +743,31 @@ async function voidPaypalAuth(authorizationId) {
     throw new Error(`PayPal void failed: ${JSON.stringify(data)}`);
   }
   console.log('[PayPal] Authorization voided:', authorizationId);
+}
+
+// ─────────────────────────────────────────────
+// Admin-Alarm: Rechnungs-Buchung angelegt, aber Auftragsbestätigung nicht versendet
+// ─────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, ch => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
+
+async function sendConfirmationFailedAlert({ bookingId, email, date, time, spots, companyName, reason }) {
+  const { Resend } = require('resend');
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  await resend.emails.send({
+    from: process.env.INVOICE_FROM_EMAIL || 'games@turmx.de',
+    to: (process.env.INQUIRY_EMAIL || 'games@turmx.de').split(',').map(e => e.trim()),
+    subject: '⚠️ Auftragsbestätigung nicht versendet – Buchung auf Rechnung prüfen',
+    html: `
+      <p><strong>Eine Buchung auf Rechnung wurde angelegt, die Auftragsbestätigung konnte aber nicht versendet werden.</strong></p>
+      <p>Bookla-Buchung: ${escapeHtml(bookingId)}<br>
+      Kunde: ${escapeHtml(email)}${companyName ? ' · ' + escapeHtml(companyName) : ''}<br>
+      Termin: ${escapeHtml(date)} ${escapeHtml(time)} Uhr · ${escapeHtml(spots)} Personen<br>
+      Fehler: ${escapeHtml(reason)}</p>
+      <p>Bitte die Auftragsbestätigung manuell an den Kunden schicken.</p>
+    `,
+  });
 }

@@ -2465,10 +2465,20 @@ async function submitBookingInvoice(){
   };
   const r=await fetch(API+'?action=create-booking-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const booking=await r.json();
+  // Buchung läuft bereits (Duplikat) oder Ergebnis unklar → NICHT als Fehler behandeln (wie submitBooking)
+  if((r.status===202&&booking?.processing)||(r.status===409&&booking?.duplicate)){
+    showSuccess('Bestätigung folgt per E-Mail');
+    return;
+  }
   if(!r.ok)throw new Error(booking.error||'Buchung fehlgeschlagen');
   const ref=booking.id?'BKL-'+String(booking.id).slice(-6).toUpperCase():'GSH-'+Math.floor(100000+Math.random()*900000);
   dlPush({event:'purchase',ecommerce:{transaction_id:ref,value:getTotal(),currency:'EUR',payment_type:'invoice',items:[{item_id:S.eventKey,item_name:S.eventName,price:getTotal(),quantity:S.qty}]}});
   showSuccess(ref);
+  // Buchung steht, aber die Auftragsbestätigung ging nicht raus (Team ist informiert)
+  if(booking.confirmationFailed){
+    const note=document.querySelector('#successScreen p');
+    if(note)note.textContent='Deine Buchung ist eingegangen. Die Auftragsbestätigung schicken wir dir in Kürze separat per E-Mail.';
+  }
 }
 
 function showSuccess(ref){
