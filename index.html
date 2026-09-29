@@ -1347,7 +1347,10 @@ function startCountdown() {
   // ═══════════════════════════════════════════════════════
 // PROMO CODE
 // ═══════════════════════════════════════════════════════
-let promoState = { code: null, discountAmount: 0, newPrice: null };
+// def = Code-Definition aus Bookla (Typ + Wert). Der Rabattbetrag wird NICHT gespeichert,
+// sondern immer live aus def + aktuellem Preis berechnet (promoDiscount) — so bleibt er
+// nach Event-, Datums- oder Personenwechsel korrekt.
+let promoState = { code: null, def: null };
 
 // Rabatt (EUR) aus der Bookla-Code-Definition auf UNSEREN Basispreis anwenden.
 // percent → Prozentsatz vom Basispreis (ohne Extras), optional gedeckelt (maxDiscountCents)
@@ -1363,6 +1366,15 @@ function computePromoDiscount(d) {
     disc = d.discountValue / 100;
   }
   return Math.round(Math.min(disc, baseOnly) * 100) / 100;
+}
+
+// Aktueller Rabatt in EUR (0 ohne aktiven Code)
+function promoDiscount() {
+  return promoState.def ? computePromoDiscount(promoState.def) : 0;
+}
+
+function promoDefFrom(d) {
+  return { discountType: d.discountType, discountValue: d.discountValue, maxDiscountCents: d.maxDiscountCents };
 }
 
 async function applyPromo() {
@@ -1400,7 +1412,7 @@ async function applyPromo() {
     if (!r.ok || !d.canApply) {
       msg.className = 'promo-msg err';
       msg.textContent = '❌ Code ungültig oder nicht anwendbar.';
-      promoState = { code: null, discountAmount: 0, newPrice: null };
+      promoState = { code: null, def: null };
     } else {
       console.log('[Promo raw]', d);
       // Rabatt aus der Code-DEFINITION (Typ + Wert aus Bookla) in UNSERER
@@ -1410,16 +1422,11 @@ async function applyPromo() {
       if (discountEur <= 0) {
         msg.className = 'promo-msg err';
         msg.textContent = '❌ Für diesen Termin ergibt der Code keinen Rabatt.';
-        promoState = { code: null, discountAmount: 0, newPrice: null };
+        promoState = { code: null, def: null };
       } else {
-        const baseOnly = S.basePrice + S.pricePerPerson * S.qty;
-        promoState = {
-          code:           code,
-          discountAmount: discountEur,
-          newPrice:       Math.max(0, baseOnly - discountEur),
-        };
+        promoState = { code: code, def: promoDefFrom(d) };
         msg.className = 'promo-msg ok';
-        msg.textContent = '✓ Code angewendet! Du sparst ' + fmtEur(promoState.discountAmount) + '.';
+        msg.textContent = '✓ Code angewendet! Du sparst ' + fmtEur(promoDiscount()) + '.';
         input.disabled = true;
         btn.textContent = '✓';
         btn.style.background = 'var(--cheap)';
@@ -1435,7 +1442,7 @@ async function applyPromo() {
 }
 
 function resetPromo() {
-  promoState = { code: null, discountAmount: 0, newPrice: null };
+  promoState = { code: null, def: null };
   const input = $('promoInput');
   const btn   = $('promoBtn');
   if (input) { input.value = ''; input.disabled = false; }
@@ -1452,8 +1459,7 @@ function stopCountdown() {
   return S.eventKey === 'kinder' ? 7.90 : 12.90;
 }
   function getTotal() {
-  let base = S.basePrice + S.pricePerPerson * S.qty;
-  if (promoState && promoState.newPrice !== null) base = promoState.newPrice;
+  const base = S.basePrice + S.pricePerPerson * S.qty - promoDiscount();
   let extras = 0;
   if (S.drinksFlat) extras += getDrinksPrice() * S.qty;
   if (S.insurance) extras += 14.90;
@@ -1802,27 +1808,30 @@ function chgQty(d){
     plusBtn.onclick=()=>chgQty(1);
   }
   $('extra-drinks-price').textContent=getDrinksPrice().toFixed(2).replace('.',',')+'€ × '+S.qty;
+  updateSummary(); // Rabatt rechnet sich über promoDiscount() sofort mit der neuen Personenzahl
   if (promoState.code && S.dateStr && S.time) {
-    // Preis neu von Bookla holen mit aktuellem groupSize
+    // Gültigkeit des Codes für die neue Personenzahl bei Bookla prüfen
+    const code = promoState.code, qty = S.qty;
     fetch(API+'?action=validate-code', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({code:promoState.code, serviceId:SERVICE_ID, date:S.dateStr, time:S.time, groupSize:S.qty})
+      body: JSON.stringify({code, serviceId:SERVICE_ID, date:S.dateStr, time:S.time, groupSize:qty})
     })
-    .then(r=>r.json())
-    .then(d=>{
-      if (d.canApply) {
-        // Gleiche Rechnung wie applyPromo: Code-Definition auf UNSEREN Basispreis
-        const discountEur = computePromoDiscount(d);
-        const baseOnly = S.basePrice + S.pricePerPerson * S.qty;
-        promoState.discountAmount = discountEur;
-        promoState.newPrice = discountEur > 0 ? Math.max(0, baseOnly - discountEur) : null;
-        $('promoMsg').textContent = '✓ Code angewendet! Du sparst '+fmtEur(promoState.discountAmount)+'.';
+    .then(r=>r.json().then(d=>({r,d})))
+    .then(({r,d})=>{
+      if (promoState.code !== code || S.qty !== qty) return; // inzwischen geändert → neuere Prüfung zählt
+      const notApplicable = (r.ok && !d.canApply) || (r.status >= 400 && r.status < 500);
+      if (notApplicable) {
+        // Bookla lehnt den Code für diese Personenzahl ab → Rabatt entfernen statt veraltet weiterzurechnen
+        resetPromo();
+        $('promoMsg').className = 'promo-msg err';
+        $('promoMsg').textContent = '❌ Code gilt nicht für ' + qty + ' Personen.';
+      } else if (r.ok && d.canApply) {
+        promoState.def = promoDefFrom(d);
       }
+      // 5xx: Code bleibt aktiv, Rabatt rechnet mit bekannter Definition weiter
       updateSummary();
     })
     .catch(()=>updateSummary());
-  } else {
-    updateSummary();
   }
 }
 
@@ -1865,9 +1874,12 @@ function updateSummary(){
 
   // Promo discount
   const promoRow = $('side-promo-row');
-  if (promoState && promoState.discountAmount > 0) {
+  const promoEur = promoDiscount();
+  if (promoEur > 0) {
     promoRow.classList.add('show');
-    $('side-discount').textContent = '− ' + fmtEur(promoState.discountAmount);
+    $('side-discount').textContent = '− ' + fmtEur(promoEur);
+    const pm = $('promoMsg');
+    if (pm && pm.classList.contains('ok')) pm.textContent = '✓ Code angewendet! Du sparst ' + fmtEur(promoEur) + '.';
   } else {
     promoRow.classList.remove('show');
   }
@@ -2369,7 +2381,7 @@ function buildBookingNotes(payMethod){
     'Event: '+S.eventName,
     'Personen: '+S.qty+(pricePerP?' ('+pricePerP+')':''),
     'Gesamtpreis: '+getTotal().toFixed(2).replace('.',',')+' EUR',
-    promoState.code?'Rabatt-Code: '+promoState.code+' (−'+promoState.discountAmount.toFixed(2).replace('.',',')+'€)':null,
+    promoState.code?'Rabatt-Code: '+promoState.code+' (−'+promoDiscount().toFixed(2).replace('.',',')+'€)':null,
     'Getränkeflat: '+(S.drinksFlat?'Ja ('+S.qty+' × '+getDrinksPrice().toFixed(2).replace('.',',')+'€)':'Nein'),
     'Versicherung: '+(S.insurance?'Ja (14,90€)':'Nein'),
     'Freefall Mutprobe: '+(S.freefall?'Ja (30,00€)':'Nein'),
@@ -2430,7 +2442,7 @@ async function submitBookingInvoice(){
     email:$('email')?.value?.trim(),phone:$('phone')?.value?.trim()||null,
     serviceName:S.eventName,amount:getTotal(),notes:buildBookingNotes('invoice'),
     drinksFlat:S.drinksFlat,insurance:S.insurance,
-    baseAmount:promoState.newPrice!==null?promoState.newPrice:S.basePrice+S.pricePerPerson*S.qty,
+    baseAmount:S.basePrice+S.pricePerPerson*S.qty-promoDiscount(),
     companyName:$('company')?.value?.trim()||null,
     companyStreet:$('companyStreet')?.value?.trim()||null,
     companyZip:$('companyZip')?.value?.trim()||null,
