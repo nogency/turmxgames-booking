@@ -21,7 +21,7 @@
       tripadvisor: { rating: 4.8, count: 46, label: 'Bewertungen' },
     },
     payLogos: [
-      ['pay-visa.svg', 'Visa'], ['pay-master.svg', 'Mastercard'], ['pay-paypal.svg', 'PayPal'],
+      ['pay-visa.svg', 'Visa'], ['pay-master.svg', 'Mastercard'], ['pay-american_express.svg', 'American Express'], ['pay-paypal.svg', 'PayPal'],
       ['pay-apple_pay.svg', 'Apple Pay'], ['pay-google_pay.svg', 'Google Pay'], ['pay-sepadirectdebit.svg', 'SEPA-Lastschrift'],
     ],
   };
