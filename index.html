@@ -78,9 +78,15 @@ h1:focus,h1:focus-visible,h2:focus-visible{box-shadow:none}
 .icon-btn{width:44px;height:44px;display:grid;place-items:center;border:0;background:transparent;border-radius:var(--r-control);font-size:22px;color:var(--text);text-decoration:none}
 .icon-btn:active{background:var(--surface-2)}
 .icon-btn.is-hidden{visibility:hidden}
-.progress{max-width:1120px;margin:0 auto;padding:0 16px 10px}
+.progress{max-width:1120px;margin:0 auto;padding:0 16px 4px}
 .progress ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.progress li{display:grid;gap:6px}
+.progress li{display:grid}
+/* Klickbare Schritte: Trefferfläche 44px hoch, optisch schmal */
+.pstep{position:relative;display:grid;gap:6px;width:100%;min-height:36px;padding:4px 0 8px;background:none;border:0;text-align:left;color:inherit;cursor:pointer}
+.pstep::before{content:"";position:absolute;inset:-4px 0 -4px 0}
+.pstep:disabled{cursor:default}
+.pstep:not(:disabled):hover .lbl{color:var(--text);text-decoration:underline;text-underline-offset:3px}
+.pstep:focus-visible{box-shadow:var(--focus)}
 .progress .seg{height:3px;border-radius:2px;background:var(--surface-3);overflow:hidden}
 .progress .seg::after{content:"";display:block;height:100%;width:0;background:var(--accent);transition:width .35s var(--ease)}
 .progress li.done .seg::after,.progress li.now .seg::after{width:100%}
@@ -98,8 +104,22 @@ h1:focus,h1:focus-visible,h2:focus-visible{box-shadow:none}
 h1{font:400 40px/.95 var(--font-display);letter-spacing:.5px;margin:0 0 10px;text-wrap:balance}
 h2{font-size:18px;font-weight:600;margin:0 0 12px;letter-spacing:-.01em}
 .lead{color:var(--text-2);margin:0 0 20px;max-width:46ch}
-.rating{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--text-2);margin:-8px 0 20px}
-.rating i{color:#e7a918;font-size:15px}
+.rating{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2);margin:-8px 0 20px}
+.rating b{color:var(--text);font-weight:700;font-size:15px}
+.stars{display:inline-flex;gap:1px;color:#e7a918;font-size:15px}
+
+/* ── Saison: Weihnachtsfeier (Lichterkette an der Firmen-Karte) ──
+   Farben der Lichter bewusst festlich; Badge-Radius 8px (Ausnahme zur Radius-Regel, nur Badges). */
+.opt.xmas{margin-top:12px;border-color:rgba(63,158,90,.5)}
+.garland{position:absolute;left:12px;right:12px;top:-9px;height:16px;color:#2f5d3a;pointer-events:none}
+[data-theme="dark"] .garland{color:#5c8c66}
+.garland svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.bulb{position:absolute;top:7px;width:7px;height:11px;margin-left:-3.5px;border-radius:50% 50% 50% 50%/40% 40% 60% 60%;background:var(--c);box-shadow:0 0 7px 1px color-mix(in srgb,var(--c) 65%,transparent);animation:twinkle 2.6s ease-in-out var(--d) infinite}
+.bulb::before{content:"";position:absolute;top:-3px;left:1.5px;width:4px;height:4px;border-radius:1px;background:#3b3b3b}
+@keyframes twinkle{0%,100%{opacity:1}50%{opacity:.4}}
+.xmas-tag{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;background:rgba(63,158,90,.14);color:#2f7a45}
+[data-theme="dark"] .xmas-tag{color:#8fd4a4}
+.xmas-tag i{font-size:15px}
 .block{margin-top:28px}
 #slotBlock{scroll-margin-top:120px}
 .hint{font-size:14px;color:var(--text-2);margin:0 0 14px;display:flex;gap:8px;align-items:flex-start}
@@ -367,10 +387,10 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
   </div>
   <nav class="progress" aria-label="Buchungsschritte">
     <ol>
-      <li data-p="1"><span class="seg"></span><span class="lbl">Event</span></li>
-      <li data-p="2"><span class="seg"></span><span class="lbl">Termin</span></li>
-      <li data-p="3"><span class="seg"></span><span class="lbl">Gruppe</span></li>
-      <li data-p="4"><span class="seg"></span><span class="lbl">Buchen</span></li>
+      <li data-p="1"><button class="pstep" type="button" data-p="1"><span class="seg"></span><span class="lbl">Event</span></button></li>
+      <li data-p="2"><button class="pstep" type="button" data-p="2"><span class="seg"></span><span class="lbl">Termin</span></button></li>
+      <li data-p="3"><button class="pstep" type="button" data-p="3"><span class="seg"></span><span class="lbl">Gruppe</span></button></li>
+      <li data-p="4"><button class="pstep" type="button" data-p="4"><span class="seg"></span><span class="lbl">Buchen</span></button></li>
     </ol>
   </nav>
 </header>
@@ -382,7 +402,7 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
     <section class="step" data-step="1" aria-labelledby="h1-1">
       <h1 id="h1-1" tabindex="-1">Was plant ihr?</h1>
       <p class="lead">Wählt euer Event. Den Termin sucht ihr im nächsten Schritt aus.</p>
-      <p class="rating"><i class="ph-fill ph-star"></i> 4,9 bei Google</p>
+      <p class="rating" aria-label="5,0 von 5 Sternen bei Google, 204 Rezensionen"><b>5,0</b><span class="stars" aria-hidden="true"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span><span aria-hidden="true">204 Rezensionen bei Google</span></p>
       <div class="opts" id="eventOpts" role="radiogroup" aria-label="Eventart"></div>
       <p class="err" id="err-1" role="alert"><i class="ph ph-warning-circle"></i> Bitte wählt ein Event.</p>
 
@@ -557,7 +577,7 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
     <div class="card" id="sideCard"></div>
     <button class="btn btn-primary" type="button" data-cta></button>
     <div class="trust">
-      <p><i class="ph-fill ph-star" style="color:#e7a918"></i>4,9 bei Google</p>
+      <p><i class="ph-fill ph-star" style="color:#e7a918"></i>5,0 bei Google, 204 Rezensionen</p>
       <p><i class="ph ph-arrows-clockwise"></i>Kostenlos stornierbar bis 14 Tage vorher</p>
       <p><i class="ph ph-lock-simple"></i>Sichere Zahlung über Stripe und PayPal</p>
     </div>
@@ -738,6 +758,18 @@ const minPP = ev => ev === 'schule' ? 25 : ev === 'kinder' ? KINDER.weekday : ev
 const drinksPrice = () => S.event === 'kinder' ? 7.9 : 12.9;
 const PROMOS = { TURMX10: { type: 'percent', value: 10 }, 'GS-TEST-2026': { type: 'amount', value: 50 } };  // nur Prototyp
 const GIFT = { min: 10, max: 500, shipping: 2.95, presets: [25, 50, 100, 150] };
+// Saison Weihnachtsfeier. Produktion: automatisch per Datum (z. B. 1.10. bis 22.12.).
+// Prototyp: immer an, abschaltbar mit ?xmas=0
+const XMAS = new URLSearchParams(location.search).get('xmas') !== '0';
+function garlandHtml(n = 9) {
+  // Lichterkette: Draht in Bögen, je eine Birne am Tiefpunkt
+  const seg = 100 / n;
+  let d = 'M0,3';
+  for (let i = 0; i < n; i++) d += ` Q${(i + .5) * seg},13 ${(i + 1) * seg},3`;
+  const colors = ['#e0463a', '#f2c14e', '#fff1cc', '#3f9e5a'];
+  const bulbs = Array.from({ length: n }, (_, i) => `<span class="bulb" style="left:${(i + .5) * seg}%;--c:${colors[i % colors.length]};--d:${((i * .47) % 2).toFixed(2)}s"></span>`).join('');
+  return `<span class="garland" aria-hidden="true"><svg viewBox="0 0 100 16" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>${bulbs}</span>`;
+}
 
 // ═══════════════════════════════════════════════════════
 // Zustand + Helfer
@@ -801,10 +833,12 @@ function renderEvents() {
   $('#eventOpts').innerHTML = Object.entries(EVENTS).map(([k, e]) => {
     const fixed = k === 'firma' || k === 'schule';
     const baseTxt = e.base ? `+ ${e.base} € Grundgebühr` : 'Keine Grundgebühr';
-    return `<label class="opt">
-      <input type="radio" name="event" value="${k}" ${S.event === k ? 'checked' : ''} aria-label="${e.name}, ${fixed ? '' : 'ab '}${minPP(k)} Euro ${e.unit || 'pro Person'}">
+    const xmas = XMAS && k === 'firma';
+    return `<label class="opt${xmas ? ' xmas' : ''}">
+      ${xmas ? garlandHtml() : ''}
+      <input type="radio" name="event" value="${k}" ${S.event === k ? 'checked' : ''} aria-label="${e.name}, ${fixed ? '' : 'ab '}${minPP(k)} Euro ${e.unit || 'pro Person'}${xmas ? ', ideal für eure Weihnachtsfeier' : ''}">
       <span class="opt-ico"><i class="ph ${e.icon}"></i></span>
-      <span><span class="opt-name">${e.name}</span><span class="opt-meta">${e.meta}<br>${baseTxt}</span></span>
+      <span><span class="opt-name">${e.name}</span><span class="opt-meta">${e.meta}<br>${baseTxt}</span>${xmas ? '<span class="xmas-tag"><i class="ph ph-tree-evergreen"></i>Ideal für eure Weihnachtsfeier</span>' : ''}</span>
       <span class="opt-price"><span>${fixed ? '' : 'ab'}</span><b class="num">${minPP(k)} €</b><span>${e.unit || 'pro Person'}</span></span>
     </label>`;
   }).join('');
@@ -822,8 +856,8 @@ function renderEvents() {
 // Schritt 2
 // ═══════════════════════════════════════════════════════
 function renderDayHint() {
-  const txt = { jga: 'Montag bis Donnerstag nur 28 € statt 35 € pro Person.', friends: 'Montag bis Donnerstag nur 28 € statt 35 € pro Person.', kinder: 'Montag bis Freitag 24 €, am Wochenende 30 € pro Kind.' }[S.event];
-  const h = $('#dayHint'); h.hidden = !txt; h.innerHTML = txt ? `<i class="ph ph-tag"></i><span>${txt}</span>` : '';
+  const txt = { jga: 'Montag bis Donnerstag nur 28 € statt 35 € pro Person.', friends: 'Montag bis Donnerstag nur 28 € statt 35 € pro Person.', kinder: 'Montag bis Freitag 24 €, am Wochenende 30 € pro Kind.', firma: XMAS ? 'Weihnachtsfeier geplant? Termine im Dezember am besten früh sichern.' : '' }[S.event];
+  const h = $('#dayHint'); h.hidden = !txt; h.innerHTML = txt ? `<i class="ph ${S.event === 'firma' ? 'ph-tree-evergreen' : 'ph-tag'}"></i><span>${txt}</span>` : '';
 }
 function renderCal() {
   const y = S.calY, m = S.calM;
@@ -1035,8 +1069,23 @@ function showDone() {
   $('#doneStorno').textContent = stornoText();
   go(5);
 }
+// Welche Schritte sind über die Fortschrittsleiste erreichbar? Nur solche mit vollständigen Vorgaben.
+function canGo(n) {
+  if (S.step === 5) return false;
+  if (n === 1) return true;
+  if (n === 2) return !!S.event;
+  if (n === 3) return !!(S.event && S.date && S.time);
+  if (n === 4) return !!(S.event && S.date && S.time && S.qtySeen);
+  return false;
+}
 function update() {
-  $$('.progress li').forEach(li => { const p = +li.dataset.p; li.classList.toggle('done', p < S.step); li.classList.toggle('now', p === S.step); if (p === S.step) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current'); });
+  $$('.progress li').forEach(li => {
+    const p = +li.dataset.p, b = li.querySelector('.pstep');
+    li.classList.toggle('done', p < S.step); li.classList.toggle('now', p === S.step);
+    b.disabled = !canGo(p);
+    if (p === S.step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+    b.setAttribute('aria-label', `Schritt ${p}: ${b.textContent.trim()}${p < S.step ? ' (erledigt)' : ''}`);
+  });
   const noBack = S.step === 1 || S.step === 5;
   $('#backBtn').classList.toggle('is-hidden', noBack); $('#backBtn').tabIndex = noBack ? -1 : 0;
   // Kontext-Chips
@@ -1164,6 +1213,7 @@ $$('[data-theme-btn]').forEach(b => b.addEventListener('click', () => setTheme(b
 // Verdrahtung + Start
 // ═══════════════════════════════════════════════════════
 $$('[data-cta]').forEach(b => b.addEventListener('click', next));
+$$('.pstep').forEach(b => b.addEventListener('click', () => { const p = +b.dataset.p; if (canGo(p) && p !== S.step) go(p); }));
 $('#backBtn').addEventListener('click', () => history.back());
 $('#barPrice').addEventListener('click', () => { if (S.qtySeen) openSheet('price'); });
 $('#calPrev').addEventListener('click', () => { S.calM--; if (S.calM < 0) { S.calM = 11; S.calY--; } renderCal(); });
