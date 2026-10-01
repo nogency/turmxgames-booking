@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de" data-theme="dark">
+<html lang="de" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#121212">
+<meta name="theme-color" content="#f3f3f1">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="favicon.png">
 <title>Jetzt buchen - TurmX Games (Prototyp)</title>
@@ -79,7 +79,12 @@ h1:focus,h1:focus-visible,h2:focus-visible{box-shadow:none}
 .icon-btn:active{background:var(--surface-2)}
 .icon-btn.is-hidden{visibility:hidden}
 .progress{max-width:1120px;margin:0 auto;padding:0 16px 4px}
-.progress ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.progress ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.hold{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:14px;color:var(--text-2);border-top:1px solid var(--line)}
+.hold i{font-size:18px;color:var(--accent-text)}
+.hold b{margin-left:auto;font-size:15px;color:var(--text);font-weight:700}
+.hold.urgent{color:var(--accent-text)}
+.hold.urgent b{color:var(--accent-text)}
 .progress li{display:grid}
 /* Klickbare Schritte: Trefferfläche 44px hoch, optisch schmal */
 .pstep{position:relative;display:grid;gap:6px;width:100%;min-height:36px;padding:4px 0 8px;background:none;border:0;text-align:left;color:inherit;cursor:pointer}
@@ -390,9 +395,16 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
       <li data-p="1"><button class="pstep" type="button" data-p="1"><span class="seg"></span><span class="lbl">Event</span></button></li>
       <li data-p="2"><button class="pstep" type="button" data-p="2"><span class="seg"></span><span class="lbl">Termin</span></button></li>
       <li data-p="3"><button class="pstep" type="button" data-p="3"><span class="seg"></span><span class="lbl">Gruppe</span></button></li>
-      <li data-p="4"><button class="pstep" type="button" data-p="4"><span class="seg"></span><span class="lbl">Buchen</span></button></li>
+      <li data-p="4"><button class="pstep" type="button" data-p="4"><span class="seg"></span><span class="lbl">Daten</span></button></li>
+      <li data-p="5"><button class="pstep" type="button" data-p="5"><span class="seg"></span><span class="lbl">Zahlung</span></button></li>
     </ol>
   </nav>
+  <!-- Reservierung: läuft ab Wahl der Uhrzeit. Produktion: echter Halt als "pending"-Buchung in Bookla. -->
+  <div class="hold" id="hold" hidden role="timer" aria-live="off">
+    <i class="ph ph-timer"></i>
+    <span id="holdText">Euer Termin ist reserviert</span>
+    <b class="num" id="holdTime">10:00</b>
+  </div>
 </header>
 
 <main class="layout">
@@ -477,22 +489,11 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
       </div>
     </section>
 
-    <!-- ── 4. BUCHEN ── -->
+    <!-- ── 4. DATEN ── -->
     <section class="step" data-step="4" aria-labelledby="h1-4">
-      <h1 id="h1-4" tabindex="-1">Fast geschafft</h1>
-      <div class="card" id="summaryCard"></div>
-
-      <div class="block">
-        <h2>Schnell bezahlen</h2>
-        <div class="express">
-          <button class="btn-wallet" type="button" id="walletBtn" data-express></button>
-          <button class="btn-paypal" type="button" data-express="PayPal">PayPal</button>
-        </div>
-        <p class="help" id="walletHelp"></p>
-      </div>
-
-      <div class="or">oder mit Karte, Lastschrift oder Rechnung</div>
-
+      <div class="chips" data-chips></div>
+      <h1 id="h1-4" tabindex="-1">Eure Daten</h1>
+      <p class="lead">Damit wir euch die Bestätigung schicken und bei Fragen erreichen können.</p>
       <form id="form" novalidate>
         <fieldset class="fields">
           <legend>Eure Kontaktdaten</legend>
@@ -530,8 +531,27 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
             <textarea class="input" id="wish" placeholder="z. B. Motto, Überraschung, Allergien"></textarea>
           </div>
         </div>
+      </form>
+    </section>
 
-        <fieldset class="block">
+    <!-- ── 5. ZAHLUNG ── -->
+    <section class="step" data-step="5" aria-labelledby="h1-5">
+      <div class="note" id="fcBanner" hidden style="margin-bottom:16px"><i class="ph ph-seal-check"></i><span><b>Persönliche Buchung, vorbereitet von TurmX Games.</b> Prüft die Angaben und bezahlt direkt.</span></div>
+      <h1 id="h1-5" tabindex="-1">Prüfen und bezahlen</h1>
+      <div class="card" id="summaryCard"></div>
+
+      <div class="block">
+        <h2>Schnell bezahlen</h2>
+        <div class="express">
+          <button class="btn-wallet" type="button" id="walletBtn" data-express></button>
+          <button class="btn-paypal" type="button" data-express="PayPal">PayPal</button>
+        </div>
+      </div>
+
+      <div class="or">oder</div>
+
+      <div>
+        <fieldset>
           <legend>Zahlungsart</legend>
           <div class="pay" id="pay">
             <div class="pay-opt">
@@ -550,13 +570,13 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
         </fieldset>
 
         <p class="legal">Mit Klick auf <b>Zahlungspflichtig buchen</b> akzeptierst du unsere <button class="link" type="button" data-sheet="agb">AGB</button>. <span id="stornoLine"></span></p>
-      </form>
+      </div>
     </section>
 
     <!-- ── ERFOLG ── -->
-    <section class="step" data-step="5" aria-labelledby="h1-5">
+    <section class="step" data-step="6" aria-labelledby="h1-6">
       <div class="done-ico"><i class="ph ph-check"></i></div>
-      <h1 id="h1-5" tabindex="-1">Eure Show ist gebucht</h1>
+      <h1 id="h1-6" tabindex="-1">Eure Show ist gebucht</h1>
       <p class="ref">Buchungsnummer <b id="doneRef"></b></p>
       <p class="lead" id="doneLead"></p>
       <div class="card" id="doneCard"></div>
@@ -623,6 +643,19 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
     <p>Mit Einweisung, Gurt und Helm. Dazu Fotos und Videos vom Sprung.</p>
     <p><b>30 € einmalig</b>, nur zum JGA buchbar.</p>
     <button class="btn btn-primary btn-block" type="button" id="ffAdd">Mutprobe hinzufügen</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-expired" role="dialog" aria-modal="true" aria-labelledby="se-h">
+  <div class="scrim"></div>
+  <div class="panel"><div class="grab"></div>
+    <div class="panel-head"><h2 id="se-h">Reservierung abgelaufen</h2><button class="icon-btn" type="button" data-close aria-label="Schließen"><i class="ph ph-x"></i></button></div>
+    <p id="expiredText"></p>
+    <p>Eure Angaben bleiben erhalten.</p>
+    <div class="express">
+      <button class="btn btn-primary btn-block" type="button" id="reHold">Termin erneut reservieren</button>
+      <button class="btn btn-secondary btn-block" type="button" id="otherSlot">Anderen Termin wählen</button>
+    </div>
   </div>
 </div>
 
@@ -774,7 +807,7 @@ function garlandHtml(n = 9) {
 // ═══════════════════════════════════════════════════════
 // Zustand + Helfer
 // ═══════════════════════════════════════════════════════
-const S = { step: 1, event: null, orgType: 'schule', date: null, time: null, qty: 8, qtySeen: false, age: null,
+const S = { step: 1, event: null, orgType: 'schule', date: null, time: null, qty: 8, qtySeen: false, age: null, detailsOk: false, fc: false,
   extras: { drinks: false, insurance: false, freefall: false }, promo: null, promoCode: '', calY: 0, calM: 0 };
 const G = { type: 'digital', amount: 50 };
 const DOODLE = new Set();
@@ -881,7 +914,7 @@ function renderCal() {
   $$('#calGrid .day:not(:disabled)').forEach(b => b.addEventListener('click', () => pickDate(new Date(y, m, +b.dataset.d))));
 }
 function pickDate(dt) {
-  S.date = dt; S.time = null;
+  S.date = dt; S.time = null; stopHold();
   $('#err-2d').classList.remove('show');
   renderCal(); update();
   const block = $('#slotBlock'); block.hidden = false;
@@ -898,7 +931,13 @@ function renderSlots() {
     return `<button type="button" class="slot" data-t="${s.t}" aria-pressed="${S.time === s.t}" ${booked ? 'disabled' : ''} aria-label="${s.t} Uhr, ${st}">
       <span class="t num">${s.t}</span><span class="s${s.status === 'last' ? ' last' : ''}">${st}</span></button>`;
   }).join('');
-  $$('#slots .slot:not(:disabled)').forEach(b => b.addEventListener('click', () => { S.time = b.dataset.t; $('#err-2t').classList.remove('show'); renderSlots(); update(); }));
+  $$('#slots .slot:not(:disabled)').forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.t;
+    S.time = t; $('#err-2t').classList.remove('show'); renderSlots(); update();
+    startHold();   // Termin ab jetzt für euch reserviert
+    // Uhrzeit gewählt → direkt weiter (kurz stehen lassen, damit die Auswahl sichtbar ist)
+    setTimeout(() => { if (S.step === 2 && S.time === t) go(3); }, reduceMotion ? 0 : 350);
+  }));
 }
 
 // ═══════════════════════════════════════════════════════
@@ -944,12 +983,16 @@ function priceRowsHtml(q) {
 function summaryHtml(withEdit) {
   const q = quote(); if (!q) return '<p class="small" style="margin:0">Noch nichts ausgewählt.</p>';
   const ex = [S.extras.drinks && 'Getränkeflat', S.extras.insurance && 'Flex-Versicherung', S.extras.freefall && S.event === 'jga' && 'Freefall-Mutprobe'].filter(Boolean);
-  const row = (k, v, step) => `<div class="sum-row"><div><div class="sum-k">${k}</div><div class="sum-v">${v}</div></div>${withEdit && step ? `<button class="link" type="button" data-go="${step}">Ändern</button>` : ''}</div>`;
+  const edit = withEdit && !S.fc;   // Admin-Link: vorbereitete Angaben sind gesperrt
+  const row = (k, v, step) => `<div class="sum-row"><div><div class="sum-k">${k}</div><div class="sum-v">${v}</div></div>${edit && step ? `<button class="link" type="button" data-go="${step}">Ändern</button>` : ''}</div>`;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const contact = S.detailsOk ? [`${$('#fn').value} ${$('#ln').value}`.trim(), $('#em').value, $('#org').value && (S.event === 'firma' || S.event === 'schule') ? $('#org').value : ''].filter(Boolean).map(esc).join('<br>') : '';
   return `<div class="sum-rows">
       ${row('Event', eventName() + (S.age ? `, ${S.age} Jahre` : ''), 1)}
       ${row('Termin', S.date ? `${fmtDateShort(S.date)} ${S.time ? 'um ' + S.time + ' Uhr' : ''}` : 'noch offen', 2)}
       ${row(S.event === 'kinder' ? 'Kinder' : 'Personen', S.qtySeen ? String(S.qty) : 'noch offen', 3)}
       ${ex.length ? row('Extras', ex.join(', '), 3) : ''}
+      ${contact ? row('Kontakt', contact, 4) : ''}
     </div>
     ${S.qtySeen ? `<div class="price-rows">${priceRowsHtml(q)}</div>` : ''}`;
 }
@@ -985,6 +1028,9 @@ function renderOrg() {
   $('#vatField').hidden = isSchool;
   $('#proofNote').hidden = !isSchool;
   $$('[data-org]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.org === S.orgType)));
+}
+function renderPay() {
+  const needs = S.event === 'firma' || S.event === 'schule';
   const inv = $('#payInvoice'), inp = inv.querySelector('input');
   inp.disabled = !needs; inv.classList.toggle('disabled', !needs);
   $('#invoiceSub').textContent = needs ? 'Zahlbar nach dem Event' : 'Nur für Firmen, Schulen und Vereine';
@@ -992,25 +1038,25 @@ function renderOrg() {
   // Wallet: Apple Pay auf iOS/Mac, Google Pay auf Android (Stripe zeigt später automatisch das passende)
   $('#walletBtn').innerHTML = isAndroid ? 'Google Pay' : '<i class="ph-fill ph-apple-logo"></i>Pay';
   $('#walletBtn').dataset.express = isAndroid ? 'Google Pay' : 'Apple Pay';
-  $('#walletHelp').textContent = needs ? `Die ${isSchool ? 'Adresse der Schule oder des Vereins' : 'Firmenadresse'} tragt ihr bitte unten ein.` : `Name, E-Mail und Telefon übernehmen wir aus ${isAndroid ? 'Google Pay' : 'Apple Pay'} oder PayPal.`;
 }
-function validate(sels) {
+// silent = nur prüfen, nichts markieren (z. B. vor dem Bezahlen)
+function validate(sels, silent) {
   let first = null;
   sels.forEach(([sel, test]) => {
     const el = $(sel); const v = el.value.trim();
     const ok = test ? test(v) : !!v;
-    el.setAttribute('aria-invalid', String(!ok));
-    el.closest('.field').classList.toggle('invalid', !ok);
+    if (!silent) { el.setAttribute('aria-invalid', String(!ok)); el.closest('.field').classList.toggle('invalid', !ok); }
     if (!ok && !first) first = el;
   });
-  if (first) { first.focus(); first.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' }); }
+  if (first && !silent) { first.focus(); first.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' }); }
   return !first;
 }
 const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-function validateForm() {
+function validateForm(silent) {
   const req = [['#fn'], ['#ln'], ['#em', isEmail], ['#ph', v => (v.match(/\d/g) || []).length >= 6]];
-  if (!$('#orgFields').hidden) req.push(['#org'], ['#street'], ['#zip'], ['#city']);
-  return validate(req);
+  // Pflichtfelder hängen an der Eventart, nicht daran, was gerade sichtbar ist
+  if (S.event === 'firma' || S.event === 'schule') req.push(['#org'], ['#street'], ['#zip'], ['#city']);
+  return validate(req, silent);
 }
 // Prüfen nach Verlassen des Feldes (nicht bei jedem Tastendruck)
 document.addEventListener('focusout', e => {
@@ -1023,17 +1069,20 @@ document.addEventListener('focusout', e => {
 // ═══════════════════════════════════════════════════════
 // Navigation, Leiste, Erfolg
 // ═══════════════════════════════════════════════════════
-const CTA = { 1: 'Weiter', 2: 'Weiter', 3: 'Weiter', 4: 'Zahlungspflichtig buchen' };
+const DONE = 6;
+const CTA = { 1: 'Weiter', 2: 'Weiter', 3: 'Weiter', 4: 'Weiter zur Zahlung', 5: 'Zahlungspflichtig buchen' };
+const HASH = ['', 'event', 'termin', 'gruppe', 'daten', 'zahlung', 'fertig'];
 function go(n, fromHistory) {
   const back = n < S.step;
   if (n >= 3) S.qtySeen = true;
   S.step = n;
   $$('.step').forEach(s => { const on = +s.dataset.step === n; s.classList.toggle('is-active', on); s.classList.toggle('is-back', on && back); });
-  if (!fromHistory) history.pushState({ step: n }, '', `#${['', 'event', 'termin', 'gruppe', 'buchen', 'fertig'][n]}`);
+  if (!fromHistory) history.pushState({ step: n }, '', `#${HASH[n]}`);
   window.scrollTo({ top: 0, behavior: 'auto' });
   if (n === 2) { renderDayHint(); renderCal(); if (S.date) { $('#slotBlock').hidden = false; renderSlots(); } }
   if (n === 3) { renderQty(); renderExtras(); }
   if (n === 4) renderOrg();
+  if (n === 5) renderPay();
   update();
   const h = $(`#h1-${n}`); if (h) h.focus({ preventScroll: true });
 }
@@ -1045,14 +1094,54 @@ function next() {
     go(3);
   }
   else if (S.step === 3) go(4);
-  else if (S.step === 4) submit();
+  else if (S.step === 4) { if (validateForm()) { S.detailsOk = true; go(5); } }
+  else if (S.step === 5) submit();
 }
 function busy(btns, label) { btns.forEach(b => { b.setAttribute('aria-busy', 'true'); b.innerHTML = `<span class="spin"></span> ${label}`; }); }
 function submit() {
-  if (!validateForm()) return;
+  if (holdEnd && Date.now() >= holdEnd) { onHoldExpired(); return; }
+  // Daten fehlen (z. B. nachträglich geleert) → zurück zu Schritt 4 und dort markieren
+  if (!validateForm(true)) { go(4); setTimeout(() => validateForm(), 50); return; }
   busy($$('[data-cta]'), 'Wird gebucht');
   setTimeout(() => { $$('[data-cta]').forEach(b => b.removeAttribute('aria-busy')); showDone(); }, reduceMotion ? 200 : 1400);
 }
+
+// ═══════════════════════════════════════════════════════
+// Reservierung mit Countdown (ab Wahl der Uhrzeit)
+// Produktion: Termin wird als "pending" in Bookla gehalten und bei Ablauf freigegeben.
+// Prototyp: ?reserve=20 verkürzt die Zeit zum Testen auf 20 Sekunden.
+// ═══════════════════════════════════════════════════════
+const HOLD_SECONDS = +(new URLSearchParams(location.search).get('reserve') || 600);
+let holdEnd = 0, holdTimer = null;
+function startHold() {
+  holdEnd = Date.now() + HOLD_SECONDS * 1000;
+  clearInterval(holdTimer); holdTimer = setInterval(tickHold, 1000); tickHold();
+}
+function stopHold() { clearInterval(holdTimer); holdTimer = null; holdEnd = 0; $('#hold').hidden = true; }
+function tickHold() {
+  if (!holdEnd) return;
+  const left = Math.max(0, Math.ceil((holdEnd - Date.now()) / 1000));
+  $('#hold').hidden = false;
+  $('#holdTime').textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
+  $('#holdText').textContent = left ? `${fmtDateShort(S.date)}, ${S.time} Uhr ist für euch reserviert` : 'Reservierung abgelaufen';
+  $('#hold').classList.toggle('urgent', left <= 120);
+  if (!left) { clearInterval(holdTimer); holdTimer = null; onHoldExpired(); }
+}
+function onHoldExpired() {
+  $('#expiredText').textContent = `${fmtDateLong(S.date)} um ${S.time} Uhr war ${Math.round(HOLD_SECONDS / 60) || 1} Minuten für euch reserviert. Wir prüfen gern, ob der Termin noch frei ist.`;
+  openSheet('expired');
+}
+$('#reHold').addEventListener('click', e => {
+  const b = e.currentTarget; busy([b], 'Wird geprüft');
+  setTimeout(() => {
+    b.removeAttribute('aria-busy'); b.textContent = 'Termin erneut reservieren';
+    closeSheet($('#sheet-expired'));
+    const still = slotsFor(S.date).find(s => s.t === S.time && s.status !== 'booked');
+    if (still) startHold();
+    else { S.time = null; stopHold(); go(2); }
+  }, reduceMotion ? 100 : 700);
+});
+$('#otherSlot').addEventListener('click', () => { closeSheet($('#sheet-expired')); S.time = null; stopHold(); go(2); });
 const randRef = p => p + Math.random().toString(16).slice(2, 8).toUpperCase();
 // Stornofrist laut AGB: bis 14 Tage vorher kostenlos. Kurzfristige Termine ehrlich kennzeichnen.
 function stornoText() {
@@ -1063,19 +1152,22 @@ function stornoText() {
     : 'Der Termin ist in weniger als 14 Tagen. Eine Stornierung ist deshalb nur gegen Gebühr möglich (siehe AGB).';
 }
 function showDone() {
+  stopHold();
   $('#doneRef').textContent = randRef('BKL-');
   $('#doneLead').textContent = `Die Bestätigung ist unterwegs an ${$('#em').value.trim()}.`;
   $('#doneCard').innerHTML = summaryHtml(false);
   $('#doneStorno').textContent = stornoText();
-  go(5);
+  go(DONE);
 }
 // Welche Schritte sind über die Fortschrittsleiste erreichbar? Nur solche mit vollständigen Vorgaben.
 function canGo(n) {
-  if (S.step === 5) return false;
+  if (S.step === DONE) return false;
+  if (S.fc) return n === 5;   // Admin-Link: alles ist vorbereitet, nur noch bezahlen
   if (n === 1) return true;
   if (n === 2) return !!S.event;
   if (n === 3) return !!(S.event && S.date && S.time);
   if (n === 4) return !!(S.event && S.date && S.time && S.qtySeen);
+  if (n === 5) return canGo(4) && !!S.detailsOk;
   return false;
 }
 function update() {
@@ -1086,8 +1178,9 @@ function update() {
     if (p === S.step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
     b.setAttribute('aria-label', `Schritt ${p}: ${b.textContent.trim()}${p < S.step ? ' (erledigt)' : ''}`);
   });
-  const noBack = S.step === 1 || S.step === 5;
+  const noBack = S.step === 1 || S.step === DONE || S.fc;
   $('#backBtn').classList.toggle('is-hidden', noBack); $('#backBtn').tabIndex = noBack ? -1 : 0;
+  $('.progress').hidden = !!S.fc;
   // Kontext-Chips
   const chips = [];
   if (S.event) chips.push(`<button class="chip" type="button" data-go="1"><i class="ph ${EVENTS[S.event].icon}"></i>${EVENTS[S.event].name}</button>`);
@@ -1100,11 +1193,11 @@ function update() {
   else { $('#barK').textContent = 'inkl. MwSt.'; $('#barV').textContent = eur(q.total); }
   $('#barCaret').hidden = !S.qtySeen;
   $$('[data-cta]').forEach(b => { if (b.getAttribute('aria-busy') !== 'true') b.textContent = CTA[S.step] || ''; });
-  $('#bar').hidden = S.step === 5;
-  $('.side').hidden = S.step === 5;
+  $('#bar').hidden = S.step === DONE;
+  $('.side').hidden = S.step === DONE;
   $('#sideCard').innerHTML = summaryHtml(true);
   $$('#sideCard [data-go]').forEach(b => b.addEventListener('click', () => go(+b.dataset.go)));
-  if (S.step === 4) { renderSummary(); $('#stornoLine').textContent = stornoText(); }
+  if (S.step === 5) { renderSummary(); $('#stornoLine').textContent = stornoText(); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1224,8 +1317,7 @@ $('#wishToggle').addEventListener('click', e => { $('#wishField').hidden = false
 $$('[data-org]').forEach(b => b.addEventListener('click', () => { S.orgType = b.dataset.org; renderOrg(); }));
 $('#cookieBtn').addEventListener('click', () => { if (window.UC_UI) window.UC_UI.showSecondLayer(); });
 $$('[data-express]').forEach(b => b.addEventListener('click', () => {
-  // Prototyp: Wallet liefert Kontaktdaten. Firmen-/Vereinsadresse muss trotzdem ins Formular.
-  if (!$('#fn').value) { $('#fn').value = 'Lena'; $('#ln').value = 'Brückner'; $('#em').value = 'lena.brueckner@example.de'; $('#ph').value = '0176 4821937'; }
+  // Daten sind in Schritt 4 schon erfasst: Wallet und PayPal bezahlen nur noch
   submit();
 }));
 bindSheetButtons(document);
@@ -1241,21 +1333,38 @@ $('#icsBtn').addEventListener('click', () => {
 window.addEventListener('popstate', e => {
   if ($('.sheet.open')) { $$('.sheet.open').forEach(closeSheet); }
   const n = e.state && e.state.step;
-  if (S.step === 5) { history.pushState({ step: 5 }, '', '#fertig'); return; }
-  if (n >= 1 && n <= 4) go(n, true);
+  if (S.step === DONE) { history.pushState({ step: DONE }, '', '#fertig'); return; }
+  if (S.fc) { history.pushState({ step: 5 }, '', '#zahlung'); return; }
+  if (n >= 1 && n <= 5 && canGo(n)) go(n, true);
 });
+
+// ═══════════════════════════════════════════════════════
+// Admin-Link (?b=ID): Buchung vom Team vorbereitet → nur noch bezahlen.
+// Prototyp: jede ID zeigt Beispieldaten. Produktion: Daten aus /api/get-link.
+// ═══════════════════════════════════════════════════════
+function loadAdminLink(id) {
+  S.fc = true; S.event = 'firma'; S.date = new Date(2026, 11, 11); S.time = '16:00';
+  S.qty = 24; S.qtySeen = true; S.extras.drinks = true; S.detailsOk = true;
+  const v = { fn: 'Miriam', ln: 'Okafor', em: 'm.okafor@example.de', ph: '0221 4708315', org: 'Rheinwerk Logistik GmbH', street: 'Hafenstraße 9', zip: '50668', city: 'Köln' };
+  Object.entries(v).forEach(([k, val]) => { $('#' + k).value = val; });
+  $('#fcBanner').hidden = false;
+  renderEvents(); go(5);
+}
 
 const params = new URLSearchParams(location.search);
 const startHash = location.hash;   // vor replaceState sichern (Direktlink #gutschein)
 let theme = params.get('theme'); try { theme = theme || localStorage.getItem('proto-theme'); } catch (e) {}
-setTheme(theme === 'light' ? 'light' : 'dark');
+setTheme(theme === 'dark' ? 'dark' : 'light');   // Hell ist Standard
 const fb = firstBookable(); S.calY = fb.getFullYear(); S.calM = fb.getMonth();
 renderEvents();
 history.replaceState({ step: 1 }, '', '#event');
+// Alte Links von turmxgames.de: /?event=jga|firma|kinder&step=1, /?step=1 (step wird ignoriert)
 const pre = params.get('event');
 if (pre === 'verein' || pre === 'schule') S.orgType = pre;
 const preKey = pre === 'verein' ? 'schule' : pre;
-if (preKey && EVENTS[preKey]) { S.event = preKey; renderEvents(); go(2); } else go(1, true);
+if (params.get('b')) loadAdminLink(params.get('b'));
+else if (preKey && EVENTS[preKey]) { S.event = preKey; renderEvents(); go(2); }
+else go(1, true);
 if (startHash === '#gutschein' || params.get('gutschein') !== null) setTimeout(() => openSheet('gift'), 300);
 </script>
 </body>
