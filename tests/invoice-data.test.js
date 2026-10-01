@@ -1,4 +1,4 @@
-const { calculateTax, formatInvoiceNumber, formatDate, getDueDate, buildInvoiceData } = require('../api/lib/invoice-data');
+const { calculateTax, formatInvoiceNumber, formatDate, getDueDate, buildInvoiceData } = require('../api/_lib/invoice-data');
 
 test('calculateTax: 180 EUR brutto splits correctly', () => {
   const { netto, mwst, brutto } = calculateTax(180);
@@ -15,8 +15,8 @@ test('calculateTax: 45 EUR brutto', () => {
 });
 
 test('formatInvoiceNumber', () => {
-  expect(formatInvoiceNumber('251295')).toBe('RE-251295');
-  expect(formatInvoiceNumber(251295)).toBe('RE-251295');
+  expect(formatInvoiceNumber('251295')).toBe('AB-251295');
+  expect(formatInvoiceNumber(251295)).toBe('AB-251295');
 });
 
 test('formatDate from ISO string', () => {
@@ -46,7 +46,7 @@ test('buildInvoiceData assembles all required fields', () => {
     lastName: 'Mustermann',
     email: 'max@test.de',
   });
-  expect(data.invoiceNumber).toBe('RE-251295');
+  expect(data.invoiceNumber).toBe('AB-251295');
   expect(data.tax.brutto).toBe(180);
   expect(data.isCompany).toBe(false);
   expect(data.bankIban).toBe('DE12345678901234567890');

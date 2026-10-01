@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<!-- Google Tag Manager (identisch zu v1) -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-W4S2PD8F');</script>
+<!-- End Google Tag Manager -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3f3f1">
+<title>Jetzt buchen – TurmXGames</title>
+<meta name="description" content="TurmXGames direkt buchen. Sofortbestätigung, sichere Zahlung.">
+<meta property="og:title" content="Jetzt buchen – TurmXGames">
+<meta property="og:description" content="TurmXGames direkt buchen. Sofortbestätigung, sichere Zahlung.">
+<meta property="og:url" content="https://booking.turmxgames.de">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="/v2/css/app.css">
+<script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W4S2PD8F" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+<header class="top">
+  <div class="top-row">
+    <button class="icon-btn is-hidden" id="backBtn" type="button" aria-label="Zurück"><i class="ph ph-caret-left"></i></button>
+    <a class="brand" href="https://www.turmxgames.de" aria-label="TurmX Games Startseite"><img src="/logo-cropped.png" alt="TurmX Games" width="120" height="26"></a>
+    <a class="icon-btn" href="tel:+491725850055" aria-label="Anrufen: 0172 585 00 55"><i class="ph ph-phone"></i></a>
+  </div>
+  <nav class="progress" aria-label="Buchungsschritte">
+    <ol>
+      <li data-p="1"><button class="pstep" type="button" data-p="1"><span class="seg"></span><span class="lbl">Event</span></button></li>
+      <li data-p="2"><button class="pstep" type="button" data-p="2"><span class="seg"></span><span class="lbl">Termin</span></button></li>
+      <li data-p="3"><button class="pstep" type="button" data-p="3"><span class="seg"></span><span class="lbl">Gruppe</span></button></li>
+      <li data-p="4"><button class="pstep" type="button" data-p="4"><span class="seg"></span><span class="lbl">Daten</span></button></li>
+      <li data-p="5"><button class="pstep" type="button" data-p="5"><span class="seg"></span><span class="lbl">Zahlung</span></button></li>
+    </ol>
+  </nav>
+</header>
+
+<main class="layout">
+  <div class="flow">
+    <p class="note" id="linkError" hidden style="margin-bottom:16px"><i class="ph ph-warning-circle"></i><span>Dieser Buchungslink ist ungültig oder abgelaufen. Bitte ruft uns an: <a class="link" href="tel:+491725850055">0172 585 00 55</a>.</span></p>
+
+    <!-- ── 1. EVENT ── -->
+    <section class="step" data-step="1" aria-labelledby="h1-1">
+      <h1 id="h1-1" tabindex="-1">Was plant ihr?</h1>
+      <p class="lead">Wählt euer Event. Den Termin sucht ihr im nächsten Schritt aus.</p>
+      <p class="rating" aria-label="5,0 von 5 Sternen bei Google, 204 Rezensionen"><b>5,0</b><span class="stars" aria-hidden="true"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span><span aria-hidden="true">204 Rezensionen bei Google</span></p>
+      <div class="opts" id="eventOpts" role="radiogroup" aria-label="Eventart"></div>
+      <p class="err" id="err-1" role="alert"><i class="ph ph-warning-circle"></i> Bitte wählt ein Event.</p>
+
+      <div class="block">
+        <h2>Immer inklusive</h2>
+        <ul class="incl">
+          <li><i class="ph ph-game-controller"></i>Über 80 Spiele in mehr als 12 Räumen</li>
+          <li><i class="ph ph-microphone-stage"></i>Eigener Showmaster für eure Gruppe</li>
+          <li><i class="ph ph-trophy"></i>Siegerpokal und Teamfotos</li>
+          <li><i class="ph ph-puzzle-piece"></i>Alle Spielmaterialien</li>
+        </ul>
+      </div>
+
+      <div class="block">
+        <button class="rowlink" type="button" data-sheet="gift">
+          <span class="opt-ico"><i class="ph ph-gift"></i></span>
+          <span><span class="opt-name">Gutschein verschenken</span><span class="opt-meta">Als PDF sofort oder gedruckt per Post</span></span>
+          <i class="ph ph-caret-right" style="font-size:20px;color:var(--text-3)"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ── 2. TERMIN ── -->
+    <section class="step" data-step="2" aria-labelledby="h1-2">
+      <div class="chips" data-chips></div>
+      <h1 id="h1-2" tabindex="-1">Wann kommt ihr?</h1>
+      <p class="hint" id="dayHint"></p>
+      <div class="cal" id="cal">
+        <div class="cal-head">
+          <div class="cal-title" id="calTitle" aria-live="polite"></div>
+          <div class="cal-nav">
+            <button class="icon-btn" type="button" id="calPrev" aria-label="Vorheriger Monat"><i class="ph ph-caret-left"></i></button>
+            <button class="icon-btn" type="button" id="calNext" aria-label="Nächster Monat"><i class="ph ph-caret-right"></i></button>
+          </div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <p class="cal-note">Buchbar ab 3 Tagen im Voraus. Kurzfristiger? <a class="link" href="tel:+491725850055">Ruft uns an</a>.</p>
+      </div>
+      <p class="err" id="err-2d" role="alert"><i class="ph ph-warning-circle"></i> Bitte wählt einen Tag.</p>
+      <p class="alt-link"><i class="ph ph-users-three"></i><span>Noch nicht sicher? <button class="link" type="button" data-sheet="doodle">Termine mit der Gruppe abstimmen</button></span></p>
+      <div class="block" id="slotBlock" hidden>
+        <h2 id="slotTitle"></h2>
+        <div class="slots" id="slots"></div>
+        <p class="err" id="err-2t" role="alert"><i class="ph ph-warning-circle"></i> Bitte wählt eine Uhrzeit.</p>
+      </div>
+    </section>
+
+    <!-- ── 3. GRUPPE ── -->
+    <section class="step" data-step="3" aria-labelledby="h1-3">
+      <div class="chips" data-chips></div>
+      <h1 id="h1-3" tabindex="-1">Wie viele seid ihr?</h1>
+      <div class="qty">
+        <div class="qty-row">
+          <button class="qty-btn" type="button" id="qtyMinus" aria-label="Eine Person weniger"><i class="ph ph-minus"></i></button>
+          <div class="qty-val"><output id="qtyVal" class="num" aria-live="polite">8</output><span id="qtyUnit">Personen</span></div>
+          <button class="qty-btn" type="button" id="qtyPlus" aria-label="Eine Person mehr"><i class="ph ph-plus"></i></button>
+        </div>
+        <p class="qty-teams" id="qtyTeams"></p>
+        <div class="quick" id="quick" aria-label="Schnellauswahl Personen"></div>
+        <button class="link more-link" type="button" data-sheet="inquiry">Mehr als 32 Personen? Anfrage senden</button>
+      </div>
+      <div class="block" id="ageBlock" hidden>
+        <h2>Wie alt wird das Geburtstagskind?</h2>
+        <div class="age" id="ages"></div>
+        <p class="help">Wir passen Spiele und Schwierigkeit an das Alter an.</p>
+      </div>
+      <div class="block">
+        <h2>Extras</h2>
+        <div class="extras" id="extras"></div>
+      </div>
+    </section>
+
+    <!-- ── 4. DATEN ── -->
+    <section class="step" data-step="4" aria-labelledby="h1-4">
+      <div class="chips" data-chips></div>
+      <h1 id="h1-4" tabindex="-1">Eure Daten</h1>
+      <p class="lead">Damit wir euch die Bestätigung schicken und bei Fragen erreichen können.</p>
+      <form id="form" novalidate>
+        <fieldset class="fields">
+          <legend>Eure Kontaktdaten</legend>
+          <div class="two">
+            <div class="field"><label for="fn">Vorname</label><input class="input" id="fn" autocomplete="given-name" required><p class="ferr"><i class="ph ph-warning-circle"></i> Vorname fehlt</p></div>
+            <div class="field"><label for="ln">Nachname</label><input class="input" id="ln" autocomplete="family-name" required><p class="ferr"><i class="ph ph-warning-circle"></i> Nachname fehlt</p></div>
+          </div>
+          <div class="field"><label for="em">E-Mail</label><input class="input" id="em" type="email" inputmode="email" autocomplete="email" autocapitalize="off" required><p class="help">Hierhin schicken wir die Bestätigung.</p><p class="ferr"><i class="ph ph-warning-circle"></i> Bitte prüft die E-Mail-Adresse</p></div>
+          <div class="field"><label for="ph">Telefon</label><input class="input" id="ph" type="tel" inputmode="tel" autocomplete="tel" placeholder="0151 2345678" required><p class="help">Nur für Rückfragen zu eurem Termin.</p><p class="ferr"><i class="ph ph-warning-circle"></i> Bitte gebt eine Telefonnummer an</p></div>
+        </fieldset>
+
+        <fieldset class="fields block" id="orgFields" hidden>
+          <legend id="orgLegend">Firma</legend>
+          <div class="field" id="orgTypeField" hidden>
+            <span class="label" id="orgTypeLbl">Ihr kommt als</span>
+            <div class="seg-btns" role="radiogroup" aria-labelledby="orgTypeLbl">
+              <button type="button" data-org="schule" aria-pressed="true">Schulklasse</button>
+              <button type="button" data-org="verein" aria-pressed="false">Verein</button>
+            </div>
+          </div>
+          <div class="field"><label for="org" id="orgLabel">Firmenname</label><input class="input" id="org" autocomplete="organization"><p class="ferr"><i class="ph ph-warning-circle"></i> Name fehlt</p></div>
+          <div class="field"><label for="street">Straße und Hausnummer</label><input class="input" id="street" autocomplete="street-address"><p class="ferr"><i class="ph ph-warning-circle"></i> Adresse fehlt</p></div>
+          <div class="zipcity">
+            <div class="field"><label for="zip">PLZ</label><input class="input" id="zip" inputmode="numeric" autocomplete="postal-code"><p class="ferr"><i class="ph ph-warning-circle"></i> PLZ fehlt</p></div>
+            <div class="field"><label for="city">Ort</label><input class="input" id="city" autocomplete="address-level2"><p class="ferr"><i class="ph ph-warning-circle"></i> Ort fehlt</p></div>
+          </div>
+          <div class="field" id="vatField"><label for="vat">USt-IdNr. <span class="opt-l">(optional)</span></label><input class="input" id="vat" autocapitalize="characters"></div>
+          <p class="note" id="proofNote" hidden><i class="ph ph-identification-card"></i><span>Für den Sonderpreis bringt bitte beim Check-in einen Nachweis mit, zum Beispiel Schul- oder Vereinsausweis.</span></p>
+        </fieldset>
+
+        <div class="block">
+          <button class="link" type="button" id="wishToggle">Wünsche oder Hinweise hinzufügen</button>
+          <div class="field" id="wishField" hidden style="margin-top:12px">
+            <label for="wish">Wünsche oder Hinweise <span class="opt-l">(optional)</span></label>
+            <textarea class="input" id="wish" placeholder="z. B. Motto, Überraschung, Allergien"></textarea>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- ── 5. ZAHLUNG ── -->
+    <section class="step" data-step="5" aria-labelledby="h1-5">
+      <div class="note" id="fcBanner" hidden style="margin-bottom:16px"><i class="ph ph-seal-check"></i><span><b>Persönliche Buchung, vorbereitet von TurmX Games.</b> Prüft die Angaben und bezahlt direkt.</span></div>
+      <h1 id="h1-5" tabindex="-1">Prüfen und bezahlen</h1>
+      <div class="card" id="summaryCard"></div>
+
+      <div class="block" id="expressBlock" hidden>
+        <h2>Schnell bezahlen</h2>
+        <div class="express">
+          <div id="expressStripe"></div>
+          <div id="expressPaypal"></div>
+        </div>
+        <div class="or">oder</div>
+      </div>
+
+      <fieldset class="block">
+        <legend>Zahlungsart</legend>
+        <div class="pay" id="pay">
+          <div class="pay-opt">
+            <label class="pay-head"><input type="radio" name="pay" value="cc" checked><span><span class="pay-name">Karte</span><br><span class="pay-sub">Visa, Mastercard</span></span><i class="ph ph-credit-card pay-ico"></i></label>
+            <div class="pay-body"><div class="stripe-field" id="stripeCard"></div><p class="field-msg" id="cardErr" role="alert"></p></div>
+          </div>
+          <div class="pay-opt">
+            <label class="pay-head"><input type="radio" name="pay" value="sepa"><span><span class="pay-name">SEPA-Lastschrift</span><br><span class="pay-sub">Einzug vom Girokonto</span></span><i class="ph ph-bank pay-ico"></i></label>
+            <div class="pay-body">
+              <div class="field"><label for="sepaName">Kontoinhaber</label><input class="input" id="sepaName" autocomplete="name"><p class="ferr"><i class="ph ph-warning-circle"></i> Kontoinhaber fehlt</p></div>
+              <div class="field" style="margin-top:12px"><span class="label">IBAN</span><div class="stripe-field" id="stripeIban"></div><p class="field-msg" id="ibanErr" role="alert"></p></div>
+              <p class="mandate">Durch Angabe deiner IBAN und Bestätigung dieser Zahlung ermächtigst du TurmXGames (HB Kletterwelten GmbH) und Stripe, unserem Zahlungsdienstleister, Lastschriften von deinem Konto einzuziehen. Du hast Anspruch auf Rückerstattung gemäß den Bedingungen deiner Bank.</p>
+            </div>
+          </div>
+          <div class="pay-opt" id="payInvoice">
+            <label class="pay-head"><input type="radio" name="pay" value="invoice"><span><span class="pay-name">Rechnung</span><br><span class="pay-sub" id="invoiceSub">Für Firmen, Schulen und Vereine</span></span><i class="ph ph-receipt pay-ico"></i></label>
+            <div class="pay-body"><p class="mandate" style="margin:0">Ihr bekommt sofort eine Auftragsbestätigung mit Bankverbindung. Die Rechnung mit ausgewiesener MwSt. folgt nach dem Event, Zahlungsziel 14 Tage.</p></div>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="pay-error" id="payError" role="alert"><i class="ph ph-warning-circle"></i><span><b>Buchung nicht abgeschlossen.</b> <span id="payErrorMsg"></span><br>Bitte versucht es erneut oder ruft uns an: <a href="tel:+491725850055">0172 585 00 55</a></span></div>
+      <p class="legal">Mit Klick auf <b>Zahlungspflichtig buchen</b> akzeptierst du unsere <button class="link" type="button" data-sheet="agb">AGB</button>. <span id="stornoLine"></span></p>
+    </section>
+
+    <!-- ── ERFOLG ── -->
+    <section class="step" data-step="6" aria-labelledby="h1-6">
+      <div class="done-ico"><i class="ph ph-check"></i></div>
+      <h1 id="h1-6" tabindex="-1">Eure Show ist gebucht</h1>
+      <p class="ref">Buchungsnummer <b id="doneRef"></b></p>
+      <p class="lead" id="doneLead"></p>
+      <div class="card" id="doneCard"></div>
+      <div class="done-actions">
+        <button class="btn btn-primary" type="button" id="icsBtn"><i class="ph ph-calendar-plus"></i>In Kalender eintragen</button>
+        <a class="btn btn-secondary" href="https://maps.google.com/?q=TurmX+Games+Kurf%C3%BCrstenstra%C3%9Fe+58+Br%C3%BChl" target="_blank" rel="noopener"><i class="ph ph-map-pin"></i>Anfahrt planen</a>
+      </div>
+      <div class="next">
+        <p><i class="ph ph-clock"></i>Kommt bitte 15 Minuten vor Beginn.</p>
+        <p><i class="ph ph-arrows-clockwise"></i><span id="doneStorno"></span></p>
+        <p><i class="ph ph-phone"></i>Fragen? 0172 585 00 55</p>
+      </div>
+    </section>
+  </div>
+
+  <aside class="side" aria-label="Eure Buchung">
+    <div class="card" id="sideCard"></div>
+    <button class="btn btn-primary" type="button" data-cta></button>
+    <div class="trust">
+      <p><i class="ph-fill ph-star" style="color:#e7a918"></i>5,0 bei Google, 204 Rezensionen</p>
+      <p><i class="ph ph-arrows-clockwise"></i>Kostenlos stornierbar bis 14 Tage vorher</p>
+      <p><i class="ph ph-lock-simple"></i>Sichere Zahlung über Stripe und PayPal</p>
+    </div>
+  </aside>
+</main>
+
+<footer class="foot">
+  <nav aria-label="Rechtliches">
+    <a href="https://www.turmxgames.de/impressum">Impressum</a>
+    <a href="https://www.turmxgames.de/datenschutz">Datenschutz</a>
+    <button type="button" data-sheet="agb">AGB</button>
+    <button type="button" id="cookieBtn">Cookie-Einstellungen</button>
+  </nav>
+  <p>TurmX Games, HB Kletterwelten GmbH, Kurfürstenstraße 60, 50321 Brühl</p>
+</footer>
+
+<div class="bar" id="bar">
+  <div class="bar-in">
+    <button class="bar-price" type="button" id="barPrice" aria-haspopup="dialog">
+      <span class="k"><span id="barK">Preise</span> <i class="ph ph-caret-up" id="barCaret"></i></span>
+      <span class="v num" id="barV" aria-live="polite"></span>
+    </button>
+    <button class="btn btn-primary" type="button" data-cta></button>
+  </div>
+</div>
+
+<!-- ═════════ Sheets ═════════ -->
+<div class="sheet" id="sheet-price" role="dialog" aria-modal="true" aria-labelledby="sp-h">
+  <div class="scrim" data-close></div>
+  <div class="panel"><div class="grab"></div>
+    <div class="panel-head"><h2 id="sp-h">Preisübersicht</h2><button class="icon-btn" type="button" data-close aria-label="Schließen"><i class="ph ph-x"></i></button></div>
+    <div id="priceSheetBody"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-freefall" role="dialog" aria-modal="true" aria-labelledby="sf-h">
+  <div class="scrim" data-close></div>
+  <div class="panel"><div class="grab"></div>
+    <div class="panel-head"><h2 id="sf-h">Freefall-Mutprobe</h2><button class="icon-btn" type="button" data-close aria-label="Schließen"><i class="ph ph-x"></i></button></div>
+    <img src="/jga-freefall.jpg" alt="Bräutigam springt mit Augenbinde vom Turm, oben jubelt die JGA-Gruppe" width="640" height="640" loading="lazy">
+    <p>Augenbinde auf, hoch auf 50 Meter zum FreeJump am TurmX Outdoor. Kurz vor dem Sprung fällt die Binde, unten feuert euch die ganze Gruppe an.</p>
+    <p>Mit Einweisung, Gurt und Helm. Dazu Fotos und Videos vom Sprung.</p>
+    <p><b>30 € einmalig</b>, nur zum JGA buchbar.</p>
+    <button class="btn btn-primary btn-block" type="button" id="ffAdd">Mutprobe hinzufügen</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet-agb" role="dialog" aria-modal="true" aria-labelledby="sa-h">
+  <div class="scrim" data-close></div>
+  <div class="panel agb"><div class="grab"></div>
+    <div class="panel-head"><h2 id="sa-h">AGB &amp; Teilnahmebedingungen</h2><button class="icon-btn" type="button" data-close aria-label="Schließen"><i class="ph ph-x"></i></button></div>
+    <!-- Rechtstext wörtlich aus v1 übernommen -->
+    <p class="small">TurmXGames – HB Kletterwelten GmbH · Kurfürstenstraße 60 · 50321 Brühl</p>
+    <h3>1. Vertragsgegenstand</h3>
+    <p>TurmXGames bietet interaktive Indoor-Teamevents im Gameshow-Stil an. Ziel ist ein gemeinsames Erlebnis mit Wettkampf-, Quiz- und Actionelementen.</p>
+    <p>Mit deiner Buchung sicherst du dir einen festen Termin zur Teilnahme an diesem Erlebnis.</p>
+    <h3>2. Buchung &amp; Vertragsabschluss</h3>
+    <p>Die Buchung kann online, per Anfrageformular, per E-Mail oder vor Ort erfolgen.</p>
+    <p>Ein verbindlicher Vertrag kommt mit unserer Buchungsbestätigung zustande.</p>
+    <p>Bei Gruppenbuchungen gilt der Anmelder als Vertragspartner für alle Teilnehmer.</p>
+    <h3>3. Preise &amp; Zahlung</h3>
+    <p>Alle Preise verstehen sich inklusive gesetzlicher Mehrwertsteuer.</p>
+    <ul>
+      <li>Zahlung vor Ort per EC/Karte (bevorzugt)</li>
+      <li>Online-Zahlung möglich (z. B. PayPal)</li>
+      <li>Firmenkunden erhalten auf Wunsch eine Rechnung</li>
+    </ul>
+    <p>Offene Beträge sind unmittelbar nach Leistungserbringung fällig.</p>
+    <h3>4. Termin &amp; Ablauf</h3>
+    <p>Bitte erscheine mindestens 15 Minuten vor Beginn.</p>
+    <p>Verspätungen führen zu einer Verkürzung der Spielzeit – ein Anspruch auf Verlängerung besteht nicht.</p>
+    <p>Der Ablauf erfolgt strukturiert durch unser Team („Showmaster").</p>
+    <h3>5. Stornierung &amp; Umbuchung</h3>
+    <ul>
+      <li>Bis 14 Tage vorher: kostenfrei</li>
+      <li>13–7 Tage vorher: 50 %</li>
+      <li>Weniger als 7 Tage: 100 %</li>
+    </ul>
+    <p>Umbuchung: 15 € pro Buchung (ohne Flex-Option). Bei Nichterscheinen verfällt die Buchung vollständig.</p>
+    <h3>6. Teilnahme &amp; Verhalten</h3>
+    <p>Empfohlen ab 10 Jahren. Jüngere Teilnehmer nach individueller Einschätzung möglich.</p>
+    <p>Den Anweisungen unseres Teams ist jederzeit Folge zu leisten.</p>
+    <p>Bei grobem Fehlverhalten oder Gefährdung anderer Teilnehmer behalten wir uns einen Ausschluss ohne Rückerstattung vor.</p>
+    <h3>7. Haftung</h3>
+    <p>Die Teilnahme erfolgt auf eigene Verantwortung.</p>
+    <p>Wir haften bei Vorsatz, grober Fahrlässigkeit sowie bei Schäden an Leben, Körper oder Gesundheit. Bei einfacher Fahrlässigkeit nur bei Verletzung wesentlicher Vertragspflichten.</p>
+    <h3>8. Gutscheine</h3>
+    <ul>
+      <li>Unbegrenzt gültig</li>
+      <li>Übertragbar</li>
+      <li>Nicht auszahlbar – eine Barauszahlung ist ausgeschlossen</li>
+    </ul>
+    <h3>9. Foto &amp; Videoaufnahmen</h3>
+    <p>Während der Events können Foto- und Videoaufnahmen entstehen. Diese werden ausschließlich mit deiner ausdrücklichen Einwilligung für Marketingzwecke genutzt (Website, Social Media etc.).</p>
+    <p>Deine Einwilligung ist freiwillig und jederzeit widerrufbar.</p>
+    <h3>10. Gerichtsstand</h3>
+    <p>Es gilt deutsches Recht. Gerichtsstand ist – soweit zulässig – Brühl.</p>
+    <p class="small">Mit Abschluss einer Buchung über unsere Website bestätigst du, dass du diese AGB zur Kenntnis genommen hast und ihnen zustimmst.</p>
+  </div>
+</div>
+
+<!-- Gutschein kaufen (API: /api/giftcard, unverändert zu v1) -->
+<div class="sheet" id="sheet-gift" role="dialog" aria-modal="true" aria-labelledby="sg-h">
+  <div class="scrim" data-close></div>
+  <div class="panel"><div class="grab"></div>
+    <div class="panel-head"><h2 id="sg-h">Gutschein verschenken</h2><button class="icon-btn" type="button" data-close aria-label="Schließen"><i class="ph ph-x"></i></button></div>
+    <div id="giftForm">
+      <p>Einlösbar für jedes Event. 3 Jahre gültig, keine Barauszahlung.</p>
+      <div class="fields">
+        <div class="field">
+          <span class="label" id="gcTypeLbl">Wie soll er ankommen?</span>
+          <div class="seg-btns" role="radiogroup" aria-labelledby="gcTypeLbl">
+            <button type="button" data-gctype="digital" aria-pressed="true">Als PDF, sofort</button>
+            <button type="button" data-gctype="hardcopy" aria-pressed="false">Per Post, + 2,95 €</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label" id="gcAmtLbl">Betrag</span>
+          <div class="amounts" role="radiogroup" aria-labelledby="gcAmtLbl" id="gcAmounts"></div>
+        </div>
+        <div class="field"><label for="gcCustom">Eigener Betrag <span class="opt-l">(10 bis 500 €)</span></label><input class="input" id="gcCustom" inputmode="decimal" placeholder="z. B. 75"><p class="ferr"><i class="ph ph-warning-circle"></i> Bitte einen Betrag zwischen 10 und 500 € eingeben</p></div>
+        <div class="two">
+          <div class="field"><label for="gcFn">Vorname</label><input class="input" id="gcFn" autocomplete="given-name"><p class="ferr"><i class="ph ph-warning-circle"></i> Vorname fehlt</p></div>
+          <div class="field"><label for="gcLn">Nachname</label><input class="input" id="gcLn" autocomplete="family-name"><p class="ferr"><i class="ph ph-warning-circle"></i> Nachname fehlt</p></div>
+        </div>
+        <div class="field"><label for="gcEm">E-Mail</label><input class="input" id="gcEm" type="email" inputmode="email" autocomplete="email" autocapitalize="off"><p class="help">Hierhin schicken wir Gutschein und Beleg.</p><p class="ferr"><i class="ph ph-warning-circle"></i> Bitte prüft die E-Mail-Adresse</p></div>
+        <div id="gcShip" hidden class="fields">
+          <div class="field"><label for="gcStreet">Straße und Hausnummer</label><input class="input" id="gcStreet" autocomplete="shipping street-address"><p class="ferr"><i class="ph ph-warning-circle"></i> Adresse fehlt</p></div>
+          <div class="zipcity">
+            <div class="field"><label for="gcZip">PLZ</label><input class="input" id="gcZip" inputmode="numeric" autocomplete="shipping postal-code"><p class="ferr"><i class="ph ph-warning-circle"></i> PLZ fehlt</p></div>
+            <div class="field"><label for="gcCity">Ort</label><input class="input" id="gcCity" autocomplete="shipping address-level2"><p class="ferr"><i class="ph ph-warning-circle"></i> Ort fehlt</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-foot static">
+        <div class="pr total" style="border-top:0;margin:0;padding:0 0 10px"><span>Gesamt</span><b class="num" id="gcTotal"></b></div>
+        <div class="express">
+          <div id="gcExpress"></div>
+          <div id="gcPaypal"></div>
+          <div class="stripe-field" id="gcCard"></div>
+          <p class="field-msg" id="gcCardErr" role="alert"></p>
+          <button class="btn btn-primary btn-block" type="button" id="gcPayBtn">Mit Karte kaufen</button>
+          <p class="field-msg" id="gcError" role="alert"></p>
+        </div>
+      </div>
+    </div>
+    <div id="giftDone" hidden>
+      <div class="done-ico"><i class="ph ph-gift"></i></div>
+      <p style="color:var(--text);font-weight:600;font-size:18px;margin-bottom:6px">Dein Gutschein ist fertig</p>
+      <p id="gcDoneText"></p>
+      <div class="gc-code" id="gcDoneCode"></div>
+      <button class="btn btn-secondary btn-block" type="button" data-close>Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Großgruppen-Anfrage (API: /api/inquiry, unverändert zu v1) -->
+<div class="sheet" id="sheet-inquiry" role="dialog" aria-modal="true" aria-labelledby="si-h">
+  <div class="scrim" data-close></div>
+  <div class="panel"><div class="grab"></div>
+    <div class="panel-head"><h2 id="si-h">Anfrage für große Gruppen</h2><button class="icon-btn" type="button" data-close aria-label="Schließen"><i class="ph ph-x"></i></button></div>
+    <div id="inqForm">
+      <p>Ab 33 Personen stellen wir euch ein eigenes Angebot zusammen. Ihr bekommt innerhalb von 24 Stunden eine Antwort.</p>
+      <div class="fields">
+        <div class="field"><label for="iqName">Name</label><input class="input" id="iqName" autocomplete="name"><p class="ferr"><i class="ph ph-warning-circle"></i> Name fehlt</p></div>
+        <div class="field"><label for="iqEm">E-Mail</label><input class="input" id="iqEm" type="email" inputmode="email" autocomplete="email" autocapitalize="off"><p class="ferr"><i class="ph ph-warning-circle"></i> Bitte prüft die E-Mail-Adresse</p></div>
+        <div class="field"><label for="iqPh">Telefon <span class="opt-l">(optional)</span></label><input class="input" id="iqPh" type="tel" inputmode="tel" autocomplete="tel"></div>
+        <div class="two">
+          <div class="field"><label for="iqSize">Personen</label><input class="input" id="iqSize" inputmode="numeric" placeholder="z. B. 45"><p class="ferr"><i class="ph ph-warning-circle"></i> Ab 33 Personen</p></div>
+          <div class="field"><label for="iqDate">Wunschdatum</label><input class="input" id="iqDate" type="date"></div>
+        </div>
+        <div class="field"><label for="iqType">Anlass</label>
+          <select class="input" id="iqType"><option value="">Bitte wählen</option><option>Firmenevent</option><option>Team Building</option><option>JGA</option><option>Geburtstag</option><option>Sonstiges</option></select></div>
+        <div class="field"><label for="iqMsg">Nachricht <span class="opt-l">(optional)</span></label><textarea class="input" id="iqMsg" placeholder="Besondere Wünsche, Fragen"></textarea></div>
+      </div>
+      <p class="field-msg" id="iqError" role="alert"></p>
+      <button class="btn btn-primary btn-block" type="button" id="iqSend">Anfrage senden</button>
+    </div>
+    <div id="inqDone" hidden>
+      <div class="done-ico"><i class="ph ph-paper-plane-tilt"></i></div>
+      <p style="color:var(--text);font-weight:600;font-size:18px;margin-bottom:6px">Anfrage ist angekommen</p>
+      <p>Wir melden uns innerhalb von 24 Stunden mit einem Angebot.</p>
+      <button class="btn btn-secondary btn-block" type="button" data-close>Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Termine abstimmen -->
+<div class="sheet" id="sheet-doodle" role="dialog" aria-modal="true" aria-labelledby="sd-h">
+  <div class="scrim" data-close></div>
+  <div class="panel"><div class="grab"></div>
+    <div class="panel-head"><h2 id="sd-h">Termine abstimmen</h2><button class="icon-btn" type="button" data-close aria-label="Schließen"><i class="ph ph-x"></i></button></div>
+    <p>Wählt ein paar Termine aus und schickt sie eurer Gruppe. Gebucht wird noch nichts.</p>
+    <div id="doodleList"></div>
+    <div class="panel-foot">
+      <p class="small" id="doodleCount" style="margin:0 0 10px">Noch keine Termine gewählt</p>
+      <div class="two">
+        <a class="btn btn-primary" id="doodleWa" href="#" target="_blank" rel="noopener"><i class="ph ph-whatsapp-logo"></i>WhatsApp</a>
+        <button class="btn btn-secondary" type="button" id="doodleCopy"><i class="ph ph-copy"></i>Text kopieren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Module (klassische Skripte, Reihenfolge wichtig, kein Build-Schritt) -->
+<script src="/shared/pricing.js"></script>
+<script src="/v2/js/core.js"></script>
+<script src="/v2/js/tracking.js"></script>
+<script src="/v2/js/api.js"></script>
+<script src="/v2/js/ui.js"></script>
+<script src="/v2/js/step-event.js"></script>
+<script src="/v2/js/step-termin.js"></script>
+<script src="/v2/js/step-gruppe.js"></script>
+<script src="/v2/js/step-daten.js"></script>
+<script src="/v2/js/summary.js"></script>
+<script src="/v2/js/payment.js"></script>
+<script src="/v2/js/gift.js"></script>
+<script src="/v2/js/extras-sheets.js"></script>
+<script src="/v2/js/nav.js"></script>
+<script src="/v2/js/main.js"></script>
+</body>
+</html>
