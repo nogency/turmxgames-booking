@@ -54,8 +54,14 @@
     const el = e.target;
     if (el.classList && el.classList.contains('input') && el.getAttribute('aria-invalid') === 'true' && el.value.trim()) {
       el.setAttribute('aria-invalid', 'false'); const f = el.closest('.field'); if (f) f.classList.remove('invalid');
+      if (!document.querySelector('.step.is-active .field.invalid')) TX.ctaHint(null);
     }
   });
+
+  // ── Hinweis direkt am Weiter-Button (Desktop: Seitenleiste, mobil: untere Leiste) ──
+  TX.ctaHint = msg => $$('[data-cta-err]').forEach(p => { p.innerHTML = msg ? `<i class="ph ph-warning-circle"></i>${msg}` : ''; p.hidden = !msg; });
+  // Das Fehlende kurz aufleuchten lassen
+  TX.nudge = els => els.forEach(el => { el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); });
 
   // ── Ladezustand an Buttons ──
   TX.busy = (btns, label) => btns.forEach(b => { b.dataset.label = b.dataset.label || b.innerHTML; b.setAttribute('aria-busy', 'true'); b.innerHTML = `<span class="spin"></span> ${label}`; });

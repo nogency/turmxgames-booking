@@ -25,15 +25,22 @@
     const h = $(`#h1-${n}`); if (h) h.focus({ preventScroll: true });
   };
 
+  // Fehlt etwas: Hinweis am Button, Fehlendes zeigen und kurz aufleuchten lassen
+  const missing = (msg, scrollTo, nudge) => {
+    TX.ctaHint(msg);
+    if (scrollTo) scrollTo.scrollIntoView({ behavior: TX.reduceMotion ? 'auto' : 'smooth', block: 'center' });
+    TX.nudge(nudge);
+  };
+
   TX.next = () => {
-    if (S.step === 1) { if (!S.event) { $('#err-1').classList.add('show'); return; } TX.go(2); }
+    if (S.step === 1) { if (!S.event) { missing('Bitte wählt zuerst euer Event.', null, $$('#eventOpts .opt')); return; } TX.go(2); }
     else if (S.step === 2) {
-      if (!S.dateStr) { $('#err-2d').classList.add('show'); $('#cal').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-      if (!S.time) { $('#err-2t').classList.add('show'); $('#slotBlock').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      if (!S.dateStr) { $('#err-2d').classList.add('show'); missing('Bitte wählt einen Tag.', $('#cal'), [$('#cal')]); return; }
+      if (!S.time) { $('#err-2t').classList.add('show'); missing('Bitte wählt eine Uhrzeit.', $('#slotBlock'), $$('#slots button:not(:disabled)')); return; }
       TX.go(3);
     }
     else if (S.step === 3) TX.go(4);
-    else if (S.step === 4) { if (TX.validateDetails()) { S.detailsOk = true; TX.go(5); } }
+    else if (S.step === 4) { if (TX.validateDetails()) { S.detailsOk = true; TX.go(5); } else TX.ctaHint('Bitte füllt die markierten Felder aus.'); }
     else if (S.step === 5) TX.pay();
   };
 
@@ -62,6 +69,7 @@
   };
 
   function render() {
+    TX.ctaHint(null);   // jede Auswahl/Änderung erledigt den Hinweis am Button
     // Fortschritt
     $$('.progress li').forEach(li => {
       const p = +li.dataset.p, b = li.querySelector('.pstep');

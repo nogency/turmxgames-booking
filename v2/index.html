@@ -59,7 +59,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       <div class="reviews reviews--mobile" data-reviews></div>
       <div class="paybox paybox--mobile"><span class="paybox-lbl"><i class="ph ph-lock-simple"></i>Sicher bezahlen mit</span><div class="paylogos" data-paylogos></div></div>
       <div class="opts" id="eventOpts" role="radiogroup" aria-label="Eventart"></div>
-      <p class="err" id="err-1" role="alert"><i class="ph ph-warning-circle"></i> Bitte wählt ein Event.</p>
 
       <div class="block">
         <h2>Immer inklusive</h2>
@@ -238,6 +237,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <aside class="side" aria-label="Eure Buchung">
     <div class="card" id="sideCard"><div id="sideSum"></div><div class="promo" id="sidePromo" hidden></div></div>
     <button class="btn btn-primary" type="button" data-cta></button>
+    <p class="cta-err" data-cta-err role="alert" hidden></p>
     <div class="trust">
       <div class="reviews reviews--side" data-reviews></div>
       <p><i class="ph ph-arrows-clockwise"></i>Kostenlos stornierbar bis 14 Tage vorher</p>
@@ -257,6 +257,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </footer>
 
 <div class="bar" id="bar">
+  <p class="cta-err" data-cta-err role="alert" hidden></p>
   <div class="bar-in">
     <button class="bar-price" type="button" id="barPrice" aria-haspopup="dialog">
       <span class="k"><span id="barK">Preise</span> <i class="ph ph-caret-up" id="barCaret"></i></span>

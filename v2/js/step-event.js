@@ -39,7 +39,6 @@
     S.event = key === 'schule' && S.event === 'verein' ? 'verein' : key;
     if (S.event !== 'jga') S.extras.freefall = false;
     if (S.event !== 'kinder') S.age = null;
-    $('#err-1').classList.remove('show');
     TX.track.eventType();
     TX.changed();
     if (advance) setTimeout(() => TX.go(2), TX.reduceMotion ? 0 : 260);

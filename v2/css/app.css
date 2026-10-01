@@ -89,6 +89,13 @@ h2{font-size:18px;font-weight:600;margin:0 0 12px;letter-spacing:-.01em}
 .hint i{color:var(--accent-text);font-size:18px;margin-top:1px}
 .err{display:none;align-items:center;gap:6px;color:var(--danger);font-size:14px;margin-top:10px}
 .err.show{display:flex}
+/* Hinweis direkt am Weiter-Button + kurzes Aufleuchten des Fehlenden */
+.cta-err{display:flex;align-items:center;gap:6px;margin:10px 0 0;color:var(--danger);font-size:14px;font-weight:500}
+.cta-err[hidden]{display:none}
+.cta-err i{font-size:17px}
+.bar .cta-err{max-width:1120px;margin:0 auto 8px}
+.nudge{animation:nudge 1s ease}
+@keyframes nudge{0%,100%{box-shadow:0 0 0 0 transparent}20%,60%{box-shadow:0 0 0 3px rgba(192,57,43,.35);border-color:var(--accent-line)}}
 .small{font-size:13px;color:var(--text-3)}
 .link{background:none;border:0;padding:0;color:var(--accent-text);font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 
