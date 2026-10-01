@@ -177,7 +177,7 @@ h2{font-size:18px;font-weight:600;margin:0 0 12px;letter-spacing:-.01em}
 
 /* ── Extras (Schalter) ── */
 .extras{display:grid;gap:10px}
-.extra{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-control);cursor:pointer}
+.extra{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-control);cursor:pointer}
 .extra:has(input:checked){border-color:var(--accent-line);background:var(--accent-soft)}
 .extra-name{display:block;font-weight:600}
 .extra-meta{display:block;font-size:14px;color:var(--text-3);margin-top:2px}
@@ -373,3 +373,6 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
 /* Desktop: Bewertungen + Zahlungslogos nur in der Seitenleiste (sonst doppelt) */
 @media (min-width:1024px){ .paybox--mobile,.reviews--mobile{display:none} }
 .review .stars i,.trust .review .stars i{color:#e7a918;font-size:12px}
+
+/* Extras: Icon-Kachel wie bei den Eventkarten, aktiv = Akzentfarbe */
+.extra:has(input:checked) .opt-ico{background:var(--accent);color:#fff}
