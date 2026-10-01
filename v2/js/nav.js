@@ -89,6 +89,7 @@
     $$('[data-cta]').forEach(b => { if (b.getAttribute('aria-busy') !== 'true') b.textContent = CTA[S.step] || ''; });
     $('#bar').hidden = S.step === DONE;
     $('.side').hidden = S.step === DONE;
+    $('#sideCard').hidden = !S.event;   // leere Karte erst zeigen, wenn etwas gewählt ist
     $('#sideCard').innerHTML = TX.summaryHtml(true);
     $$('#sideCard [data-go]').forEach(b => b.addEventListener('click', () => TX.go(+b.dataset.go)));
     if (S.step === 5) TX.renderSummary();
