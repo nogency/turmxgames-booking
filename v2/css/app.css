@@ -370,5 +370,6 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
 .pay-logos{display:flex;gap:4px}
 .pay-logos img{height:22px;width:auto;display:block}
 .reviews--side{margin:0 0 4px}
-@media (min-width:1024px){ .paybox--mobile{display:none} }
+/* Desktop: Bewertungen + Zahlungslogos nur in der Seitenleiste (sonst doppelt) */
+@media (min-width:1024px){ .paybox--mobile,.reviews--mobile{display:none} }
 .review .stars i,.trust .review .stars i{color:#e7a918;font-size:12px}
