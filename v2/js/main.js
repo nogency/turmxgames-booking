@@ -38,6 +38,7 @@
 
   (async function boot() {
     TX.initCalendar();
+    TX.renderTrust();
     TX.renderEvents();
     history.replaceState({ step: 1 }, '', `${location.pathname}${location.search}#event`);
     await TX.api.config();   // Stripe- und PayPal-Schlüssel (ohne: Hinweis statt Zahlungsfeld)

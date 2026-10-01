@@ -15,6 +15,15 @@
     PHONE: '0172 585 00 55',
     PHONE_TEL: '+491725850055',
     keys: null,                                             // { stripePk, paypalClientId } aus /api/config
+    // Bewertungen (Stand 2026-10-01, bei Änderung hier pflegen)
+    reviews: {
+      google: { rating: 5.0, count: 204, label: 'Rezensionen' },
+      tripadvisor: { rating: 4.8, count: 46, label: 'Bewertungen' },
+    },
+    payLogos: [
+      ['pay-visa.svg', 'Visa'], ['pay-master.svg', 'Mastercard'], ['pay-paypal.svg', 'PayPal'],
+      ['pay-apple_pay.svg', 'Apple Pay'], ['pay-google_pay.svg', 'Google Pay'], ['pay-sepadirectdebit.svg', 'SEPA-Lastschrift'],
+    ],
   };
 
   // ── Zustand der Buchung ──

@@ -56,7 +56,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <section class="step" data-step="1" aria-labelledby="h1-1">
       <h1 id="h1-1" tabindex="-1">Was plant ihr?</h1>
       <p class="lead">Wählt euer Event. Den Termin sucht ihr im nächsten Schritt aus.</p>
-      <p class="rating" aria-label="5,0 von 5 Sternen bei Google, 204 Rezensionen"><b>5,0</b><span class="stars" aria-hidden="true"><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i><i class="ph-fill ph-star"></i></span><span aria-hidden="true">204 Rezensionen bei Google</span></p>
+      <div class="reviews" data-reviews></div>
+      <div class="paybox paybox--mobile"><span class="paybox-lbl"><i class="ph ph-lock-simple"></i>Sicher bezahlen mit</span><div class="paylogos" data-paylogos></div></div>
       <div class="opts" id="eventOpts" role="radiogroup" aria-label="Eventart"></div>
       <p class="err" id="err-1" role="alert"><i class="ph ph-warning-circle"></i> Bitte wählt ein Event.</p>
 
@@ -193,11 +194,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <legend>Zahlungsart</legend>
         <div class="pay" id="pay">
           <div class="pay-opt">
-            <label class="pay-head"><input type="radio" name="pay" value="cc" checked><span><span class="pay-name">Karte</span><br><span class="pay-sub">Visa, Mastercard</span></span><i class="ph ph-credit-card pay-ico"></i></label>
+            <label class="pay-head"><input type="radio" name="pay" value="cc" checked><span><span class="pay-name">Karte</span><br><span class="pay-sub">Visa, Mastercard</span></span><span class="pay-logos"><img src="/v2/img/pay-visa.svg" alt="Visa" width="38" height="24"><img src="/v2/img/pay-master.svg" alt="Mastercard" width="38" height="24"></span></label>
             <div class="pay-body"><div class="stripe-field" id="stripeCard"></div><p class="field-msg" id="cardErr" role="alert"></p></div>
           </div>
           <div class="pay-opt">
-            <label class="pay-head"><input type="radio" name="pay" value="sepa"><span><span class="pay-name">SEPA-Lastschrift</span><br><span class="pay-sub">Einzug vom Girokonto</span></span><i class="ph ph-bank pay-ico"></i></label>
+            <label class="pay-head"><input type="radio" name="pay" value="sepa"><span><span class="pay-name">SEPA-Lastschrift</span><br><span class="pay-sub">Einzug vom Girokonto</span></span><span class="pay-logos"><img src="/v2/img/pay-sepadirectdebit.svg" alt="SEPA-Lastschrift" width="38" height="24"></span></label>
             <div class="pay-body">
               <div class="field"><label for="sepaName">Kontoinhaber</label><input class="input" id="sepaName" autocomplete="name"><p class="ferr"><i class="ph ph-warning-circle"></i> Kontoinhaber fehlt</p></div>
               <div class="field" style="margin-top:12px"><span class="label">IBAN</span><div class="stripe-field" id="stripeIban"></div><p class="field-msg" id="ibanErr" role="alert"></p></div>
@@ -238,9 +239,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <div class="card" id="sideCard"></div>
     <button class="btn btn-primary" type="button" data-cta></button>
     <div class="trust">
-      <p><i class="ph-fill ph-star" style="color:#e7a918"></i>5,0 bei Google, 204 Rezensionen</p>
+      <div class="reviews reviews--side" data-reviews></div>
       <p><i class="ph ph-arrows-clockwise"></i>Kostenlos stornierbar bis 14 Tage vorher</p>
-      <p><i class="ph ph-lock-simple"></i>Sichere Zahlung über Stripe und PayPal</p>
+      <div class="paybox"><span class="paybox-lbl"><i class="ph ph-lock-simple"></i>Sicher bezahlen mit</span><div class="paylogos" data-paylogos></div></div>
     </div>
   </aside>
 </main>

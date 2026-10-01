@@ -61,6 +61,30 @@
   TX.busy = (btns, label) => btns.forEach(b => { b.dataset.label = b.dataset.label || b.innerHTML; b.setAttribute('aria-busy', 'true'); b.innerHTML = `<span class="spin"></span> ${label}`; });
   TX.unbusy = btns => btns.forEach(b => { b.removeAttribute('aria-busy'); if (b.dataset.label) b.innerHTML = b.dataset.label; delete b.dataset.label; });
 
+  // ── Vertrauen: Bewertungs-Kacheln (Google, Tripadvisor) + Zahlungslogos ──
+  const fmtRating = r => r.toFixed(1).replace('.', ',');
+  TX.renderTrust = () => {
+    const { google, tripadvisor } = TX.config.reviews;
+    const stars = '<i class="ph-fill ph-star"></i>'.repeat(5);
+    // Tripadvisor-Kreise: anteilig gefüllt (z. B. 4,8 = 4 voll + 1 zu 80 %)
+    const bubbles = Array.from({ length: 5 }, (_, i) => {
+      const fill = Math.max(0, Math.min(1, tripadvisor.rating - i));
+      return `<span class="bubble" style="--f:${Math.round(fill * 100)}%"></span>`;
+    }).join('');
+    const html = `
+      <div class="review" aria-label="${fmtRating(google.rating)} von 5 Sternen bei Google, ${google.count} ${google.label}">
+        <img src="/v2/img/google-g.svg" alt="" width="22" height="22">
+        <span><span class="rv-top"><b>${fmtRating(google.rating)}</b><span class="stars" aria-hidden="true">${stars}</span></span><small>${google.count} ${google.label}</small></span>
+      </div>
+      <div class="review" aria-label="${fmtRating(tripadvisor.rating)} von 5 Punkten bei Tripadvisor, ${tripadvisor.count} ${tripadvisor.label}">
+        <span class="ta-mark"><img src="/v2/img/tripadvisor.svg" alt="" width="16" height="16"></span>
+        <span><span class="rv-top"><b>${fmtRating(tripadvisor.rating)}</b><span class="bubbles" aria-hidden="true">${bubbles}</span></span><small>${tripadvisor.count} ${tripadvisor.label}</small></span>
+      </div>`;
+    $$('[data-reviews]').forEach(el => { el.innerHTML = html; });
+    const logos = TX.config.payLogos.map(([f, alt]) => `<img src="/v2/img/${f}" alt="${alt}" width="38" height="24" loading="lazy">`).join('');
+    $$('[data-paylogos]').forEach(el => { el.innerHTML = logos; });
+  };
+
   // ── Saison Weihnachtsfeier: 1.10. bis 22.12. (Vorschau mit ?xmas=1 / ?xmas=0) ──
   TX.isXmas = () => {
     const p = new URLSearchParams(location.search).get('xmas');
