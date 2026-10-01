@@ -90,8 +90,12 @@
     $('#bar').hidden = S.step === DONE;
     $('.side').hidden = S.step === DONE;
     $('#sideCard').hidden = !S.event;   // leere Karte erst zeigen, wenn etwas gewählt ist
-    $('#sideCard').innerHTML = TX.summaryHtml(true);
-    $$('#sideCard [data-go]').forEach(b => b.addEventListener('click', () => TX.go(+b.dataset.go)));
+    $('#sideSum').innerHTML = TX.summaryHtml(true);
+    $$('#sideSum [data-go]').forEach(b => b.addEventListener('click', () => TX.go(+b.dataset.go)));
+    // Codefeld, sobald ein Preis feststeht (Desktop: Seitenleiste, mobil: Preisübersicht)
+    TX.syncPromo($('#sidePromo'), S.qtySeen && !S.fc);
+    TX.syncPromo($('#sheetPromo'), S.qtySeen && !S.fc);
+    if ($('#sheet-price').classList.contains('open')) TX.renderPriceSheet();
     if (S.step === 5) TX.renderSummary();
   }
   TX.onChange(render);

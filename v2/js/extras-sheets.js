@@ -78,7 +78,8 @@
   });
 
   // ── Preisübersicht (Leiste unten antippen) ──
-  TX.onSheetOpen('price', () => { const q = TX.quote(); $('#priceSheetBody').innerHTML = q ? TX.priceRowsHtml(q) : ''; });
+  TX.renderPriceSheet = () => { const q = TX.quote(); $('#priceSheetBody').innerHTML = q ? TX.priceRowsHtml(q) : ''; };
+  TX.onSheetOpen('price', TX.renderPriceSheet);
 
   // ── Cookie-Einstellungen (Usercentrics, wird über GTM geladen) ──
   $('#cookieBtn').addEventListener('click', () => { if (window.UC_UI) window.UC_UI.showSecondLayer(); });

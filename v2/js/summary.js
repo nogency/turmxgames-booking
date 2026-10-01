@@ -36,18 +36,9 @@
   };
 
   TX.renderSummary = () => {
-    $('#summaryCard').innerHTML = TX.summaryHtml(true) + (S.fc ? '' : `
-      <div class="promo">
-        ${S.promo.code ? `<p class="small" style="margin:10px 0 0">Code ${TX.esc(S.promo.code)} ist aktiv. <button class="link" type="button" id="promoRemove">Entfernen</button></p>`
-        : `<button class="link" type="button" id="promoToggle">Gutschein oder Rabattcode eingeben</button>
-           <div id="promoBox" hidden><div class="promo-row"><input class="input" id="promoInput" maxlength="30" autocapitalize="characters" aria-label="Gutschein- oder Rabattcode"><button class="btn btn-secondary" type="button" id="promoApply">Einlösen</button></div>
-           <p class="field-msg" id="promoMsg" role="alert"></p></div>`}
-      </div>`);
-    $$('#summaryCard [data-go]').forEach(b => b.addEventListener('click', () => TX.go(+b.dataset.go)));
-    const t = $('#promoToggle'); if (t) t.addEventListener('click', () => { $('#promoBox').hidden = false; t.hidden = true; $('#promoInput').focus(); });
-    const a = $('#promoApply'); if (a) a.addEventListener('click', applyPromo);
-    const i = $('#promoInput'); if (i) i.addEventListener('keydown', e => { if (e.key === 'Enter') applyPromo(); });
-    const r = $('#promoRemove'); if (r) r.addEventListener('click', () => { TX.resetPromo(); TX.changed(); });
+    $('#summaryBody').innerHTML = TX.summaryHtml(true);
+    $$('#summaryBody [data-go]').forEach(b => b.addEventListener('click', () => TX.go(+b.dataset.go)));
+    TX.syncPromo($('#summaryPromo'), !S.fc);   // Admin-Link: Preise sind festgelegt, kein Code
     $('#stornoLine').textContent = TX.stornoText();
   };
 
@@ -55,9 +46,32 @@
   const defFrom = d => ({ discountType: d.discountType, discountValue: d.discountValue, maxDiscountCents: d.maxDiscountCents });
   TX.resetPromo = () => { S.promo = { code: null, def: null }; };
 
-  async function applyPromo() {
-    const code = $('#promoInput').value.trim().toUpperCase(); if (!code) return;
-    const btn = $('#promoApply'), msg = $('#promoMsg');
+  /**
+   * Codefeld. Steht in der Seitenleiste (Desktop), in der Preisübersicht (mobil) und in der Zusammenfassung.
+   * Neu gezeichnet wird nur, wenn sich der Code-Status ändert – sonst ginge eine angefangene Eingabe verloren.
+   */
+  TX.syncPromo = (box, show) => {
+    const key = show ? 'on:' + (S.promo.code || '') : 'off';
+    if (box.dataset.k === key) return;
+    box.dataset.k = key; box.hidden = !show;
+    if (!show) { box.innerHTML = ''; return; }
+    if (S.promo.code) {
+      box.innerHTML = `<p class="promo-on"><i class="ph ph-tag"></i><span>Code <b>${TX.esc(S.promo.code)}</b> eingelöst</span><button class="link" type="button">Entfernen</button></p>`;
+      box.querySelector('button').addEventListener('click', () => { TX.resetPromo(); TX.changed(); });
+      return;
+    }
+    box.innerHTML = `<label class="promo-lbl" for="${box.id}In">Gutschein oder Rabattcode</label>
+      <div class="promo-row"><input class="input" id="${box.id}In" maxlength="30" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="Code eingeben"><button class="btn btn-secondary" type="button">Einlösen</button></div>
+      <p class="field-msg" role="alert"></p>`;
+    const input = box.querySelector('input'), btn = box.querySelector('button'), msg = box.querySelector('.field-msg');
+    btn.addEventListener('click', () => applyPromo(input, btn, msg));
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') applyPromo(input, btn, msg); });
+    input.addEventListener('input', () => { msg.textContent = ''; });
+  };
+
+  async function applyPromo(input, btn, msg) {
+    const code = input.value.trim().toUpperCase(); if (!code || btn.getAttribute('aria-busy') === 'true') return;
+    msg.textContent = '';
     if (!S.dateStr || !S.time) { msg.textContent = 'Bitte zuerst Datum und Uhrzeit wählen.'; return; }
     TX.busy([btn], '');
     try {
