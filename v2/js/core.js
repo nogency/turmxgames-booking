@@ -36,6 +36,7 @@
     promo: { code: null, def: null },
     payMethod: 'cc',        // cc | sepa | paypal | invoice (Werte wie v1, landen im Tracking)
     detailsOk: false,
+    visit: 'new',           // Schon mal bei uns? new | back | mixed (Vorauswahl wie v1)
     fc: false,              // Admin-Link (Fast Checkout)
     linkId: null, bookingId: null, override: null,
     availDates: new Set(), availMonth: null,

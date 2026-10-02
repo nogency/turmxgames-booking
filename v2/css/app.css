@@ -181,6 +181,8 @@ h2{font-size:18px;font-weight:600;margin:0 0 12px;letter-spacing:-.01em}
 .more-link{display:block;text-align:center;margin:14px auto 0;font-size:14px}
 .age,.amounts{display:flex;flex-wrap:wrap;gap:8px}
 .seg-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg-btns.seg-3{grid-template-columns:repeat(3,1fr)}
+.seg-3 button{min-width:0;padding:0 6px;font-size:14px}
 
 /* ── Extras (Schalter) ── */
 .extras{display:grid;gap:10px}

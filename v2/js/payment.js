@@ -257,6 +257,7 @@
       c.phone ? 'Telefon: ' + c.phone : null,
       S.age ? 'Alter Geburtstagskind: ' + S.age : null,
       c.companyName ? 'Firma: ' + c.companyName : null,
+      TX.VISIT_NOTES[S.visit] || null,
       c.wishes ? 'Wünsche: ' + c.wishes : null,
       '----------------------',
     ].filter(Boolean).join('\n');

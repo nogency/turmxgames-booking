@@ -28,5 +28,15 @@
     S.event = b.dataset.org;   // schule | verein → eigener Name in Notizen/Tracking wie v1
     TX.renderOrg(); TX.changed();
   }));
+  // "Schon mal bei uns gewesen?" – Texte 1:1 wie v1, das Team liest sie so in den Bookla-Notizen
+  TX.VISIT_NOTES = {
+    new: 'Nein, erstes Mal 👋 Herzlich willkommen!',
+    back: 'Ja, ich war schon hier 🙌 Schön, dass ihr wiederkommt!',
+    mixed: 'Teils / teils — Einige sind Neulinge',
+  };
+  $$('[data-visit]').forEach(b => b.addEventListener('click', () => {
+    S.visit = b.dataset.visit;
+    $$('[data-visit]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  }));
   $('#wishToggle').addEventListener('click', e => { $('#wishField').hidden = false; e.currentTarget.hidden = true; $('#wish').focus(); });
 })();
