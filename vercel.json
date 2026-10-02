@@ -3,7 +3,9 @@
     {
       "source": "/.well-known/apple-developer-merchantid-domain-association",
       "destination": "/api/apple-pay-domain"
-    }
+    },
+    { "source": "/", "destination": "/v2/index.html" },
+    { "source": "/index.html", "destination": "/v2/index.html" }
   ],
   "headers": [
     {
@@ -11,6 +13,12 @@
       "headers": [
         { "key": "Content-Type", "value": "application/json" },
         { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
+      "source": "/v1.html",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" }
       ]
     }
   ]
