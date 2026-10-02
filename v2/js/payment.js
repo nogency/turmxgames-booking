@@ -208,6 +208,7 @@
       baseAmount: P.round2(q.baseOnly - q.discount),
       companyName: c.companyName, companyStreet: c.companyStreet, companyZip: c.companyZip, companyCity: c.companyCity, ustId: c.ustId,
       promoCode: S.promo.code || null,
+      discountAmount: S.promo.code ? q.discount : 0,   // für den Ausweis auf der AB
     });
     if ((status === 202 && data.processing) || (status === 409 && data.duplicate)) { TX.showDone(null); return; }
     if (!ok) throw new Error(data.error || 'Buchung fehlgeschlagen');
@@ -235,6 +236,7 @@
       paymentMethod: S.payMethod, date: S.dateStr, time: S.time,
       firstName: c.firstName, lastName: c.lastName, email: c.email, phone: c.phone || null,
       companyName: c.companyName, companyStreet: c.companyStreet, companyZip: c.companyZip, companyCity: c.companyCity, ustId: c.ustId,
+      promoCode: S.promo.code || null, discountAmount: S.promo.code ? q.discount : 0,   // Gutschein/Rabatt auf der AB
     }).then(r => { if (!r.ok) console.error('[KRITISCH] Auftragsbestätigung fehlgeschlagen', r.status, 'bookingId:', bookingId); })
       .catch(e => console.error('[KRITISCH] Auftragsbestätigung fehlgeschlagen', e && e.message, 'bookingId:', bookingId));
   }

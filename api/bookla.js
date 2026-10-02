@@ -324,7 +324,7 @@ module.exports = async function handler(req, res) {
           serviceId, date, time, groupSize, firstName, lastName,
           email, phone, notes, promoCode, serviceName, amount,
           companyName, companyStreet, companyZip, companyCity, ustId,
-          drinksFlat, drinksPrice, insurance, baseAmount,
+          drinksFlat, drinksPrice, insurance, baseAmount, discountAmount,
         } = req.body || {};
 
         if (!serviceId || !date || !time || !email || !amount) {
@@ -456,6 +456,7 @@ module.exports = async function handler(req, res) {
           date, time,
           firstName, lastName, email, phone,
           companyName, companyStreet, companyZip, companyCity, ustId,
+          promoCode, discountAmount,   // Gutschein/Rabatt auf der AB ausweisen (fehlt bei v1 → AB wie bisher)
         });
 
         const result = { ...bookingData, invoiceId: invoiceData.invoiceNumber };

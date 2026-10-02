@@ -31,6 +31,7 @@ function buildInvoiceData(params) {
     date, time, firstName, lastName, email, phone,
     companyName, companyStreet, companyZip, companyCity, ustId,
     drinksFlat, drinksPrice, insurance, freefall, baseAmount,
+    promoCode, discountAmount,
   } = params;
 
   const spots = parseInt(groupSize) || 1;
@@ -38,13 +39,27 @@ function buildInvoiceData(params) {
   // ── Positionen aufbauen ──
   const items = [];
 
-  // 1. Haupt-Event
-  const eventAmount = parseFloat(baseAmount || amount);
+  // 1. Haupt-Event. baseAmount kommt bereits abzüglich Rabatt; wird der Rabatt mitgeschickt,
+  //    steht das Event zum vollen Preis und der Code als eigene Minus-Position (Summe unverändert).
+  const discount = Math.round((parseFloat(discountAmount) || 0) * 100) / 100;
+  const eventAmount = discount > 0
+    ? Math.round((parseFloat(baseAmount || amount) + discount) * 100) / 100
+    : parseFloat(baseAmount || amount);
   items.push({
     name: serviceName,
     qtyLabel: `${spots} Pers.`,
     tax: calculateTax(eventAmount),
   });
+
+  // 1b. Gutschein (GS-…) bzw. Rabattcode
+  if (discount > 0) {
+    const code = String(promoCode || '').trim().toUpperCase().slice(0, 40);
+    items.push({
+      name: /^GS-/.test(code) ? `Gutschein ${code}` : code ? `Rabattcode ${code}` : 'Rabatt',
+      qtyLabel: '',
+      tax: calculateTax(-discount),
+    });
+  }
 
   // 2. Getränkeflat (drinksPrice × Personen)
   if (drinksFlat) {
