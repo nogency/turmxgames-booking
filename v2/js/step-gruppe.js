@@ -15,6 +15,10 @@
     $('#qtyVal').textContent = S.qty;
     $('#qtyUnit').textContent = S.event === 'kinder' ? 'Kinder' : 'Personen';
     $('#qtyMinus').disabled = S.qty <= P.MIN_QTY; $('#qtyPlus').disabled = S.qty >= P.MAX_QTY;
+    // Mindestanzahl immer sichtbar; am Minimum hervorgehoben (erklärt das ausgegraute Minus)
+    $('#qtyMin').textContent = `mindestens ${P.MIN_QTY}`;
+    $('#qtyMin').classList.toggle('at', S.qty <= P.MIN_QTY);
+    $('#qtyMinus').setAttribute('aria-label', S.qty <= P.MIN_QTY ? `Mindestens ${P.MIN_QTY} ${S.event === 'kinder' ? 'Kinder' : 'Personen'}` : 'Eine Person weniger');
     const teams = Math.ceil(S.qty / 16), per = Math.ceil(S.qty / teams);
     $('#qtyTeams').textContent = teams === 1 ? 'Ihr spielt in einem Team.' : `Ihr spielt in ${teams} Teams mit je bis zu ${per} Personen.`;
     $('#quick').innerHTML = [6, 8, 10, 12, 16, 20, 24, 32].map(n => `<button type="button" aria-pressed="${S.qty === n}" data-n="${n}">${n}</button>`).join('');
