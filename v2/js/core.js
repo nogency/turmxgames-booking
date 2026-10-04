@@ -17,7 +17,7 @@
     keys: null,                                             // { stripePk, paypalClientId } aus /api/config
     // Bewertungen (Stand 2026-10-01, bei Änderung hier pflegen)
     reviews: {
-      google: { rating: 5.0, count: 204, label: 'Rezensionen' },
+      google: { rating: 5.0, count: 208, label: 'Rezensionen' },
       tripadvisor: { rating: 4.8, count: 46, label: 'Bewertungen' },
     },
     payLogos: [
