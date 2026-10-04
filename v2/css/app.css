@@ -391,6 +391,24 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
 .reviews--side{margin:0 0 4px}
 /* Desktop: Bewertungen + Zahlungslogos nur in der Seitenleiste (sonst doppelt) */
 @media (min-width:1024px){ .paybox--mobile,.reviews--mobile{display:none} }
+/* Mobil kompakter, damit die Event-Auswahl schneller sichtbar ist */
+@media (max-width:1023px){
+  .reviews--mobile{gap:6px;margin-bottom:10px}
+  .reviews--mobile .review{padding:6px 10px;gap:8px}
+  .reviews--mobile .review>img{width:18px;height:18px}
+  .reviews--mobile .ta-mark{width:18px;height:18px}
+  .reviews--mobile .ta-mark img{width:13px;height:13px}
+  .reviews--mobile .rv-top{gap:5px}
+  .reviews--mobile .rv-top b{font-size:14px}
+  .reviews--mobile .review small{font-size:11px;line-height:1.25}
+  .reviews--mobile .review .stars i{font-size:10px}
+  .reviews--mobile .bubble{width:8px;height:8px;border-width:1.25px}
+  .paybox--mobile{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:18px}
+  .paybox--mobile .paybox-lbl{font-size:12px;gap:4px}
+  .paybox--mobile .paybox-lbl i{font-size:13px}
+  .paybox--mobile .paylogos{gap:4px}
+  .paybox--mobile .paylogos img{height:18px}
+}
 /* Desktop: Zusammenfassung samt Codefeld steht in der Seitenleiste, nicht doppelt in Schritt 5 */
 @media (min-width:1024px){ #summaryCard{display:none} }
 .review .stars i,.trust .review .stars i{color:#e7a918;font-size:12px}
