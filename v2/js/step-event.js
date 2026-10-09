@@ -10,8 +10,8 @@
     { key: 'jga', name: 'JGA', meta: 'Junggesellenabschied, 2,5 Std.', icon: 'ph-champagne' },
     { key: 'firma', name: 'Firmen & Teams', meta: 'Teamevent, 2,5 Std.', icon: 'ph-buildings' },
     { key: 'friends', name: 'Freunde & Familie', meta: 'Geburtstag oder Treffen, 2,5 Std.', icon: 'ph-users-three' },
-    { key: 'kinder', name: 'Kindergeburtstag', meta: 'Ab 8 Jahren, 2 Std.', icon: 'ph-cake', unit: 'pro Kind' },
-    { key: 'schule', name: 'Schule oder Verein', meta: 'Sonderpreis mit Nachweis, 2 Std.', icon: 'ph-graduation-cap' },
+    { key: 'kinder', name: 'Kindergeburtstag', meta: 'Ab 8 Jahren, 2,5 Std.', icon: 'ph-cake', unit: 'pro Kind' },
+    { key: 'schule', name: 'Schule oder Verein', meta: 'Sonderpreis mit Nachweis, 2,5 Std.', icon: 'ph-graduation-cap' },
   ];
   TX.cardFor = ev => CARDS.find(c => c.key === (P.isSocial(ev) ? 'schule' : ev));
 
