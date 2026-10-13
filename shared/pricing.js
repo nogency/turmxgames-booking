@@ -21,6 +21,9 @@
   const FREEFALL = 30;
   const MIN_QTY = 4;
   const MAX_QTY = 32;
+  // Kleingruppenzuschlag: pauschal bei weniger als 6 Personen (also 4–5). Nicht rabattierbar,
+  // entfällt bei Admin-Links mit festgelegten Preisen.
+  const SMALL_GROUP = { below: 6, fee: 49.99 };
 
   // name = Bezeichnung in Bookla-Notizen, Auftragsbestätigung und Tracking (unverändert zu v1)
   const EVENTS = {
@@ -80,9 +83,12 @@
     const baseOnly = base + pp * qty;
     const discount = promoDiscount(opts.promoDef, baseOnly);
 
+    const smallGroupFee = !opts.override && qty < SMALL_GROUP.below ? SMALL_GROUP.fee : 0;
+
     const lines = [];
     if (base) lines.push({ key: 'base', amount: base });
     lines.push({ key: 'persons', amount: pp * qty, qty, unit: pp });
+    if (smallGroupFee) lines.push({ key: 'smallgroup', amount: smallGroupFee });
     const dp = drinksPrice(opts.event);
     const drinksTotal = extras.drinks ? round2(dp * qty) : 0;
     if (extras.drinks) lines.push({ key: 'drinks', amount: drinksTotal, qty, unit: dp });
@@ -90,15 +96,15 @@
     const ff = extras.freefall && opts.event === 'jga';
     if (ff) lines.push({ key: 'freefall', amount: FREEFALL });
 
-    // Gleicher Rechenweg wie v1 getTotal(): (Basis - Rabatt) + Extras, auf Cent gerundet
+    // Gleicher Rechenweg wie v1 getTotal(): (Basis - Rabatt) + Extras, auf Cent gerundet; dazu der Zuschlag
     const extrasTotal = (extras.drinks ? dp * qty : 0) + (extras.insurance ? INSURANCE : 0) + (ff ? FREEFALL : 0);
-    const total = round2(baseOnly - discount + extrasTotal);
+    const total = round2(baseOnly - discount + extrasTotal + smallGroupFee);
     const vat = round2(total - total / (1 + VAT_RATE));
-    return { base, pp, qty, baseOnly, discount, lines, extrasTotal: round2(extrasTotal), total, vat, drinksUnit: dp };
+    return { base, pp, qty, baseOnly, discount, lines, extrasTotal: round2(extrasTotal), smallGroupFee, total, vat, drinksUnit: dp };
   }
 
   return {
-    VAT_RATE, PRICES, KINDER_PRICES, SOCIAL_PRICE, DRINKS, INSURANCE, FREEFALL, MIN_QTY, MAX_QTY,
+    VAT_RATE, PRICES, KINDER_PRICES, SOCIAL_PRICE, DRINKS, INSURANCE, FREEFALL, MIN_QTY, MAX_QTY, SMALL_GROUP,
     EVENTS, ppForDay, minPP, drinksPrice, promoDiscount, quote, isSocial, round2,
   };
 }));

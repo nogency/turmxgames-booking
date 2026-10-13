@@ -1,13 +1,16 @@
 // Preislogik: Werte stammen aus der Messung gegen die Live-Seite (v1) vom 2026-09-29/30.
 // Ändert sich ein Wert, ist das eine Preisänderung und muss bewusst passieren.
+// 13.10.2026: Kleingruppenzuschlag 49,99 € bei 4–5 Personen → Werte mit 4/5 Personen als "alt + Z".
 const P = require('../shared/pricing');
 
 const MO = 1, FR = 5, SA = 6;
+const Z = 49.99;
+const r2 = n => Math.round(n * 100) / 100;
 const q = (event, dow, qty, extras = {}, promoDef = null, override = null) =>
   P.quote({ event, dow, qty, extras, promoDef, override }).total;
 const pct = v => ({ discountType: 'percent', discountValue: v, maxDiscountCents: null });
 
-describe('Tagespreise (4 Personen, ohne Extras)', () => {
+describe('Tagespreise (4 Personen, ohne Extras, inkl. Kleingruppenzuschlag)', () => {
   test.each([
     ['jga', 152, 160, 180],
     ['friends', 152, 160, 180],
@@ -16,7 +19,7 @@ describe('Tagespreise (4 Personen, ohne Extras)', () => {
     ['schule', 100, 100, 100],
     ['verein', 100, 100, 100],
   ])('%s Mo/Fr/Sa', (ev, mo, fr, sa) => {
-    expect([q(ev, MO, 4), q(ev, FR, 4), q(ev, SA, 4)]).toEqual([mo, fr, sa]);
+    expect([q(ev, MO, 4), q(ev, FR, 4), q(ev, SA, 4)]).toEqual([mo, fr, sa].map(v => r2(v + Z)));
   });
 
   test('ohne Datum = Wochentagspreis', () => {
@@ -33,22 +36,46 @@ describe('Extras', () => {
     expect(r.vat).toBe(72.36);
   });
   test('Kinder Sa 8 mit Getränken (7,90 €)', () => expect(q('kinder', SA, 8, { drinks: true })).toBe(363.2));
-  test('Versicherung pauschal', () => expect(q('jga', MO, 4, { insurance: true })).toBe(166.9));
-  test('Freefall nur beim JGA', () => expect(q('friends', SA, 4, { freefall: true })).toBe(180));
+  test('Versicherung pauschal', () => expect(q('jga', MO, 4, { insurance: true })).toBe(r2(166.9 + Z)));
+  test('Freefall nur beim JGA', () => expect(q('friends', SA, 4, { freefall: true })).toBe(r2(180 + Z)));
 });
 
 describe('Rabatt- und Gutscheincodes (nur auf Grundgebühr + Personen)', () => {
-  test('10 % JGA Mo', () => expect(q('jga', MO, 4, {}, pct(10))).toBe(136.8));
-  test('10 % JGA Mo, 5 Personen', () => expect(q('jga', MO, 5, {}, pct(10))).toBe(162));
-  test('20 € fest', () => expect(q('jga', MO, 4, {}, { discountType: 'amount', discountValue: 2000 })).toBe(132));
-  test('50 % gedeckelt auf 30 €', () => expect(q('jga', SA, 4, {}, { discountType: 'percent', discountValue: 50, maxDiscountCents: 3000 })).toBe(150));
-  test('Schule Sa 50 % gedeckelt', () => expect(q('schule', SA, 4, {}, { discountType: 'percent', discountValue: 50, maxDiscountCents: 3000 })).toBe(70));
-  test('Kinder Mo 10 %', () => expect(q('kinder', MO, 4, {}, pct(10))).toBe(140.4));
-  test('Extras bleiben ungekürzt', () => expect(q('jga', MO, 4, { drinks: true }, pct(10))).toBe(188.4));
+  test('10 % JGA Mo', () => expect(q('jga', MO, 4, {}, pct(10))).toBe(r2(136.8 + Z)));
+  test('10 % JGA Mo, 5 Personen', () => expect(q('jga', MO, 5, {}, pct(10))).toBe(r2(162 + Z)));
+  test('20 € fest', () => expect(q('jga', MO, 4, {}, { discountType: 'amount', discountValue: 2000 })).toBe(r2(132 + Z)));
+  test('50 % gedeckelt auf 30 €', () => expect(q('jga', SA, 4, {}, { discountType: 'percent', discountValue: 50, maxDiscountCents: 3000 })).toBe(r2(150 + Z)));
+  test('Schule Sa 50 % gedeckelt', () => expect(q('schule', SA, 4, {}, { discountType: 'percent', discountValue: 50, maxDiscountCents: 3000 })).toBe(r2(70 + Z)));
+  test('Kinder Mo 10 %', () => expect(q('kinder', MO, 4, {}, pct(10))).toBe(r2(140.4 + Z)));
+  test('Extras bleiben ungekürzt', () => expect(q('jga', MO, 4, { drinks: true }, pct(10))).toBe(r2(188.4 + Z)));
   test('Gutschein größer als Preis', () => {
     const big = { discountType: 'amount', discountValue: 50000 };
-    expect(q('jga', MO, 4, {}, big)).toBe(0);
-    expect(q('jga', MO, 4, { drinks: true }, big)).toBe(51.6);
+    expect(q('jga', MO, 4, {}, big)).toBe(Z);
+    expect(q('jga', MO, 4, { drinks: true }, big)).toBe(r2(51.6 + Z));
+  });
+});
+
+describe('Kleingruppenzuschlag (unter 6 Personen)', () => {
+  test('4 und 5 Personen: 49,99 € als eigene Position, ab 6 keiner', () => {
+    const at = qty => P.quote({ event: 'jga', dow: MO, qty, extras: {} });
+    expect([at(4).smallGroupFee, at(5).smallGroupFee, at(6).smallGroupFee, at(32).smallGroupFee]).toEqual([Z, Z, 0, 0]);
+    expect(at(5).lines.find(l => l.key === 'smallgroup')).toEqual({ key: 'smallgroup', amount: Z });
+    expect(at(6).lines.some(l => l.key === 'smallgroup')).toBe(false);
+    expect(at(5).total).toBe(229.99);   // 40 + 5 × 28 + 49,99
+    expect(at(6).total).toBe(208);      // 40 + 6 × 28
+  });
+  test('gilt für alle Eventarten', () => {
+    ['jga', 'firma', 'friends', 'kinder', 'schule', 'verein']
+      .forEach(ev => expect(P.quote({ event: ev, dow: SA, qty: 5, extras: {} }).smallGroupFee).toBe(Z));
+  });
+  test('wird nicht rabattiert und steckt in der MwSt.', () => {
+    const r = P.quote({ event: 'jga', dow: MO, qty: 4, extras: {}, promoDef: pct(100) });
+    expect(r.total).toBe(Z);
+    expect(r.vat).toBe(7.98);
+  });
+  test('Admin-Link mit eigenen Preisen: kein Zuschlag', () => {
+    expect(P.quote({ event: 'jga', dow: MO, qty: 4, extras: {}, override: { base: 40, pp: 30 } }).smallGroupFee).toBe(0);
+    expect(q('jga', MO, 4, {}, null, { base: 40, pp: 30 })).toBe(160);
   });
 });
 

@@ -1,4 +1,5 @@
 const { calculateTax, formatInvoiceNumber, formatDate, getDueDate, buildInvoiceData } = require('../api/_lib/invoice-data');
+const r2 = n => Math.round(n * 100) / 100;
 
 test('calculateTax: 180 EUR brutto splits correctly', () => {
   const { netto, mwst, brutto } = calculateTax(180);
@@ -44,6 +45,18 @@ test('AB mit Gutschein: voller Preis + Minus-Position, Summe gleich', () => {
 test('AB mit Rabattcode: Label, Rabatt 0 erzeugt keine Zeile', () => {
   expect(buildInvoiceData({ ...abBase, promoCode: 'turmx10', discountAmount: 25 }).items[1].name).toBe('Rabattcode TURMX10');
   expect(buildInvoiceData({ ...abBase, promoCode: 'TURMX10', discountAmount: 0 }).items).toHaveLength(2);
+});
+
+test('AB mit Kleingruppenzuschlag: eigene Position, Summe stimmt', () => {
+  const d = buildInvoiceData({ ...abBase, groupSize: 5, amount: 229.99, baseAmount: 180, drinksFlat: false, smallGroupFee: 49.99 });
+  expect(d.items.map(i => [i.name, i.qtyLabel, i.tax.brutto])).toEqual([['Firmen & Teams', '5 Pers.', 180], ['Kleingruppenzuschlag', '1×', 49.99]]);
+  expect(d.tax.brutto).toBe(229.99);
+});
+
+test('AB mit Rabatt + Kleingruppenzuschlag + Getränken: Reihenfolge und Summe', () => {
+  const d = buildInvoiceData({ ...abBase, groupSize: 4, amount: 223.59, baseAmount: 122, promoCode: 'GS-ABCD-EFGH', discountAmount: 30, smallGroupFee: 49.99 });
+  expect(d.items.map(i => i.name)).toEqual(['Firmen & Teams', 'Gutschein GS-ABCD-EFGH', 'Kleingruppenzuschlag', 'Getränkeflat']);
+  expect(d.tax.brutto).toBe(r2(152 - 30 + 49.99 + 4 * 12.9));
 });
 
 test('formatDate from ISO string', () => {

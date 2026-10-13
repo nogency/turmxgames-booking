@@ -176,6 +176,20 @@ h2{font-size:18px;font-weight:600;margin:0 0 12px;letter-spacing:-.01em}
 .qty-val .qty-min{display:block;font-size:13px;margin-top:2px;transition:color .2s}
 .qty-val .qty-min.at{color:var(--accent-text);font-weight:600}
 .qty-teams{text-align:center;font-size:14px;color:var(--text-2);margin:12px 0 0}
+/* Kleingruppenzuschlag (4–5 Personen): Hinweis + Vergleich mit 6 Personen */
+.sg{margin:14px 0 0;padding:12px 14px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-control);animation:fade .25s ease both}
+.sg[hidden]{display:none}
+.sg-head{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center}
+.sg-ico{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent-text);display:grid;place-items:center;font-size:19px}
+.sg-head b{display:block;font-size:15px;font-weight:600;line-height:1.25}
+.sg-head small{display:block;font-size:12px;color:var(--text-3);line-height:1.3}
+.sg-fee{font:400 22px/1 var(--font-display);letter-spacing:.4px;white-space:nowrap}
+.sg-compare{margin:12px 0 0;padding-top:12px;border-top:1px dashed var(--line-2);font-size:14px;line-height:1.45;color:var(--text-2)}
+.sg-compare b{color:var(--text);font-weight:600}
+.sg-compare b.pos{color:var(--positive)}
+.sg-up{margin-top:10px;display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:14px;color:var(--text)}
+.sg-up::before{content:"+";font-size:16px;line-height:1;color:var(--accent-text)}
+.sg-up:active{transform:scale(.98)}
 .quick{display:flex;gap:8px;overflow-x:auto;margin:14px -16px 0;padding:2px 16px 4px;scrollbar-width:none}
 .quick::-webkit-scrollbar{display:none}
 .quick button,.age button,.seg-btns button,.amounts button{flex:0 0 auto;min-width:52px;height:44px;padding:0 12px;border-radius:var(--r-control);border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:15px}

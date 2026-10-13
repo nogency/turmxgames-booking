@@ -116,6 +116,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           <button class="qty-btn" type="button" id="qtyPlus" aria-label="Eine Person mehr"><i class="ph ph-plus"></i></button>
         </div>
         <p class="qty-teams" id="qtyTeams"></p>
+        <div class="sg" id="smallGroup" role="status" hidden>
+          <div class="sg-head">
+            <span class="sg-ico" aria-hidden="true"><i class="ph ph-users-three"></i></span>
+            <span><b>Kleingruppenzuschlag</b><small id="sgWhen"></small></span>
+            <b class="sg-fee num" id="sgFee"></b>
+          </div>
+          <p class="sg-compare" id="sgCompare"></p>
+          <button class="sg-up" type="button" id="sgUp"></button>
+        </div>
         <div class="quick" id="quick" aria-label="Schnellauswahl Personen"></div>
         <button class="link more-link" type="button" data-sheet="inquiry">Mehr als 32 Personen? Anfrage senden</button>
       </div>

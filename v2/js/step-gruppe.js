@@ -23,10 +23,32 @@
     $('#qtyTeams').textContent = teams === 1 ? 'Ihr spielt in einem Team.' : `Ihr spielt in ${teams} Teams mit je bis zu ${per} Personen.`;
     $('#quick').innerHTML = [6, 8, 10, 12, 16, 20, 24, 32].map(n => `<button type="button" aria-pressed="${S.qty === n}" data-n="${n}">${n}</button>`).join('');
     $$('#quick button').forEach(b => b.addEventListener('click', () => TX.setQty(+b.dataset.n)));
+    TX.renderSmallGroup();
     $('#ageBlock').hidden = S.event !== 'kinder';
     $('#ages').innerHTML = ['8', '9', '10', '11', '12', '13', '14', '15+'].map(a => `<button type="button" aria-pressed="${S.age === a}" data-a="${a}">${a}</button>`).join('');
     $$('#ages button').forEach(b => b.addEventListener('click', () => { S.age = b.dataset.a; TX.renderQty(); TX.changed(); }));
   };
+
+  // Kleingruppenzuschlag: Hinweis + ehrlicher Vergleich, was dieselbe Buchung mit 6 Personen kostet
+  // (inkl. Extras und Code). Bei 5 Personen ist 6 oft sogar günstiger.
+  TX.renderSmallGroup = () => {
+    const box = $('#smallGroup'), q = TX.quote(), fee = q ? q.smallGroupFee : 0;
+    box.hidden = !fee;
+    if (!fee) return;
+    const kids = S.event === 'kinder', unit = kids ? 'Kinder' : 'Personen', six = P.SMALL_GROUP.below;
+    const diff = P.round2(TX.quoteFor(six).total - q.total);
+    const ask = six - S.qty === 1 ? (kids ? 'Kommt noch ein Kind dazu?' : 'Kommt noch jemand mit?')
+      : (kids ? 'Kommen noch zwei Kinder dazu?' : 'Kommen noch zwei mit?');
+    const verdict = diff < 0 ? `zahlt ihr insgesamt sogar <b class="pos">${TX.eur(-diff)} weniger</b>`
+      : diff === 0 ? 'zahlt ihr insgesamt gleich viel' : `zahlt ihr insgesamt nur <b>${TX.eur(diff)} mehr</b>`;
+    $('#sgWhen').textContent = `Gilt bei ${P.MIN_QTY} und ${six - 1} ${kids ? 'Kindern' : 'Personen'}`;
+    $('#sgFee').textContent = '+ ' + TX.eur(fee);
+    $('#sgCompare').innerHTML = `${ask} Ab ${six} ${unit} entfällt der Zuschlag – mit ${six} ${unit} ${verdict}.`;
+    $('#sgUp').textContent = `Auf ${six} ${unit} erhöhen`;
+  };
+  // Extras oder Code ändern den Vergleich → bei jeder Änderung neu berechnen
+  TX.onChange(() => { if (S.step === 3) TX.renderSmallGroup(); });
+  $('#sgUp').addEventListener('click', () => { TX.track.smallGroupUpsell(S.qty); TX.setQty(P.SMALL_GROUP.below); });
 
   TX.renderExtras = () => {
     const dp = P.drinksPrice(S.event);
