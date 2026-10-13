@@ -27,9 +27,9 @@
     jga:     { name: 'JGA',                base: 40, minutes: 150 },
     firma:   { name: 'Firmen & Teams',     base: 40, minutes: 150 },
     friends: { name: 'Freunde & Familie',  base: 40, minutes: 150 },
-    kinder:  { name: 'Kindergeburtstag',   base: 60, minutes: 120 },
-    schule:  { name: 'Schulausflug',       base: 0,  minutes: 120 },
-    verein:  { name: 'Verein',             base: 0,  minutes: 120 },
+    kinder:  { name: 'Kindergeburtstag',   base: 60, minutes: 150 },
+    schule:  { name: 'Schulausflug',       base: 0,  minutes: 150 },
+    verein:  { name: 'Verein',             base: 0,  minutes: 150 },
   };
 
   const round2 = n => Math.round(n * 100) / 100;
