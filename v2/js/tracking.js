@@ -27,6 +27,8 @@
     date() { push({ event: 'select_date', date: TX.S.dateStr, event_type: TX.S.event }); },
     time() { push({ event: 'select_time', time: TX.S.time, date: TX.S.dateStr, event_type: TX.S.event }); },
     extra(name, on, price) { push({ event: on ? 'add_extra' : 'remove_extra', extra: name, price }); },
+    // Neu (Kleingruppenzuschlag): Kunde erhöht über den Hinweis von 4/5 auf 6 Personen
+    smallGroupUpsell(fromQty) { push({ event: 'small_group_upsell', from_qty: fromQty, to_qty: 6, event_type: TX.S.event }); },
     progress(step) {
       if (!STEP_NAMES[step]) return;
       push({ event: 'checkout_progress', step, step_name: STEP_NAMES[step], event_type: TX.S.event, value: TX.total(), currency: 'EUR' });

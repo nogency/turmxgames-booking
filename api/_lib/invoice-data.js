@@ -31,7 +31,7 @@ function buildInvoiceData(params) {
     date, time, firstName, lastName, email, phone,
     companyName, companyStreet, companyZip, companyCity, ustId,
     drinksFlat, drinksPrice, insurance, freefall, baseAmount,
-    promoCode, discountAmount,
+    promoCode, discountAmount, smallGroupFee,
   } = params;
 
   const spots = parseInt(groupSize) || 1;
@@ -58,6 +58,16 @@ function buildInvoiceData(params) {
       name: /^GS-/.test(code) ? `Gutschein ${code}` : code ? `Rabattcode ${code}` : 'Rabatt',
       qtyLabel: '',
       tax: calculateTax(-discount),
+    });
+  }
+
+  // 1c. Kleingruppenzuschlag (bei weniger als 6 Personen; fehlt bei v1 → keine Position)
+  const sgFee = Math.round((parseFloat(smallGroupFee) || 0) * 100) / 100;
+  if (sgFee > 0) {
+    items.push({
+      name: 'Kleingruppenzuschlag',
+      qtyLabel: '1×',
+      tax: calculateTax(sgFee),
     });
   }
 

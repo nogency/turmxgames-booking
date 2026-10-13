@@ -8,6 +8,7 @@
   const LABEL = {
     base: () => 'Grundgebühr',
     persons: l => `${l.qty} × ${TX.eurShort(l.unit)} ${S.event === 'kinder' ? 'pro Kind' : 'pro Person'}`,
+    smallgroup: () => 'Kleingruppenzuschlag',
     drinks: l => `Getränkeflat, ${l.qty} × ${TX.eur(l.unit)}`,
     insurance: () => 'Flex-Versicherung',
     freefall: () => 'Freefall-Mutprobe',

@@ -67,14 +67,16 @@
   // Admin-Link bringt eigenen Eventnamen mit (wie v1: S.eventName = d.eventName)
   TX.eventName = () => TX.S.eventNameOverride || (TX.S.event ? P.EVENTS[TX.S.event].name : '');
   TX.needsOrg = () => TX.S.event === 'firma' || P.isSocial(TX.S.event);
-  TX.quote = () => TX.S.event && P.quote({
+  // Angebot für eine beliebige Personenzahl (z. B. Vergleich "mit 6 Personen") – sonst wie gewählt
+  TX.quoteFor = qty => TX.S.event && P.quote({
     event: TX.S.event,
     dow: TX.S.date ? TX.S.date.getDay() : null,
-    qty: TX.S.qty,
+    qty,
     extras: TX.S.extras,
     promoDef: TX.S.promo.def,
     override: TX.S.override,
   });
+  TX.quote = () => TX.quoteFor(TX.S.qty);
   TX.total = () => { const q = TX.quote(); return q ? q.total : 0; };
 
   // Kontaktfelder (Formular in Schritt 4) gebündelt lesen

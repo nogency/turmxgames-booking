@@ -209,6 +209,7 @@
       companyName: c.companyName, companyStreet: c.companyStreet, companyZip: c.companyZip, companyCity: c.companyCity, ustId: c.ustId,
       promoCode: S.promo.code || null,
       discountAmount: S.promo.code ? q.discount : 0,   // für den Ausweis auf der AB
+      smallGroupFee: q.smallGroupFee,                  // eigene AB-Position (baseAmount enthält ihn nicht)
     });
     if ((status === 202 && data.processing) || (status === 409 && data.duplicate)) { TX.showDone(null); return; }
     if (!ok) throw new Error(data.error || 'Buchung fehlgeschlagen');
@@ -231,12 +232,13 @@
     const c = TX.contact(), q = TX.quote();
     TX.api.sendConfirmation({
       bookingId, serviceName: TX.eventName(), groupSize: S.qty,
-      amount: q.total, baseAmount: P.round2(q.total - q.extrasTotal),
+      amount: q.total, baseAmount: P.round2(q.total - q.extrasTotal - q.smallGroupFee),
       drinksFlat: S.extras.drinks, drinksPrice: q.drinksUnit, insurance: S.extras.insurance, freefall: S.extras.freefall && S.event === 'jga',
       paymentMethod: S.payMethod, date: S.dateStr, time: S.time,
       firstName: c.firstName, lastName: c.lastName, email: c.email, phone: c.phone || null,
       companyName: c.companyName, companyStreet: c.companyStreet, companyZip: c.companyZip, companyCity: c.companyCity, ustId: c.ustId,
       promoCode: S.promo.code || null, discountAmount: S.promo.code ? q.discount : 0,   // Gutschein/Rabatt auf der AB
+      smallGroupFee: q.smallGroupFee,
     }).then(r => { if (!r.ok) console.error('[KRITISCH] Auftragsbestätigung fehlgeschlagen', r.status, 'bookingId:', bookingId); })
       .catch(e => console.error('[KRITISCH] Auftragsbestätigung fehlgeschlagen', e && e.message, 'bookingId:', bookingId));
   }
@@ -255,6 +257,7 @@
       'Getränkeflat: ' + (S.extras.drinks ? 'Ja (' + S.qty + ' × ' + TX.comma(q.drinksUnit) + '€)' : 'Nein'),
       'Versicherung: ' + (S.extras.insurance ? 'Ja (14,90€)' : 'Nein'),
       'Freefall Mutprobe: ' + (S.extras.freefall && S.event === 'jga' ? 'Ja (30,00€)' : 'Nein'),
+      q.smallGroupFee ? 'Kleingruppenzuschlag: Ja (' + TX.comma(q.smallGroupFee) + '€)' : null,
       'Zahlung: ' + label,
       c.phone ? 'Telefon: ' + c.phone : null,
       S.age ? 'Alter Geburtstagskind: ' + S.age : null,
