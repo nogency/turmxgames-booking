@@ -115,7 +115,23 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           <div class="qty-val"><output id="qtyVal" class="num" aria-live="polite">8</output><span id="qtyUnit">Personen</span><span class="qty-min" id="qtyMin"></span></div>
           <button class="qty-btn" type="button" id="qtyPlus" aria-label="Eine Person mehr"><i class="ph ph-plus"></i></button>
         </div>
-        <p class="qty-teams" id="qtyTeams"></p>
+        <div class="qty-teams" id="qtyTeams">
+          <span id="qtyTeamsText"></span>
+          <button class="link split-btn" type="button" id="splitInfoBtn" aria-expanded="false" aria-controls="splitInfo" hidden><i class="ph ph-info"></i><span>So läuft's</span></button>
+        </div>
+        <div class="split" id="splitInfo" hidden>
+          <div class="split-groups" aria-hidden="true">
+            <div class="sgp"><b>Gruppe 1</b><small>eigener Showmaster</small><span class="dots4"><i class="y"></i><i class="b"></i><i class="r"></i><i class="g"></i></span></div>
+            <span class="split-plus">+</span>
+            <div class="sgp"><b>Gruppe 2</b><small>eigener Showmaster</small><span class="dots4"><i class="y"></i><i class="b"></i><i class="r"></i><i class="g"></i></span></div>
+          </div>
+          <ul class="split-list">
+            <li><i class="ph ph-microphone-stage"></i><span>Jede Gruppe hat ihren eigenen Showmaster.</span></li>
+            <li><i class="ph ph-game-controller"></i><span>Beide Gruppen spielen dieselben Spiele.</span></li>
+            <li><i class="ph ph-users-three"></i><span>Team Gelb aus Gruppe 1 spielt mit Team Gelb aus Gruppe 2 zusammen, genauso Blau, Rot und Grün.</span></li>
+            <li><i class="ph ph-trophy"></i><span>Am Ende wird zusammengezählt. Es gibt ein Siegerteam für alle.</span></li>
+          </ul>
+        </div>
         <div class="sg" id="smallGroup" role="status" hidden>
           <div class="sg-head">
             <span class="sg-ico" aria-hidden="true"><i class="ph ph-users-three"></i></span>

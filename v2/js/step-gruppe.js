@@ -19,8 +19,12 @@
     $('#qtyMin').textContent = `mindestens ${P.MIN_QTY}`;
     $('#qtyMin').classList.toggle('at', S.qty <= P.MIN_QTY);
     $('#qtyMinus').setAttribute('aria-label', S.qty <= P.MIN_QTY ? `Mindestens ${P.MIN_QTY} ${S.event === 'kinder' ? 'Kinder' : 'Personen'}` : 'Eine Person weniger');
-    const teams = Math.ceil(S.qty / 16), per = Math.ceil(S.qty / teams);
-    $('#qtyTeams').textContent = teams === 1 ? 'Ihr spielt in einem Team.' : `Ihr spielt in ${teams} Teams mit je bis zu ${per} Personen.`;
+    // Bis 16 eine Gameshow; ab 17 zwei Gruppen parallel, die als ein Spiel gewertet werden.
+    // (Früher "2 Teams mit je bis zu 16" – klang nach Aufteilen; "Team" meint in der Show die Farben.)
+    const split = S.qty > 16;
+    $('#qtyTeamsText').textContent = split ? 'Ihr spielt in zwei Gruppen parallel, als eine große Gameshow.' : 'Ihr spielt alle zusammen in einer Gameshow.';
+    $('#splitInfoBtn').hidden = !split;
+    if (!split) { $('#splitInfo').hidden = true; $('#splitInfoBtn').setAttribute('aria-expanded', 'false'); }
     $('#quick').innerHTML = [6, 8, 10, 12, 16, 20, 24, 32].map(n => `<button type="button" aria-pressed="${S.qty === n}" data-n="${n}">${n}</button>`).join('');
     $$('#quick button').forEach(b => b.addEventListener('click', () => TX.setQty(+b.dataset.n)));
     TX.renderSmallGroup();
@@ -48,6 +52,10 @@
   };
   // Extras oder Code ändern den Vergleich → bei jeder Änderung neu berechnen
   TX.onChange(() => { if (S.step === 3) TX.renderSmallGroup(); });
+  $('#splitInfoBtn').addEventListener('click', () => {
+    const open = $('#splitInfo').hidden;
+    $('#splitInfo').hidden = !open; $('#splitInfoBtn').setAttribute('aria-expanded', String(open));
+  });
   $('#sgUp').addEventListener('click', () => { TX.track.smallGroupUpsell(S.qty); TX.setQty(P.SMALL_GROUP.below); });
 
   TX.renderExtras = () => {
