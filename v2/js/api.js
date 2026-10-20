@@ -39,7 +39,7 @@
       return bookla('validate-code', { code, serviceId: cfg.SERVICE_ID, date: S.dateStr, time: S.time, groupSize: S.qty });
     },
     createPaymentIntent(amount, paymentMethodType) {
-      return bookla('create-payment-intent', { amount, description: 'TurmX Games – ' + TX.eventName(), ...(paymentMethodType && { paymentMethodType }) });
+      return bookla('create-payment-intent', { amount, description: 'TurmX Games – ' + TX.eventName(), ...(paymentMethodType && { paymentMethodType }), order: TX.order() });
     },
     createBooking(payload) { return bookla('create-booking', payload); },
     createBookingInvoice(payload) { return bookla('create-booking-invoice', payload); },

@@ -5,7 +5,22 @@
 
 const { DateTime } = require('luxon');
 
+// Zahlungsprüfung darf Buchungen nie gefährden: lädt das Modul nicht, läuft alles ohne Prüfung weiter
+let paycheck;
+try {
+  paycheck = require('./_lib/paycheck');
+} catch (e) {
+  console.error('[PAYCHECK] Modul nicht geladen, Prüfung aus:', e && e.message);
+  paycheck = {
+    evaluate: async () => ({}), finish: async () => {},
+    normalizeOrder: () => ({}), orderHash: () => null,
+    STATS_KEY: 'paycheck:stats', LOG_KEY: 'paycheck:log',
+  };
+}
+
 const BOOKLA_BASE = 'https://eu.bookla.com/api/v1';
+// PayPal: Live wie bisher; für Vorschau/Test per PAYPAL_API_BASE=https://api-m.sandbox.paypal.com
+const PAYPAL_API = process.env.PAYPAL_API_BASE || 'https://api-m.paypal.com';
 
 const RESOURCE_IDS = [
   '8638cf4f-12f7-4e32-bddb-39384bd6f56d', // TurmXGames Slot 1
@@ -156,7 +171,7 @@ module.exports = async function handler(req, res) {
       //    dann nur auf einem freien Slot buchen.
       // ─────────────────────────────────────────────
       case 'create-booking': {
-        const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode, paypalAuthId } = req.body || {};
+        const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode, paypalAuthId, paymentIntentId, order } = req.body || {};
 
         if (!serviceId || !date || !time || !email) {
           const missing = ['serviceId','date','time','email'].filter(f=>!({serviceId,date,time,email}[f]));
@@ -212,6 +227,10 @@ module.exports = async function handler(req, res) {
           console.error('[Idempotenz] Lock fehlgeschlagen, fahre ohne Lock fort:', e.message);
           idemRedis = null;
         }
+
+        // ── Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN): läuft parallel, blockiert und ändert nichts ──
+        const pcDeps = paycheckDeps(companyId, apiKey);
+        const payCheck = paycheck.evaluate({ stage: 'buchung', rawOrder: order, paymentIntentId, paypalAuthId, deps: pcDeps });
 
         // ── Schritt 1: Aktuelle Verfügbarkeit pro Ressource prüfen ──
         const from = `${date}T00:00:00Z`;
@@ -278,6 +297,7 @@ module.exports = async function handler(req, res) {
               );
             }
 
+            await paycheck.finish(payCheck, { stage: 'buchung', bookingId: data && data.id, deps: pcDeps });   // wirft nie, max. 1,5 s
             return res.status(201).json(data);
           } catch(e) {
             lastError = e;
@@ -324,7 +344,7 @@ module.exports = async function handler(req, res) {
           serviceId, date, time, groupSize, firstName, lastName,
           email, phone, notes, promoCode, serviceName, amount,
           companyName, companyStreet, companyZip, companyCity, ustId,
-          drinksFlat, drinksPrice, insurance, baseAmount, discountAmount, smallGroupFee,
+          drinksFlat, drinksPrice, insurance, baseAmount, discountAmount, smallGroupFee, order,
         } = req.body || {};
 
         if (!serviceId || !date || !time || !email || !amount) {
@@ -467,6 +487,13 @@ module.exports = async function handler(req, res) {
           await idemRedis.set(idemKey, JSON.stringify({ status: 'done', booking: result }), { ex: 180 }).catch(() => {});
         }
 
+        // Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN): Betrag der Rechnung gegen Serverpreis
+        {
+          const pcDeps = paycheckDeps(companyId, apiKey);
+          await paycheck.finish(paycheck.evaluate({ stage: 'rechnung', rawOrder: order, clientAmount: amount, deps: pcDeps }),
+            { stage: 'rechnung', bookingId: bookingData.id, deps: pcDeps });   // wirft nie, max. 1,5 s
+        }
+
         // Auftragsbestätigung: Ein Fehler hier darf die bereits angelegte Buchung NICHT als
         // gescheitert melden — sonst versucht der Kunde es erneut und bucht doppelt.
         try {
@@ -500,7 +527,7 @@ module.exports = async function handler(req, res) {
       //     zieht ggf. PayPal-Autorisierung ein.
       // ─────────────────────────────────────────────
       case 'confirm-admin-booking': {
-        const { bookingId, paypalAuthId, notes, adminLinkId } = req.body || {};
+        const { bookingId, paypalAuthId, notes, adminLinkId, paymentIntentId, order } = req.body || {};
         if (!bookingId) return res.status(400).json({ error: 'bookingId required' });
 
         // ── Auth: adminLinkId muss vorhanden sein, in Redis existieren
@@ -542,6 +569,10 @@ module.exports = async function handler(req, res) {
           return res.status(500).json({ error: 'Auth-Check fehlgeschlagen, bitte erneut versuchen' });
         }
 
+        // Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN): Preise aus dem gespeicherten Link
+        const pcDeps = paycheckDeps(companyId, apiKey);
+        const payCheck = paycheck.evaluate({ stage: 'admin-link', rawOrder: order, paymentIntentId, paypalAuthId, link: storedPayload, deps: pcDeps });
+
         // PayPal einziehen — erst nach erfolgreichem Auth-Check
         if (paypalAuthId) {
           await capturePaypalAuth(paypalAuthId).catch(e =>
@@ -579,6 +610,7 @@ module.exports = async function handler(req, res) {
           }
         }
 
+        await paycheck.finish(payCheck, { stage: 'admin-link', bookingId: allIds[0] || bookingId, deps: pcDeps });   // wirft nie, max. 1,5 s
         return res.status(200).json(confirmed);
       }
 
@@ -639,21 +671,51 @@ module.exports = async function handler(req, res) {
       // ─────────────────────────────────────────────
       case 'create-payment-intent': {
         const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-        const { amount, description, paymentMethodType } = req.body || {};
+        const { amount, description, paymentMethodType, order } = req.body || {};
         if (!amount) return res.status(400).json({ error: 'amount required' });
+
+        // Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN): Betrag bleibt der vom Browser.
+        // Neu nur: Fingerabdruck der Bestellung als Stripe-Notiz (bindet die Zahlung an die Buchung).
+        let orderHashValue = null;
+        try { const n = paycheck.normalizeOrder(order); if (n.order) orderHashValue = paycheck.orderHash(n.order); } catch (e) { /* nur Beobachtung */ }
+        const pcDeps = paycheckDeps(companyId, apiKey);
+        const payCheck = paycheck.evaluate({ stage: 'zahlung-anlegen', rawOrder: order, clientAmount: amount, deps: pcDeps });
 
         const isSepa = paymentMethodType === 'sepa_debit';
         const paymentIntent = await stripe.paymentIntents.create({
           amount:   Math.round(parseFloat(amount) * 100),
           currency: 'eur',
           description: description || 'TurmX Games Booking',
+          metadata: { kind: 'booking', ...(orderHashValue && { orderHash: orderHashValue }) },
           ...(isSepa
             ? { payment_method_types: ['sepa_debit'] }
             : { automatic_payment_methods: { enabled: true } }
           ),
         });
 
+        await paycheck.finish(payCheck.then(e => ({ ...e, ref: paymentIntent.id })), { stage: 'zahlung-anlegen', deps: pcDeps });   // wirft nie, max. 1,5 s
         return res.status(200).json({ clientSecret: paymentIntent.client_secret });
+      }
+
+      // ─────────────────────────────────────────────
+      // 7. Bericht der Zahlungsprüfung (nur mit ADMIN_SECRET)
+      // ─────────────────────────────────────────────
+      case 'paycheck-report': {
+        const secret = process.env.ADMIN_SECRET;
+        if (!secret || (req.headers['authorization'] || '') !== `Bearer ${secret}`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const { redis } = paycheckDeps(companyId, apiKey);
+        if (!redis) return res.status(500).json({ error: 'Redis nicht erreichbar' });
+        const [stats, entries] = await Promise.all([
+          redis.hgetall(paycheck.STATS_KEY),
+          redis.lrange(paycheck.LOG_KEY, 0, 299),
+        ]);
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json({
+          stats: stats || {},
+          entries: (entries || []).map(e => (typeof e === 'string' ? JSON.parse(e) : e)),
+        });
       }
 
       default:
@@ -704,7 +766,7 @@ async function getPaypalAccessToken() {
   if (!clientId || !secret) throw new Error('PayPal credentials not configured');
 
   const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
-  const res  = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+  const res  = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
     method:  'POST',
     headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body:    'grant_type=client_credentials',
@@ -717,7 +779,7 @@ async function getPaypalAccessToken() {
 async function capturePaypalAuth(authorizationId) {
   const token = await getPaypalAccessToken();
   const res   = await fetch(
-    `https://api-m.paypal.com/v2/payments/authorizations/${authorizationId}/capture`,
+    `${PAYPAL_API}/v2/payments/authorizations/${authorizationId}/capture`,
     {
       method:  'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -734,7 +796,7 @@ async function capturePaypalAuth(authorizationId) {
 async function voidPaypalAuth(authorizationId) {
   const token = await getPaypalAccessToken();
   const res   = await fetch(
-    `https://api-m.paypal.com/v2/payments/authorizations/${authorizationId}/void`,
+    `${PAYPAL_API}/v2/payments/authorizations/${authorizationId}/void`,
     {
       method:  'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -745,6 +807,54 @@ async function voidPaypalAuth(authorizationId) {
     throw new Error(`PayPal void failed: ${JSON.stringify(data)}`);
   }
   console.log('[PayPal] Authorization voided:', authorizationId);
+}
+
+async function getPaypalAuthorization(authorizationId) {
+  const token = await getPaypalAccessToken();
+  const res = await fetch(`${PAYPAL_API}/v2/payments/authorizations/${encodeURIComponent(authorizationId)}`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`PayPal authorization lookup failed: ${res.status}`);
+  return res.json();
+}
+
+// ─────────────────────────────────────────────
+// Zahlungsprüfung: Abhängigkeiten für api/_lib/paycheck.js (Stufe 1: nur beobachten)
+// ─────────────────────────────────────────────
+function paycheckDeps(companyId, apiKey) {
+  let redis = null;
+  try {
+    const { Redis } = require('@upstash/redis');
+    redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
+  } catch (e) { redis = null; }
+  return {
+    redis,
+    // Gleiche Abbildung wie in 'validate-code' (dort unverändert gelassen)
+    async getPromoDef(code) {
+      const list = await booklaFetch(`/companies/${companyId}/plugins/promocodes/list`, 'GET', null, apiKey);
+      const arr = Array.isArray(list) ? list : (list?.items || list?.promoCodes || null);
+      const def = Array.isArray(arr) ? arr.find(c => (c.code || '').toUpperCase() === String(code).toUpperCase()) : null;
+      if (!def) return null;
+      const discountType = def.discountType || null;
+      return {
+        discountType,
+        discountValue: discountType === 'percent' ? (def.discountPercent ?? null) : (def.discountAmount ?? null),
+        maxDiscountCents: def.maxDiscountAmount || null,
+      };
+    },
+    async getLink(id) {
+      if (!redis) return null;
+      const raw = await redis.get(`bl:${id}`);
+      return raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
+    },
+    async getStripePI(id) {
+      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+      try { return await stripe.paymentIntents.retrieve(id); }
+      catch (e) { if (e && e.code === 'resource_missing') return null; throw e; }
+    },
+    getPaypalAuth: id => getPaypalAuthorization(id),
+  };
 }
 
 // ─────────────────────────────────────────────

@@ -18,6 +18,8 @@ const { generateGiftcardPDF } = require('./_lib/giftcard-pdf');
 const { uploadInvoiceToDrive } = require('./_lib/drive');
 
 const BOOKLA_BASE = 'https://eu.bookla.com/api/v1';
+// PayPal: Live wie bisher; für Vorschau/Test per PAYPAL_API_BASE=https://api-m.sandbox.paypal.com
+const PAYPAL_API = process.env.PAYPAL_API_BASE || 'https://api-m.paypal.com';
 
 const MIN_EUR = 10;
 const MAX_EUR = 500;
@@ -54,7 +56,7 @@ async function getPaypalAccessToken() {
   const secret   = process.env.PAYPAL_SECRET;
   if (!clientId || !secret) throw new Error('PayPal credentials not configured');
   const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
-  const res  = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+  const res  = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
     method:  'POST',
     headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body:    'grant_type=client_credentials',
@@ -66,7 +68,7 @@ async function getPaypalAccessToken() {
 
 async function getPaypalAuthorization(authorizationId) {
   const token = await getPaypalAccessToken();
-  const res = await fetch(`https://api-m.paypal.com/v2/payments/authorizations/${authorizationId}`, {
+  const res = await fetch(`${PAYPAL_API}/v2/payments/authorizations/${authorizationId}`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   const data = await res.json();
@@ -76,7 +78,7 @@ async function getPaypalAuthorization(authorizationId) {
 
 async function capturePaypalAuth(authorizationId) {
   const token = await getPaypalAccessToken();
-  const res = await fetch(`https://api-m.paypal.com/v2/payments/authorizations/${authorizationId}/capture`, {
+  const res = await fetch(`${PAYPAL_API}/v2/payments/authorizations/${authorizationId}/capture`, {
     method:  'POST',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body:    JSON.stringify({}),
