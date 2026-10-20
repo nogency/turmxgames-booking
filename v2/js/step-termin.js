@@ -93,7 +93,8 @@
         : slot.time;
       const full = slot.available === false || slot.spots === 0;
       const last = !full && slot.freeSlots === 1;
-      const st = full ? 'Ausgebucht' : last ? 'Letzter freier Raum' : 'Frei';
+      // "Gameshow" statt "Raum": Bis zu 3 Gruppen spielen parallel – "letzter Raum" las sich wie "nur ein Raum"
+      const st = full ? 'Ausgebucht' : last ? 'Noch 1 Gameshow frei' : 'Frei';
       return `<button type="button" class="slot" data-t="${t}" aria-pressed="${S.time === t}" ${full ? 'disabled' : ''} aria-label="${t} Uhr, ${st}">
         <span class="t num">${t}</span><span class="s${last ? ' last' : ''}">${st}</span></button>`;
     }).join('');
