@@ -178,7 +178,7 @@
 
   // ═════════ Buchung anlegen ═════════
   async function submitBooking(paymentId, paypalAuthId) {
-    if (S.fc && S.bookingId) return confirmAdmin(paypalAuthId);
+    if (S.fc && S.bookingId) return confirmAdmin(paypalAuthId, paymentId);
     const c = TX.contact();
     const { ok, status, data } = await TX.api.createBooking({
       serviceId: cfg.SERVICE_ID, date: S.dateStr, time: S.time, groupSize: S.qty,
@@ -186,6 +186,7 @@
       notes: TX.bookingNotes(),
       paymentIntentId: paymentId || null, paypalAuthId: paypalAuthId || null,
       promoCode: S.promo.code || null,
+      order: TX.order(),
     });
     // Duplikat oder unklare Bookla-Antwort: NICHT als Fehler, NICHT erneut senden
     if ((status === 202 && data.processing) || (status === 409 && data.duplicate)) { TX.showDone(null); return; }
@@ -210,6 +211,7 @@
       promoCode: S.promo.code || null,
       discountAmount: S.promo.code ? q.discount : 0,   // für den Ausweis auf der AB
       smallGroupFee: q.smallGroupFee,                  // eigene AB-Position (baseAmount enthält ihn nicht)
+      order: TX.order(),
     });
     if ((status === 202 && data.processing) || (status === 409 && data.duplicate)) { TX.showDone(null); return; }
     if (!ok) throw new Error(data.error || 'Buchung fehlgeschlagen');
@@ -218,8 +220,8 @@
     TX.showDone(ref, { confirmationFailed: !!data.confirmationFailed });
   }
 
-  async function confirmAdmin(paypalAuthId) {
-    const { ok, data } = await TX.api.confirmAdminBooking({ bookingId: S.bookingId, paypalAuthId: paypalAuthId || null, notes: TX.bookingNotes(), adminLinkId: S.linkId });
+  async function confirmAdmin(paypalAuthId, paymentIntentId) {
+    const { ok, data } = await TX.api.confirmAdminBooking({ bookingId: S.bookingId, paypalAuthId: paypalAuthId || null, notes: TX.bookingNotes(), adminLinkId: S.linkId, paymentIntentId: paymentIntentId || null, order: TX.order() });
     if (!ok) throw new Error(data.error || 'Bestätigung fehlgeschlagen');
     const ref = 'BKL-' + String(S.bookingId).slice(-6).toUpperCase();
     TX.showDone(ref);

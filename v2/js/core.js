@@ -78,6 +78,13 @@
   });
   TX.quote = () => TX.quoteFor(TX.S.qty);
   TX.total = () => { const q = TX.quote(); return q ? q.total : 0; };
+  // Bestellung für die serverseitige Preisprüfung (der Server rechnet damit selbst nach)
+  TX.order = () => ({
+    event: TX.S.event, date: TX.S.dateStr, time: TX.S.time, qty: TX.S.qty,
+    extras: { drinks: !!TX.S.extras.drinks, insurance: !!TX.S.extras.insurance, freefall: !!TX.S.extras.freefall },
+    promoCode: TX.S.promo.code || null,
+    adminLinkId: TX.S.fc ? TX.S.linkId : null,
+  });
 
   // Kontaktfelder (Formular in Schritt 4) gebündelt lesen
   TX.contact = () => {
