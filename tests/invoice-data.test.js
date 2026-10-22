@@ -69,8 +69,8 @@ test('AB enthält Stornostufen mit Daten (ab Buchungstag) und Hinweise', () => {
   expect(d.storno.notes.length).toBeGreaterThan(0);
 });
 
-test('AB ohne gültiges Datum: keine Stufen, kein Absturz', () => {
-  expect(buildInvoiceData({ ...abBase, date: undefined }).storno.lines).toEqual([]);
+test('AB mit unlesbarem Datum: keine Stufen, kein Absturz', () => {
+  expect(buildInvoiceData({ ...abBase, date: '09.12.2026' }).storno.lines).toEqual([]);
 });
 
 test('formatDate from ISO string', () => {
