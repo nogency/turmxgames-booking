@@ -135,15 +135,18 @@ function generateInvoicePDF(data) {
 
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#888').text('ZAHLUNGSART', LEFT, payY);
 
+    let afterPayY;
     if (!isInvoice) {
       // Paid — green checkmark box
       const paidBoxY = payY + 10;
       doc.rect(LEFT, paidBoxY, W, 28).fillAndStroke('#f0faf4', '#a8dab5');
       doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#1a7340')
          .text(`✓  Bereits via ${payLabel} bezahlt`, LEFT + 10, paidBoxY + 9);
+      afterPayY = paidBoxY + 28;
     } else {
       doc.font('Helvetica').fontSize(9).fillColor('#1a1a1a')
          .text(payLabel, LEFT, payY + 12);
+      afterPayY = payY + 26;
 
       // ── BANK DETAILS ──
       if (data.bankIban) {
@@ -156,19 +159,47 @@ function generateInvoicePDF(data) {
            .text(`IBAN:  ${data.bankIban}`, LEFT + 10, bankY + 40)
            .text(`BIC:   ${data.bankBic || ''}`, LEFT + 10, bankY + 54)
            .text(`Verwendungszweck: ${data.invoiceNumber}`, LEFT + 10, bankY + 68);
+        afterPayY = bankY + 80;
       }
     }
 
-    // ── FOOTER ──
+    // ── FOOTER (auf jeder Seite) ──
     const footY = doc.page.height - 95;
-    doc.moveTo(LEFT, footY).lineTo(RIGHT, footY).strokeColor('#e0ddd7').lineWidth(0.75).stroke();
-    doc.font('Helvetica').fontSize(7.5).fillColor('#999')
-       .text(
-         `HB Kletterwelten GmbH · USt-IdNr. ${COMPANY.ustId} · ${COMPANY.hrb} · Geschäftsführer: ${COMPANY.gf}`,
-         LEFT, footY + 10, { align: 'center', width: W }
-       )
-       .text(`fon: ${COMPANY.phone} · ${COMPANY.email}`, LEFT, footY + 30, { align: 'center', width: W });
+    const drawFooter = () => {
+      doc.moveTo(LEFT, footY).lineTo(RIGHT, footY).strokeColor('#e0ddd7').lineWidth(0.75).stroke();
+      doc.font('Helvetica').fontSize(7.5).fillColor('#999')
+         .text(
+           `HB Kletterwelten GmbH · USt-IdNr. ${COMPANY.ustId} · ${COMPANY.hrb} · Geschäftsführer: ${COMPANY.gf}`,
+           LEFT, footY + 10, { align: 'center', width: W }
+         )
+         .text(`fon: ${COMPANY.phone} · ${COMPANY.email}`, LEFT, footY + 30, { align: 'center', width: W });
+    };
 
+    // ── STORNIERUNG & UMBUCHUNG (AGB §5, Daten ab Buchungstag gerechnet) ──
+    // Passt der Kasten nicht mehr über die Fußzeile, kommt er auf eine zweite Seite.
+    const storno = data.storno || { lines: [], notes: [] };
+    if (storno.lines.length || storno.notes.length) {
+      const PAD = 10, TW = W - 2 * PAD;
+      const lines = storno.lines.map(l => `•  ${l}`);
+      const notes = storno.notes.concat('Es gelten unsere AGB.');
+      doc.font('Helvetica').fontSize(8.5);
+      const hOf = arr => arr.reduce((h, t) => h + doc.heightOfString(t, { width: TW }) + 2, 0);
+      const boxH = PAD + 14 + hOf(lines) + 4 + hOf(notes) + PAD - 2;
+      let boxY = afterPayY + 16;
+      if (boxY + boxH > footY - 12) { drawFooter(); doc.addPage(); boxY = 50; }
+
+      doc.rect(LEFT, boxY, W, boxH).fillAndStroke('#f7f6f3', '#e0ddd7');
+      doc.font('Helvetica-Bold').fontSize(8).fillColor('#888')
+         .text('STORNIERUNG & UMBUCHUNG', LEFT + PAD, boxY + PAD);
+      let ly = boxY + PAD + 14;
+      doc.font('Helvetica').fontSize(8.5).fillColor('#1a1a1a');
+      lines.forEach(t => { doc.text(t, LEFT + PAD, ly, { width: TW }); ly = doc.y + 2; });
+      ly += 4;
+      doc.fillColor('#555');
+      notes.forEach(t => { doc.text(t, LEFT + PAD, ly, { width: TW }); ly = doc.y + 2; });
+    }
+
+    drawFooter();
     doc.end();
   });
 }

@@ -59,6 +59,20 @@ test('AB mit Rabatt + Kleingruppenzuschlag + Getränken: Reihenfolge und Summe',
   expect(d.tax.brutto).toBe(r2(152 - 30 + 49.99 + 4 * 12.9));
 });
 
+test('AB enthält Stornostufen mit Daten (ab Buchungstag) und Hinweise', () => {
+  const d = buildInvoiceData({ ...abBase, date: '2026-12-09' }, { today: '2026-10-22' });
+  expect(d.storno.lines).toEqual([
+    'Bis 25.11.2026: kostenfrei',
+    '26.11.2026 bis 02.12.2026: Stornogebühr 50 % des Buchungsbetrags',
+    'Ab 03.12.2026: Stornogebühr 100 % des Buchungsbetrags (keine Erstattung)',
+  ]);
+  expect(d.storno.notes.length).toBeGreaterThan(0);
+});
+
+test('AB ohne gültiges Datum: keine Stufen, kein Absturz', () => {
+  expect(buildInvoiceData({ ...abBase, date: undefined }).storno.lines).toEqual([]);
+});
+
 test('formatDate from ISO string', () => {
   expect(formatDate('2026-02-27')).toBe('27.02.2026');
 });

@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Test-Ausgabe (PDF-Vorschau aus tests/pdf.test.js)
+pdf-preview/
+
 # Umgebungsvariablen / Secrets — NIE committen
 .env
 .env.*

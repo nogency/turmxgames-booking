@@ -1,3 +1,8 @@
+const P = require('../../shared/pricing');
+
+// Heute in Berlin als 'YYYY-MM-DD' (Server läuft in UTC)
+const todayBerlin = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+
 function calculateTax(brutto) {
   const b = parseFloat(brutto);
   const netto = Math.round((b / 1.19) * 100) / 100;
@@ -25,7 +30,8 @@ function getDueDate(days = 14) {
   return formatDate(d);
 }
 
-function buildInvoiceData(params) {
+// opts.today nur für Tests (nie aus dem Request übernehmen)
+function buildInvoiceData(params, opts = {}) {
   const {
     bookingId, serviceName, groupSize, amount, paymentMethod,
     date, time, firstName, lastName, email, phone,
@@ -130,6 +136,11 @@ function buildInvoiceData(params) {
     bankOwner: process.env.INVOICE_BANK_OWNER || 'HB Kletterwelten GmbH',
     bankIban:  process.env.INVOICE_BANK_IBAN  || 'DE13382501100001720465',
     bankBic:   process.env.INVOICE_BANK_BIC   || 'WELADED1EUS',
+    // Stornostufen mit Daten (AGB §5), ab heute gerechnet; ohne gültiges Datum keine Stufen
+    storno: {
+      lines: /^\d{4}-\d{2}-\d{2}$/.test(String(date)) ? P.stornoLines(date, opts.today || todayBerlin()) : [],
+      notes: P.STORNO_NOTES,
+    },
   };
 }
 

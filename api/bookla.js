@@ -501,7 +501,7 @@ module.exports = async function handler(req, res) {
 
           // Email + Drive parallel — Drive-Fehler brechen Buchung nicht ab
           const [emailResult, driveResult] = await Promise.allSettled([
-            sendInvoiceEmail({ to: email, invoiceNumber: invoiceData.invoiceNumber, pdfBuffer }),
+            sendInvoiceEmail({ to: email, invoiceNumber: invoiceData.invoiceNumber, pdfBuffer, storno: invoiceData.storno }),
             uploadInvoiceToDrive(pdfBuffer, `${invoiceData.invoiceNumber}.pdf`),
           ]);
           if (driveResult.status === 'rejected') {

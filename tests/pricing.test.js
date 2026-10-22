@@ -84,3 +84,49 @@ describe('Admin-Link mit eigenen Preisen', () => {
     expect(q('firma', FR, 24, { drinks: true }, null, { base: 0, pp: 30 })).toBe(1029.6);
   });
 });
+
+// 22.10.2026: AGB §5 – bis 14 Tage vorher frei, 13–7 Tage 50 %, weniger als 7 Tage 100 %
+describe('Stornostaffel mit Daten', () => {
+  const EV = '2026-12-09';   // Mittwoch
+
+  test('früh gebucht: alle drei Stufen, Grenzen inklusive', () => {
+    expect(P.stornoTiers(EV, '2026-10-22')).toEqual([
+      { from: null, until: '2026-11-25', pct: 0 },
+      { from: '2026-11-26', until: '2026-12-02', pct: 50 },
+      { from: '2026-12-03', until: null, pct: 100 },
+    ]);
+    expect(P.stornoLines(EV, '2026-10-22')).toEqual([
+      'Bis 25.11.2026: kostenfrei',
+      '26.11.2026 bis 02.12.2026: Stornogebühr 50 % des Buchungsbetrags',
+      'Ab 03.12.2026: Stornogebühr 100 % des Buchungsbetrags (keine Erstattung)',
+    ]);
+  });
+
+  test('am letzten freien Tag gebucht: freie Stufe bleibt', () => {
+    expect(P.stornoTiers(EV, '2026-11-25').map(t => t.pct)).toEqual([0, 50, 100]);
+  });
+
+  test('kurzfristig (10 Tage vorher): ohne freie Stufe, 50 % ab sofort', () => {
+    expect(P.stornoLines(EV, '2026-11-29')).toEqual([
+      'Bis 02.12.2026: Stornogebühr 50 % des Buchungsbetrags',
+      'Ab 03.12.2026: Stornogebühr 100 % des Buchungsbetrags (keine Erstattung)',
+    ]);
+  });
+
+  test('sehr kurzfristig (3 Tage vorher): nur 100 % ab sofort', () => {
+    expect(P.stornoLines(EV, '2026-12-06')).toEqual(['Ab sofort: Stornogebühr 100 % des Buchungsbetrags (keine Erstattung)']);
+  });
+
+  test('über Monats- und Jahresgrenze', () => {
+    expect(P.stornoTiers('2027-01-05', '2026-11-01')).toEqual([
+      { from: null, until: '2026-12-22', pct: 0 },
+      { from: '2026-12-23', until: '2026-12-29', pct: 50 },
+      { from: '2026-12-30', until: null, pct: 100 },
+    ]);
+  });
+
+  test('Umbuchung und Nichterscheinen stehen dabei', () => {
+    expect(P.STORNO_NOTES.join(' ')).toMatch(/Nach einer Umbuchung ist keine Stornierung mehr möglich/);
+    expect(P.STORNO_NOTES.join(' ')).toMatch(/Nichterscheinen/);
+  });
+});
