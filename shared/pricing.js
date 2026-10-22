@@ -103,8 +103,50 @@
     return { base, pp, qty, baseOnly, discount, lines, extrasTotal: round2(extrasTotal), smallGroupFee, total, vat, drinksUnit: dp };
   }
 
+  // ── Stornierung laut AGB §5 (Kalendertage vor dem Termin). Eine Quelle für Erfolgsseite, PDF und Mail. ──
+  const STORNO = { freeDays: 14, halfDays: 7 };
+  const STORNO_NOTES = [
+    'Umbuchung: 15 € pro Buchung (ohne Flex-Option). Nach einer Umbuchung ist keine Stornierung mehr möglich.',
+    'Bei Nichterscheinen verfällt die Buchung vollständig.',
+  ];
+  const isoAdd = (iso, days) => {
+    const [y, m, d] = String(iso).split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+  };
+  const deDate = iso => String(iso).split('-').reverse().join('.');
+
+  /**
+   * Stornostufen für einen Termin, vom Buchungstag aus gesehen (beides 'YYYY-MM-DD').
+   * → [{ from, until, pct }], Grenzen inklusive; from = null heißt "ab sofort", until = null "bis zum Termin".
+   * Bei kurzfristigen Buchungen entfallen die schon verstrichenen Stufen.
+   */
+  function stornoTiers(eventDate, today) {
+    const tiers = [
+      { from: null, until: isoAdd(eventDate, -STORNO.freeDays), pct: 0 },
+      { from: isoAdd(eventDate, 1 - STORNO.freeDays), until: isoAdd(eventDate, -STORNO.halfDays), pct: 50 },
+      { from: isoAdd(eventDate, 1 - STORNO.halfDays), until: null, pct: 100 },
+    ];
+    return tiers
+      .filter(t => !t.until || t.until >= today)
+      .map(t => (t.from && t.from <= today ? { from: null, until: t.until, pct: t.pct } : t));
+  }
+
+  /** Stufen als Textzeilen, z. B. "Bis 25.11.2026: kostenfrei". Gebühr ausdrücklich als Gebühr benannt. */
+  function stornoLines(eventDate, today) {
+    return stornoTiers(eventDate, today).map(t => {
+      const when = t.from && t.until ? `${deDate(t.from)} bis ${deDate(t.until)}`
+        : t.until ? `Bis ${deDate(t.until)}`
+        : t.from ? `Ab ${deDate(t.from)}` : 'Ab sofort';
+      const what = t.pct === 0 ? 'kostenfrei'
+        : t.pct === 100 ? 'Stornogebühr 100 % des Buchungsbetrags (keine Erstattung)'
+        : `Stornogebühr ${t.pct} % des Buchungsbetrags`;
+      return `${when}: ${what}`;
+    });
+  }
+
   return {
     VAT_RATE, PRICES, KINDER_PRICES, SOCIAL_PRICE, DRINKS, INSURANCE, FREEFALL, MIN_QTY, MAX_QTY, SMALL_GROUP,
     EVENTS, ppForDay, minPP, drinksPrice, promoDiscount, quote, isSocial, round2,
+    STORNO, STORNO_NOTES, stornoTiers, stornoLines,
   };
 }));

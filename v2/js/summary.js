@@ -101,12 +101,20 @@
     }).catch(() => {});
   };
 
-  // Stornofrist laut AGB: bis 14 Tage vorher kostenlos. Kurzfristige Termine ehrlich kennzeichnen.
+  // Stornostufen laut AGB §5 aus shared/pricing.js (gleich wie in der Auftragsbestätigung).
+  // Kurzfristige Termine ehrlich kennzeichnen.
+  const todayIso = () => TX.isoDate(TX.today());
   TX.stornoText = () => {
-    if (!S.date) return 'Kostenlos stornierbar bis 14 Tage vor dem Termin.';
-    const dl = new Date(S.date); dl.setDate(dl.getDate() - 14);
-    return dl >= TX.today()
-      ? `Kostenlos stornierbar bis ${dl.getDate()}. ${TX.MONTHS[dl.getMonth()]}.`
-      : 'Der Termin ist in weniger als 14 Tagen. Eine Stornierung ist deshalb nur gegen Gebühr möglich (siehe AGB).';
+    if (!S.dateStr) return 'Kostenlos stornierbar bis 14 Tage vor dem Termin.';
+    const free = P.stornoTiers(S.dateStr, todayIso()).find(t => t.pct === 0);
+    if (!free) return 'Der Termin ist in weniger als 14 Tagen. Eine Stornierung ist deshalb nur gegen Gebühr möglich (siehe AGB).';
+    const dl = new Date(free.until + 'T12:00:00');
+    return `Kostenlos stornierbar bis ${dl.getDate()}. ${TX.MONTHS[dl.getMonth()]}, danach Stornogebühren laut AGB.`;
+  };
+  // Erfolgsseite: alle Stufen mit Daten plus Umbuchung/Nichterscheinen
+  TX.stornoHtml = () => {
+    const lines = S.dateStr ? P.stornoLines(S.dateStr, todayIso()) : [];
+    return '<b>Stornierung</b>' + lines.map(l => '<br>' + TX.esc(l)).join('') +
+      `<small>${P.STORNO_NOTES.map(TX.esc).join(' ')}</small>`;
   };
 })();

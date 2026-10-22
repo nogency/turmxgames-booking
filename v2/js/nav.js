@@ -64,7 +64,7 @@
       ? 'Eure Buchung ist eingegangen. Die Auftragsbestätigung schicken wir in Kürze separat per E-Mail.'
       : ref ? `Die Bestätigung ist unterwegs an ${c.email}.` : `Eure Buchung wird gerade verarbeitet. Die Bestätigung kommt per E-Mail an ${c.email}.`;
     $('#doneCard').innerHTML = TX.summaryHtml(false);
-    $('#doneStorno').textContent = TX.stornoText();
+    $('#doneStorno').innerHTML = TX.stornoHtml();
     TX.go(DONE);
   };
 
