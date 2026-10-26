@@ -377,6 +377,13 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
 .ref{display:inline-flex;gap:8px;align-items:center;font-size:14px;color:var(--text-2);margin:-6px 0 18px}
 .ref b{font-variant-numeric:tabular-nums;letter-spacing:.5px;color:var(--text)}
 .done-actions{display:grid;gap:10px;margin-top:22px}
+/* TurmX Crew: Einladung auf der Erfolgsseite */
+.crew-card{margin:0 0 18px;padding:18px 16px 16px;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-surface)}
+.crew-card .dots4{justify-content:flex-start;margin:0 0 10px}
+.crew-card h2{margin:0 0 6px;font:400 28px/1 var(--font-display);letter-spacing:.5px}
+.crew-card p{margin:0 0 14px;color:var(--text-2);font-size:15px}
+.crew-card .btn{width:100%}
+.crew-card .small{margin:10px 0 0;text-align:center}
 .next{margin-top:26px;display:grid;gap:10px}
 .next p{margin:0;display:flex;gap:10px;align-items:flex-start;color:var(--text-2);font-size:15px}
 .next i{font-size:20px;color:var(--text-3);margin-top:1px}

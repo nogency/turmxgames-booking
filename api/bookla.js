@@ -18,6 +18,15 @@ try {
   };
 }
 
+// TurmX Crew: gleiche Regel – ohne Modul läuft die Buchung ohne Crew weiter
+let notifyCrew;
+try {
+  ({ notifyCrew } = require('./_lib/crew-hook'));
+} catch (e) {
+  console.error('[Crew] Modul nicht geladen, Andockpunkt aus:', e && e.message);
+  notifyCrew = async () => null;
+}
+
 const BOOKLA_BASE = 'https://eu.bookla.com/api/v1';
 // PayPal: Live wie bisher; für Vorschau/Test per PAYPAL_API_BASE=https://api-m.sandbox.paypal.com
 const PAYPAL_API = process.env.PAYPAL_API_BASE || 'https://api-m.paypal.com';
@@ -297,8 +306,14 @@ module.exports = async function handler(req, res) {
               );
             }
 
-            await paycheck.finish(payCheck, { stage: 'buchung', bookingId: data && data.id, deps: pcDeps });   // wirft nie, max. 1,5 s
-            return res.status(201).json(data);
+            // Zahlungsprüfung abschließen und Crew melden, parallel; beides wirft nie, max. 1,5 s
+            const [, crew] = await Promise.all([
+              paycheck.finish(payCheck, { stage: 'buchung', bookingId: data && data.id, deps: pcDeps }),
+              data && data.id
+                ? notifyCrew({ bookingIds: [data.id], date, time, groupSize: spots, eventKey: (order && order.event) || undefined, notes, firstName, email })
+                : null,
+            ]);
+            return res.status(201).json(crew ? { ...data, crew } : data);
           } catch(e) {
             lastError = e;
             // NUR bei eindeutigem 4xx (z.B. Slot inzwischen belegt) ist sicher, dass NICHTS
@@ -487,11 +502,15 @@ module.exports = async function handler(req, res) {
           await idemRedis.set(idemKey, JSON.stringify({ status: 'done', booking: result }), { ex: 180 }).catch(() => {});
         }
 
-        // Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN): Betrag der Rechnung gegen Serverpreis
+        // Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN) und Crew melden, parallel; beides wirft nie, max. 1,5 s
+        let crew = null;
         {
           const pcDeps = paycheckDeps(companyId, apiKey);
-          await paycheck.finish(paycheck.evaluate({ stage: 'rechnung', rawOrder: order, clientAmount: amount, deps: pcDeps }),
-            { stage: 'rechnung', bookingId: bookingData.id, deps: pcDeps });   // wirft nie, max. 1,5 s
+          [, crew] = await Promise.all([
+            paycheck.finish(paycheck.evaluate({ stage: 'rechnung', rawOrder: order, clientAmount: amount, deps: pcDeps }),
+              { stage: 'rechnung', bookingId: bookingData.id, deps: pcDeps }),
+            notifyCrew({ bookingIds: [bookingData.id], date, time, groupSize: spots, eventKey: (order && order.event) || undefined, notes, firstName, email }),
+          ]);
         }
 
         // Auftragsbestätigung: Ein Fehler hier darf die bereits angelegte Buchung NICHT als
@@ -515,10 +534,10 @@ module.exports = async function handler(req, res) {
             bookingData.id, email, e && e.message);
           await sendConfirmationFailedAlert({ bookingId: bookingData.id, email, date, time, spots, companyName, reason: e && e.message })
             .catch(err => console.error('[KRITISCH] Admin-Alert fehlgeschlagen:', err && err.message));
-          return res.status(201).json({ ...result, confirmationFailed: true });
+          return res.status(201).json({ ...result, confirmationFailed: true, ...(crew && { crew }) });
         }
 
-        return res.status(201).json(result);
+        return res.status(201).json(crew ? { ...result, crew } : result);
       }
 
       // ─────────────────────────────────────────────
@@ -610,8 +629,16 @@ module.exports = async function handler(req, res) {
           }
         }
 
-        await paycheck.finish(payCheck, { stage: 'admin-link', bookingId: allIds[0] || bookingId, deps: pcDeps });   // wirft nie, max. 1,5 s
-        return res.status(200).json(confirmed);
+        // Zahlungsprüfung abschließen und Crew melden (Daten aus dem gespeicherten Link), parallel; wirft nie, max. 1,5 s
+        const [, crew] = await Promise.all([
+          paycheck.finish(payCheck, { stage: 'admin-link', bookingId: allIds[0] || bookingId, deps: pcDeps }),
+          notifyCrew({
+            bookingIds: allIds, date: storedPayload.date, time: storedPayload.time,
+            groupSize: parseInt(storedPayload.groupSize, 10) || undefined, eventKey: storedPayload.eventKey || undefined,
+            notes, firstName: storedPayload.firstName, email: storedPayload.email,
+          }),
+        ]);
+        return res.status(200).json(crew ? { ...confirmed, crew } : confirmed);
       }
 
       // ─────────────────────────────────────────────
