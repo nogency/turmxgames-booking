@@ -118,7 +118,15 @@
     });
     if (btn.isEligible()) { await btn.render('#expressPaypal'); ppRendered = true; updateExpressBlock(); }
   }
-  function updateExpressBlock() { $('#expressBlock').hidden = !(expressStripeOk || ppRendered); }
+  // Gutschein deckt alles (0 €): keine Zahlungsarten, nur der Hinweis. Admin-Links bleiben unverändert.
+  const isZero = () => !S.fc && !!TX.quote() && TX.total() === 0;
+  function updateExpressBlock() { $('#expressBlock').hidden = isZero() || !(expressStripeOk || ppRendered); }
+  function syncZero() {
+    $('#zeroNote').hidden = !isZero();
+    $('#payBlock').hidden = isZero();
+    updateExpressBlock();
+  }
+  TX.onChange(syncZero);
 
   // ═════════ Schritt 5 vorbereiten ═════════
   TX.renderPay = () => {
@@ -130,6 +138,7 @@
     const c = TX.contact();
     if (!$('#sepaName').value) $('#sepaName').value = `${c.firstName} ${c.lastName}`.trim();
     initStripe(); initPayPal();
+    syncZero();
   };
   $$('input[name=pay]').forEach(r => r.addEventListener('change', () => { S.payMethod = r.value; TX.track.paymentMethod(r.value); }));
   const selectedMethod = () => ($('input[name=pay]:checked') || {}).value || 'cc';
@@ -145,11 +154,12 @@
   // ═════════ Hauptbutton "Zahlungspflichtig buchen" ═════════
   TX.pay = async () => {
     if (!guard()) return;
-    const m = selectedMethod(); S.payMethod = m;
+    const m = isZero() ? 'voucher' : selectedMethod(); S.payMethod = m;
     TX.track.addPaymentInfo(m);
     isSubmitting = true; hidePayError();
     const ctas = $$('[data-cta]'); TX.busy(ctas, 'Wird gebucht');
     try {
+      if (m === 'voucher') { await submitBooking(null, null, true); return; }   // Server prüft die 0 € selbst nach
       if (m === 'invoice') { await submitInvoice(); return; }
       if (!(await ensureStripe())) { showPayError(STRIPE_MISSING); return; }
       const c = TX.contact();
@@ -177,7 +187,7 @@
   };
 
   // ═════════ Buchung anlegen ═════════
-  async function submitBooking(paymentId, paypalAuthId) {
+  async function submitBooking(paymentId, paypalAuthId, zeroTotal) {
     if (S.fc && S.bookingId) return confirmAdmin(paypalAuthId, paymentId);
     const c = TX.contact();
     const { ok, status, data } = await TX.api.createBooking({
@@ -187,6 +197,7 @@
       paymentIntentId: paymentId || null, paypalAuthId: paypalAuthId || null,
       promoCode: S.promo.code || null,
       order: TX.order(),
+      ...(zeroTotal && { zeroTotal: true }),
     });
     // Duplikat oder unklare Bookla-Antwort: NICHT als Fehler, NICHT erneut senden
     if ((status === 202 && data.processing) || (status === 409 && data.duplicate)) { TX.showDone(null); return; }
@@ -248,7 +259,7 @@
   /** Notizen für Bookla: Format 1:1 wie v1 (Team liest diese im Dashboard). */
   TX.bookingNotes = pm => {
     pm = pm || S.payMethod;
-    const label = { cc: 'Kreditkarte', sepa: 'SEPA-Lastschrift', paypal: 'PayPal', invoice: 'Auf Rechnung' }[pm] || pm;
+    const label = { cc: 'Kreditkarte', sepa: 'SEPA-Lastschrift', paypal: 'PayPal', invoice: 'Auf Rechnung', voucher: 'Gutschein (deckt den Gesamtbetrag, keine Zahlung)' }[pm] || pm;
     const q = TX.quote(), c = TX.contact();
     return [
       '--- BUCHUNGSDETAILS ---',

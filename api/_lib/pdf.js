@@ -130,7 +130,7 @@ function generateInvoicePDF(data) {
     // ── ZAHLUNGSART ──
     const payY = hintY + 44;
     const isInvoice = data.paymentMethod === 'invoice';
-    const payLabels = { cc: 'Kreditkarte', paypal: 'PayPal', sepa: 'SEPA-Lastschrift', invoice: 'Kauf auf Rechnung' };
+    const payLabels = { cc: 'Kreditkarte', paypal: 'PayPal', sepa: 'SEPA-Lastschrift', invoice: 'Kauf auf Rechnung', voucher: 'Gutschein' };
     const payLabel = payLabels[data.paymentMethod] || data.paymentMethod;
 
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#888').text('ZAHLUNGSART', LEFT, payY);

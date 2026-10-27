@@ -215,6 +215,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       <h1 id="h1-5" tabindex="-1">Prüfen und bezahlen</h1>
       <div class="card" id="summaryCard"><div id="summaryBody"></div><div class="promo" id="summaryPromo" hidden></div></div>
 
+      <div class="note" id="zeroNote" hidden style="margin-top:16px"><i class="ph ph-gift"></i><span><b>Euer Gutschein deckt den gesamten Betrag.</b> Es ist keine Zahlung nötig, ihr bucht direkt.</span></div>
+
       <div class="block" id="expressBlock" hidden>
         <h2>Schnell bezahlen</h2>
         <div class="express">
@@ -224,7 +226,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <div class="or">oder</div>
       </div>
 
-      <fieldset class="block">
+      <fieldset class="block" id="payBlock">
         <legend>Zahlungsart</legend>
         <div class="pay" id="pay">
           <div class="pay-opt">

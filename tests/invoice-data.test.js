@@ -53,6 +53,18 @@ test('AB mit Kleingruppenzuschlag: eigene Position, Summe stimmt', () => {
   expect(d.tax.brutto).toBe(229.99);
 });
 
+test('AB: Gutschein deckt das Event ganz, nur Flex bleibt (baseAmount 0 ist gültig)', () => {
+  // Review 27.10.2026: vorher wurde aus baseAmount 0 der Gesamtbetrag → AB zeigte 29,80 statt 14,90
+  const d = buildInvoiceData({ ...abBase, amount: 14.9, baseAmount: 0, drinksFlat: false, insurance: true, promoCode: 'GS-ABCD-EFGH', discountAmount: 250 });
+  expect(d.items.map(i => [i.name, i.tax.brutto])).toEqual([['Firmen & Teams', 250], ['Gutschein GS-ABCD-EFGH', -250], ['Flex-Versicherung', 14.9]]);
+  expect(d.tax.brutto).toBe(14.9);
+});
+
+test('AB: Gesamtbetrag 0 € (Gutschein deckt alles)', () => {
+  const d = buildInvoiceData({ ...abBase, amount: 0, baseAmount: 0, drinksFlat: false, promoCode: 'GS-ABCD-EFGH', discountAmount: 250, paymentMethod: 'voucher' });
+  expect(d.tax.brutto).toBe(0);
+});
+
 test('AB mit Rabatt + Kleingruppenzuschlag + Getränken: Reihenfolge und Summe', () => {
   const d = buildInvoiceData({ ...abBase, groupSize: 4, amount: 223.59, baseAmount: 122, promoCode: 'GS-ABCD-EFGH', discountAmount: 30, smallGroupFee: 49.99 });
   expect(d.items.map(i => i.name)).toEqual(['Firmen & Teams', 'Gutschein GS-ABCD-EFGH', 'Kleingruppenzuschlag', 'Getränkeflat']);
