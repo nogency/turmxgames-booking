@@ -193,7 +193,7 @@
     if (!ok) throw new Error(data.error || 'Buchung fehlgeschlagen');
     if (!data.id) throw new Error('Keine Buchungs-ID erhalten');
     const ref = 'BKL-' + String(data.id).slice(-6).toUpperCase();
-    TX.showDone(ref);
+    TX.showDone(ref, { crew: data.crew });
     TX.track.purchase(ref, S.payMethod);
     sendConfirmation(data.id);
   }
@@ -217,14 +217,14 @@
     if (!ok) throw new Error(data.error || 'Buchung fehlgeschlagen');
     const ref = data.id ? 'BKL-' + String(data.id).slice(-6).toUpperCase() : 'GSH-' + Math.floor(100000 + Math.random() * 900000);
     TX.track.purchase(ref, 'invoice');
-    TX.showDone(ref, { confirmationFailed: !!data.confirmationFailed });
+    TX.showDone(ref, { confirmationFailed: !!data.confirmationFailed, crew: data.crew });
   }
 
   async function confirmAdmin(paypalAuthId, paymentIntentId) {
     const { ok, data } = await TX.api.confirmAdminBooking({ bookingId: S.bookingId, paypalAuthId: paypalAuthId || null, notes: TX.bookingNotes(), adminLinkId: S.linkId, paymentIntentId: paymentIntentId || null, order: TX.order() });
     if (!ok) throw new Error(data.error || 'Bestätigung fehlgeschlagen');
     const ref = 'BKL-' + String(S.bookingId).slice(-6).toUpperCase();
-    TX.showDone(ref);
+    TX.showDone(ref, { crew: data.crew });
     TX.track.purchase(ref, S.payMethod);
     sendConfirmation(S.bookingId);
   }

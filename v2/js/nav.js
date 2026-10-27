@@ -65,6 +65,10 @@
       : ref ? `Die Bestätigung ist unterwegs an ${c.email}.` : `Eure Buchung wird gerade verarbeitet. Die Bestätigung kommt per E-Mail an ${c.email}.`;
     $('#doneCard').innerHTML = TX.summaryHtml(false);
     $('#doneStorno').innerHTML = TX.stornoHtml();
+    // TurmX Crew: Karte nur, wenn der Server einen Gastgeber-Link mitschickt
+    const crewUrl = opts.crew && typeof opts.crew.hostUrl === 'string' && /^https:\/\//.test(opts.crew.hostUrl) ? opts.crew.hostUrl : null;
+    $('#doneCrew').hidden = !crewUrl;
+    if (crewUrl) $('#crewBtn').href = crewUrl;
     TX.go(DONE);
   };
 
