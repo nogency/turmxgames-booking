@@ -15,7 +15,8 @@ module.exports = async function handler(req, res) {
   try {
     if (action === 'create-invoice') {
       const body = req.body;
-      if (!body.bookingId || !body.email || !body.amount) {
+      // amount 0 ist gültig (Gutschein deckt alles), nur fehlen darf er nicht
+      if (!body.bookingId || !body.email || body.amount === undefined || body.amount === null || body.amount === '') {
         return res.status(400).json({ error: 'bookingId, email, amount required' });
       }
 

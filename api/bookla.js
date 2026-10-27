@@ -180,7 +180,7 @@ module.exports = async function handler(req, res) {
       //    dann nur auf einem freien Slot buchen.
       // ─────────────────────────────────────────────
       case 'create-booking': {
-        const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode, paypalAuthId, paymentIntentId, order } = req.body || {};
+        const { serviceId, date, time, groupSize, firstName, lastName, email, phone, notes, promoCode, paypalAuthId, paymentIntentId, order, zeroTotal } = req.body || {};
 
         if (!serviceId || !date || !time || !email) {
           const missing = ['serviceId','date','time','email'].filter(f=>!({serviceId,date,time,email}[f]));
@@ -200,6 +200,15 @@ module.exports = async function handler(req, res) {
         const berlinDt  = DateTime.fromISO(`${date}T${time}:00`, { zone: 'Europe/Berlin' });
         const startTime = berlinDt.toISO();
         const utcTimeKey = berlinDt.toUTC().toISO().substring(0, 16);
+
+        // ── Gutschein deckt den ganzen Betrag (0 €): Buchung ohne Zahlung NUR, wenn der Server das selbst
+        //    nachrechnet und Bookla den Code für genau diese Buchung als einlösbar bestätigt ──
+        if (zeroTotal && !paymentIntentId && !paypalAuthId) {
+          if (!(await zeroTotalAllowed({ order, date, time, spots, promoCode, serviceId, startTime, companyId, apiKey }))) {
+            console.warn('[create-booking] 0-€-Buchung abgelehnt:', date, time, spots, promoCode || '(kein Code)');
+            return res.status(402).json({ error: 'Der Gutschein deckt den Betrag nicht vollständig. Bitte lade die Seite neu und wähle eine Zahlungsart.' });
+          }
+        }
 
         // ── Idempotenz-Lock gegen Mehrfachbuchungen ──────────────────────────
         // Verhindert, dass dieselbe Buchung (Kunde + Slot + Personenzahl) mehrfach
@@ -239,7 +248,7 @@ module.exports = async function handler(req, res) {
 
         // ── Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN): läuft parallel, blockiert und ändert nichts ──
         const pcDeps = paycheckDeps(companyId, apiKey);
-        const payCheck = paycheck.evaluate({ stage: 'buchung', rawOrder: order, paymentIntentId, paypalAuthId, deps: pcDeps });
+        const payCheck = paycheck.evaluate({ stage: 'buchung', rawOrder: order, paymentIntentId, paypalAuthId, clientAmount: zeroTotal ? 0 : null, deps: pcDeps });
 
         // ── Schritt 1: Aktuelle Verfügbarkeit pro Ressource prüfen ──
         const from = `${date}T00:00:00Z`;
@@ -882,6 +891,27 @@ function paycheckDeps(companyId, apiKey) {
     },
     getPaypalAuth: id => getPaypalAuthorization(id),
   };
+}
+
+// ─────────────────────────────────────────────
+// 0-€-Buchung (Gutschein deckt alles) prüfen. Wirft nie; im Zweifel false = normale Zahlung nötig.
+// Die Bestellung muss genau zur Buchung passen, der Server rechnet mit der Code-Definition aus
+// Bookla selbst nach, und Bookla muss den Code für diesen Termin als einlösbar melden.
+// ─────────────────────────────────────────────
+async function zeroTotalAllowed({ order, date, time, spots, promoCode, serviceId, startTime, companyId, apiKey }) {
+  try {
+    const o = paycheck.normalizeOrder(order).order;
+    const code = String(promoCode || '').trim().toUpperCase();
+    if (!o || !code || o.adminLinkId || o.promoCode !== code || o.date !== date || o.time !== time || o.qty !== spots) return false;
+    const def = await paycheckDeps(companyId, apiKey).getPromoDef(code);
+    if (!def || paycheck.toCents(paycheck.expectedQuote(o, { promoDef: def }).total) !== 0) return false;
+    const check = await booklaFetch(`/client/codes/${encodeURIComponent(code)}/validate`, 'POST',
+      { code, companyID: companyId, serviceID: serviceId, resourceID: RESOURCE_IDS[0], startTime, spots }, apiKey);
+    return !!(check && check.canApply);
+  } catch (e) {
+    console.error('[create-booking] 0-€-Prüfung fehlgeschlagen:', e && e.message);
+    return false;
+  }
 }
 
 // ─────────────────────────────────────────────

@@ -48,9 +48,9 @@ function buildInvoiceData(params, opts = {}) {
   // 1. Haupt-Event. baseAmount kommt bereits abzüglich Rabatt; wird der Rabatt mitgeschickt,
   //    steht das Event zum vollen Preis und der Code als eigene Minus-Position (Summe unverändert).
   const discount = Math.round((parseFloat(discountAmount) || 0) * 100) / 100;
-  const eventAmount = discount > 0
-    ? Math.round((parseFloat(baseAmount || amount) + discount) * 100) / 100
-    : parseFloat(baseAmount || amount);
+  // 0 € ist ein gültiger Basisbetrag (Gutschein deckt das Event) – nur ein FEHLENDER Wert fällt auf amount zurück
+  const base = baseAmount === undefined || baseAmount === null || baseAmount === '' ? parseFloat(amount) : parseFloat(baseAmount);
+  const eventAmount = discount > 0 ? Math.round((base + discount) * 100) / 100 : base;
   items.push({
     name: serviceName,
     qtyLabel: `${spots} Pers.`,

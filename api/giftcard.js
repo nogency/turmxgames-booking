@@ -171,6 +171,7 @@ module.exports = async function handler(req, res) {
         let giftEur = null;
         let giftType = null;
         let payRef = null;
+        let authStatus = null;
 
         if (paymentIntentId) {
           const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -183,6 +184,10 @@ module.exports = async function handler(req, res) {
           }
           giftEur  = parseInt(pi.metadata.giftAmountCents, 10) / 100;
           giftType = pi.metadata.giftType;
+          // Dauerhafte Zweitsicherung: Für diese Zahlung gibt es schon einen Gutschein (steht an der Zahlung selbst)
+          if (pi.metadata.giftCode) {
+            return res.status(200).json({ code: pi.metadata.giftCode, amount: giftEur, type: giftType, duplicate: true });
+          }
           // Konsistenz: bezahlter Betrag muss Gutschein + ggf. Versand entsprechen
           const expected = Math.round((giftEur + (giftType === 'hardcopy' ? SHIPPING_EUR : 0)) * 100);
           if (pi.amount !== expected) {
@@ -193,6 +198,7 @@ module.exports = async function handler(req, res) {
         } else {
           // PayPal: autorisierten Betrag von PayPal lesen (Wahrheitsquelle)
           const auth = await getPaypalAuthorization(paypalAuthId);
+          authStatus = auth.status;
           if (!['CREATED', 'CAPTURED'].includes(auth.status)) {
             return res.status(402).json({ error: 'PayPal-Zahlung ist nicht autorisiert.' });
           }
@@ -212,7 +218,9 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'Versandadresse erforderlich.' });
         }
 
-        // ── Idempotenz: pro Zahlung genau EIN Gutschein ──
+        // ── Idempotenz: pro Zahlung genau EIN Gutschein, DAUERHAFT ──
+        // "pending" läuft nach 24 h ab (abgebrochener Lauf), "done"/"failed" nie: Eine bezahlte Zahlung
+        // darf auch nach Tagen keinen zweiten Gutschein erzeugen.
         let redis = null;
         const idemKey = `gc:${payRef}`;
         try {
@@ -226,11 +234,22 @@ module.exports = async function handler(req, res) {
               // Doppelklick/Retry: denselben Gutschein zurückgeben, keinen zweiten anlegen
               return res.status(200).json({ code: existing.code, amount: existing.amount, type: existing.type, duplicate: true });
             }
+            if (existing?.status === 'failed') {
+              return res.status(409).json({ error: 'Zu dieser Zahlung kümmern wir uns schon persönlich und melden uns per E-Mail.' });
+            }
             return res.status(409).json({ error: 'Dein Gutschein wird gerade erstellt. Bitte einen Moment warten.' });
           }
         } catch (e) {
           console.error('[giftcard] Redis-Lock fehlgeschlagen, fahre ohne fort:', e.message);
           redis = null;
+        }
+
+        // PayPal schon eingezogen, aber kein Gutschein dazu vermerkt (Redis-Eintrag weg oder Lauf abgebrochen):
+        // nicht automatisch einen neuen Gutschein ausgeben, sondern euch prüfen lassen.
+        if (paypalAuthId && authStatus === 'CAPTURED') {
+          if (redis) await redis.set(idemKey, JSON.stringify({ status: 'failed', payRef })).catch(() => {});
+          await sendAdminAlert(buyer, giftEur, giftType, payRef, 'PayPal bereits eingezogen, kein Gutschein vermerkt – bitte prüfen, ob schon ein Code existiert').catch(() => {});
+          return res.status(409).json({ error: 'Zu dieser Zahlung kümmern wir uns schon persönlich und melden uns per E-Mail.' });
         }
 
         // ── PayPal erst jetzt einziehen (nach allen Prüfungen) ──
@@ -265,11 +284,22 @@ module.exports = async function handler(req, res) {
         } catch (e) {
           // Zahlung ist durch, Code-Anlage scheiterte → Admin alarmieren, NICHT refunden.
           console.error('[giftcard] Code-Anlage fehlgeschlagen NACH Zahlung:', e.message, e.details);
-          if (redis) await redis.set(idemKey, JSON.stringify({ status: 'failed', payRef }), { ex: 86400 }).catch(() => {});
+          if (redis) await redis.set(idemKey, JSON.stringify({ status: 'failed', payRef })).catch(() => {});   // dauerhaft: ihr klärt das von Hand
           await sendAdminAlert(buyer, giftEur, giftType, payRef, e.message).catch(() => {});
           return res.status(500).json({
             error: 'Dein Gutschein konnte nicht automatisch erstellt werden. Deine Zahlung ist eingegangen — wir melden uns umgehend per E-Mail bei dir!',
           });
+        }
+
+        // ── Gutschein steht: sofort dauerhaft an die Zahlung binden (vor PDF/Mails, die scheitern können) ──
+        if (redis) {
+          await redis.set(idemKey, JSON.stringify({ status: 'done', code, amount: giftEur, type: giftType })).catch(e =>
+            console.error('[giftcard] Idempotenz-Eintrag fehlgeschlagen:', e.message));
+        }
+        if (paymentIntentId) {
+          const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+          await stripe.paymentIntents.update(paymentIntentId, { metadata: { giftCode: code } }).catch(e =>
+            console.error('[giftcard] Code an Stripe-Zahlung vermerken fehlgeschlagen:', e.message));
         }
 
         // ── PDF erzeugen ──
@@ -295,10 +325,6 @@ module.exports = async function handler(req, res) {
         if (results[1].status === 'rejected') {
           // Käufer-Mail ist kritisch → Admin informieren
           await sendAdminAlert(buyer, giftEur, giftType, payRef, 'Käufer-E-Mail fehlgeschlagen — Code: ' + code).catch(() => {});
-        }
-
-        if (redis) {
-          await redis.set(idemKey, JSON.stringify({ status: 'done', code, amount: giftEur, type: giftType }), { ex: 86400 }).catch(() => {});
         }
 
         console.log('[giftcard] Erstellt:', code, fmtEur(giftEur), giftType, 'Käufer:', buyer.email);
