@@ -27,7 +27,7 @@ beforeEach(() => {
   Object.assign(process.env, { BOOKLA_API_KEY: 'k', BOOKLA_COMPANY_ID: 'c', STRIPE_SECRET_KEY: 's', PAYPAL_CLIENT_ID: 'p', PAYPAL_SECRET: 'q' });
   mockRedis.data.clear(); mockRedis.opts.clear();
   mockPI.retrieve.mockReset(); mockPI.update.mockReset().mockResolvedValue({});
-  mockSend.mockClear();
+  mockSend.mockReset().mockImplementation(async () => ({ data: { id: 'm1' }, error: null }));
   booklaCreates = 0;
   paypalAuth = { status: 'CREATED', amount: { value: '50.00', currency_code: 'EUR' } };
   global.fetch = jest.fn(async (url, opts = {}) => {
@@ -82,6 +82,55 @@ test('PayPal: normal einziehen und Gutschein anlegen', async () => {
   expect(r.code).toBe(201);
   expect(booklaCreates).toBe(1);
   expect(mockRedis.opts.get('gc:A1').ex).toBeUndefined();
+});
+
+// ── Versand wiederaufnehmbar (Nachprüfung 28.10.2026) ──
+const subjects = () => mockSend.mock.calls.map(c => c[0].subject);
+const rec = k => JSON.parse(mockRedis.data.get(k));
+
+test('Käufer-Mail scheitert (Resend liefert error): Wiederholung holt sie nach, kein zweiter Code', async () => {
+  mockPI.retrieve.mockResolvedValue(stripePI());
+  mockSend.mockImplementation(async m => (m.subject.includes('Dein TurmX Games Gutschein') ? { data: null, error: { message: 'rate limit' } } : { data: { id: 'x' }, error: null }));
+  const first = await call({ paymentIntentId: 'pi_1', type: 'digital', buyer });
+  expect(first.code).toBe(201);
+  expect(rec('gc:pi_1')).toMatchObject({ buyerSent: false });
+  expect(subjects().some(s => s.includes('GUTSCHEIN-PROBLEM'))).toBe(true);           // Hinweis an euch
+
+  mockSend.mockClear().mockImplementation(async () => ({ data: { id: 'x' }, error: null }));
+  const second = await call({ paymentIntentId: 'pi_1', type: 'digital', buyer });
+  expect(second.body).toMatchObject({ code: first.body.code, duplicate: true });
+  expect(subjects().filter(s => s.includes('Dein TurmX Games Gutschein'))).toHaveLength(1);
+  expect(rec('gc:pi_1')).toMatchObject({ buyerSent: true, hardcopySent: true });
+  expect(rec('gc:pi_1').buyer).toBeUndefined();                                         // persönliche Daten wieder weg
+  expect(booklaCreates).toBe(1);
+});
+
+test('Hardcopy: Auftrag an euch klappt, Käufer-Mail nicht → Wiederholung schickt NUR die Käufer-Mail', async () => {
+  mockPI.retrieve.mockResolvedValue({ ...stripePI({ giftType: 'hardcopy' }), amount: 5295 });
+  const shipping = { street: 'Kurfürstenstr. 60', zip: '50321', city: 'Brühl' };
+  mockSend.mockImplementation(async m => (m.subject.includes('Dein TurmX Games Gutschein') ? { data: null, error: { message: 'down' } } : { data: { id: 'x' }, error: null }));
+  await call({ paymentIntentId: 'pi_1', type: 'hardcopy', buyer, shipping });
+  expect(rec('gc:pi_1')).toMatchObject({ buyerSent: false, hardcopySent: true });
+
+  mockSend.mockClear().mockImplementation(async () => ({ data: { id: 'x' }, error: null }));
+  await call({ paymentIntentId: 'pi_1', type: 'hardcopy', buyer, shipping });
+  expect(subjects().filter(s => s.includes('Hardcopy-Gutschein versenden'))).toHaveLength(0);   // kein doppelter Versandauftrag
+  expect(subjects().filter(s => s.includes('Dein TurmX Games Gutschein'))).toHaveLength(1);
+});
+
+test('Hardcopy-Auftrag scheitert: Wiederholung holt ihn nach (Adresse aus dem gespeicherten Stand)', async () => {
+  mockPI.retrieve.mockResolvedValue({ ...stripePI({ giftType: 'hardcopy' }), amount: 5295 });
+  const shipping = { street: 'Kurfürstenstr. 60', zip: '50321', city: 'Brühl' };
+  mockSend.mockImplementation(async m => (m.subject.includes('Hardcopy-Gutschein versenden') ? { data: null, error: { message: 'down' } } : { data: { id: 'x' }, error: null }));
+  await call({ paymentIntentId: 'pi_1', type: 'hardcopy', buyer, shipping });
+  expect(rec('gc:pi_1')).toMatchObject({ buyerSent: true, hardcopySent: false });
+
+  mockSend.mockClear().mockImplementation(async () => ({ data: { id: 'x' }, error: null }));
+  await call({ paymentIntentId: 'pi_1', type: 'hardcopy', buyer, shipping });
+  const hc = mockSend.mock.calls.find(c => c[0].subject.includes('Hardcopy-Gutschein versenden'));
+  expect(hc[0].html).toContain('Kurfürstenstr. 60');
+  expect(subjects().filter(s => s.includes('Dein TurmX Games Gutschein'))).toHaveLength(0);       // Käufer bekommt keine zweite Mail
+  expect(rec('gc:pi_1').shipping).toBeUndefined();
 });
 
 test('PayPal: schon eingezogen, aber kein Gutschein vermerkt → keiner automatisch, Hinweis an euch', async () => {
