@@ -51,7 +51,7 @@
       return r.json();
     },
     inquiry(body) { return post('/api/inquiry', body); },
-    giftCreatePayment(amount, type) { return post('/api/giftcard?action=create-payment', { amount, type }); },
+    giftCreatePayment(amount, type, motif) { return post('/api/giftcard?action=create-payment', { amount, type, motif }); },
     giftFinalize(body) { return post('/api/giftcard?action=finalize', body); },
   };
 })();

@@ -57,6 +57,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <section class="step" data-step="1" aria-labelledby="h1-1">
       <h1 id="h1-1" tabindex="-1">Was plant ihr?</h1>
       <p class="lead">Wählt euer Event. Den Termin sucht ihr im nächsten Schritt aus.</p>
+      <button class="gift-promo" type="button" data-sheet="gift" id="giftPromo" hidden>
+        <img src="/v2/img/gift-xmas.jpg" alt="" width="400" height="202">
+        <span class="gp-text"><b>Noch ein Weihnachtsgeschenk?</b><span>Gameshow-Gutschein als PDF sofort oder als Karte per Post</span></span>
+        <i class="ph ph-caret-right" aria-hidden="true"></i>
+      </button>
       <div class="reviews reviews--mobile" data-reviews></div>
       <div class="paybox paybox--mobile"><span class="paybox-lbl"><i class="ph ph-lock-simple"></i>Sicher bezahlen mit</span><div class="paylogos" data-paylogos></div></div>
       <div class="opts" id="eventOpts" role="radiogroup" aria-label="Eventart"></div>
@@ -71,7 +76,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         </ul>
       </div>
 
-      <div class="block">
+      <div class="block" id="giftRow">
         <button class="rowlink" type="button" data-sheet="gift">
           <span class="opt-ico"><i class="ph ph-gift"></i></span>
           <span><span class="opt-name">Gutschein verschenken</span><span class="opt-meta">Als PDF sofort oder gedruckt per Post</span></span>
@@ -399,7 +404,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           <span class="label" id="gcTypeLbl">Wie soll er ankommen?</span>
           <div class="seg-btns" role="radiogroup" aria-labelledby="gcTypeLbl">
             <button type="button" data-gctype="digital" aria-pressed="true">Als PDF, sofort</button>
-            <button type="button" data-gctype="hardcopy" aria-pressed="false">Per Post, + 2,95 €</button>
+            <button type="button" data-gctype="hardcopy" aria-pressed="false" id="gcHardBtn">Per Post</button>
+          </div>
+        </div>
+        <div class="field" id="gcMotifField" hidden>
+          <span class="label" id="gcMotifLbl">Motiv der Karte</span>
+          <div class="motifs" role="radiogroup" aria-labelledby="gcMotifLbl">
+            <button type="button" class="motif" data-motif="xmas" aria-pressed="true"><img src="/v2/img/gift-xmas.jpg" alt="Weihnachtskarte: Gameshow zum Auspacken" width="400" height="202" loading="lazy"><span>Weihnachten</span></button>
+            <button type="button" class="motif" data-motif="standard" aria-pressed="false"><img src="/v2/img/gift-standard.jpg" alt="Karte: Deine Show. Dein Moment." width="400" height="202" loading="lazy"><span>Standard</span></button>
           </div>
         </div>
         <div class="field">

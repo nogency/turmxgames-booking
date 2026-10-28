@@ -5,15 +5,21 @@
 (function () {
   'use strict';
   const TX = window.TX, $ = TX.$, $$ = TX.$$, cfg = TX.config;
-  const GIFT = { min: 10, max: 500, shipping: 2.95, presets: [25, 50, 100, 150] };
-  const G = { type: 'digital', amount: 50 };
+  // Versand muss zu api/giftcard.js SHIPPING_EUR passen (der Server rechnet selbst)
+  const GIFT = { min: 10, max: 500, shipping: 4.95, presets: [25, 50, 100, 150] };
+  // Druckmotiv der Postkarte: in der Weihnachtszeit ist Weihnachten vorgewählt
+  const G = { type: 'digital', amount: 50, motif: TX.xmasSeason() ? 'xmas' : 'standard' };
   let gcStripe = null, gcCard = null, gcExpressElements = null, gcExpress = null, gcPp = false, busy = false;
 
+  const motifSel = () => (G.type === 'hardcopy' ? G.motif : undefined);   // Motiv nur bei Postkarte
   const total = () => Math.round((G.amount + (G.type === 'hardcopy' ? GIFT.shipping : 0)) * 100) / 100;
 
   function render() {
     $$('[data-gctype]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.gctype === G.type)));
+    $('#gcHardBtn').textContent = `Per Post, + ${TX.comma(GIFT.shipping)} €`;
     $('#gcShip').hidden = G.type !== 'hardcopy';
+    $('#gcMotifField').hidden = G.type !== 'hardcopy';
+    $$('[data-motif]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.motif === G.motif)));
     const custom = !!$('#gcCustom').value;
     $('#gcAmounts').innerHTML = GIFT.presets.map(a => `<button type="button" data-amt="${a}" aria-pressed="${!custom && G.amount === a}">${a} €</button>`).join('');
     $$('#gcAmounts button').forEach(b => b.addEventListener('click', () => { G.amount = +b.dataset.amt; $('#gcCustom').value = ''; render(); }));
@@ -41,7 +47,7 @@
   function done(d, email) {
     $('#giftForm').hidden = true; $('#giftDone').hidden = false;
     $('#gcDoneText').textContent = d.type === 'hardcopy'
-      ? `Wir drucken den Gutschein und schicken ihn per Post. Eine Bestätigung ist unterwegs an ${email}.`
+      ? `Wir schicken die Karte (Motiv ${G.motif === 'xmas' ? 'Weihnachten' : 'Standard'}) per Post. Eine Bestätigung ist unterwegs an ${email}.`
       : `Dein Gutschein ist als PDF unterwegs an ${email}.`;
     $('#gcDoneCode').textContent = d.code;
   }
@@ -70,11 +76,11 @@
       if (busy) return; busy = true; err('');
       try {
         const v = validate(); if (!v) return;
-        const { ok, data } = await TX.api.giftCreatePayment(G.amount, G.type);
+        const { ok, data } = await TX.api.giftCreatePayment(G.amount, G.type, motifSel());
         if (!ok || !data.clientSecret) throw new Error(data.error || 'Die Zahlung konnte nicht angelegt werden.');
         const { error } = await gcStripe.confirmPayment({ elements: gcExpressElements, clientSecret: data.clientSecret, confirmParams: { return_url: location.href }, redirect: 'if_required' });
         if (error) throw new Error(error.message);
-        done(await finalize({ paymentIntentId: data.paymentIntentId, type: G.type, buyer: v.buyer, shipping: v.shipping }), v.buyer.email);
+        done(await finalize({ paymentIntentId: data.paymentIntentId, type: G.type, motif: motifSel(), buyer: v.buyer, shipping: v.shipping }), v.buyer.email);
       } catch (e) { err(e.message); } finally { busy = false; }
     });
     gcExpress.mount('#gcExpress');
@@ -95,7 +101,7 @@
           const auth = await a.order.authorize();
           const authId = auth && auth.purchase_units && auth.purchase_units[0].payments.authorizations[0].id;
           if (!authId) throw new Error('Die PayPal-Freigabe hat nicht geklappt. Bitte erneut versuchen.');
-          done(await finalize({ paypalAuthId: authId, type: G.type, buyer: v.buyer, shipping: v.shipping }), v.buyer.email);
+          done(await finalize({ paypalAuthId: authId, type: G.type, motif: motifSel(), buyer: v.buyer, shipping: v.shipping }), v.buyer.email);
         } catch (e) { err(e.message); } finally { busy = false; }
       },
       onError: e => err('PayPal: ' + ((e && e.message) || e)),
@@ -109,15 +115,16 @@
     if (!mountCard()) { err('Kartenzahlung konnte nicht geladen werden. Bitte Seite neu laden.'); return; }
     busy = true; const btn = $('#gcPayBtn'); TX.busy([btn], 'Wird verarbeitet');
     try {
-      const { ok, data } = await TX.api.giftCreatePayment(G.amount, G.type);
+      const { ok, data } = await TX.api.giftCreatePayment(G.amount, G.type, motifSel());
       if (!ok || !data.clientSecret) throw new Error(data.error || 'Die Zahlung konnte nicht angelegt werden.');
       const res = await gcStripe.confirmCardPayment(data.clientSecret, { payment_method: { card: gcCard, billing_details: { name: `${v.buyer.firstName} ${v.buyer.lastName}`, email: v.buyer.email } } });
       if (res.error) throw new Error(res.error.message);
-      done(await finalize({ paymentIntentId: data.paymentIntentId, type: G.type, buyer: v.buyer, shipping: v.shipping }), v.buyer.email);
+      done(await finalize({ paymentIntentId: data.paymentIntentId, type: G.type, motif: motifSel(), buyer: v.buyer, shipping: v.shipping }), v.buyer.email);
     } catch (e) { err(e.message); } finally { busy = false; TX.unbusy([btn]); }
   });
 
   $$('[data-gctype]').forEach(b => b.addEventListener('click', () => { G.type = b.dataset.gctype; render(); }));
+  $$('[data-motif]').forEach(b => b.addEventListener('click', () => { G.motif = b.dataset.motif; render(); }));
   $('#gcCustom').addEventListener('input', e => { const v = parseFloat(e.target.value.replace(',', '.')); G.amount = Number.isFinite(v) ? Math.round(v * 100) / 100 : NaN; render(); });
 
   TX.onSheetOpen('gift', () => {

@@ -133,6 +133,46 @@ test('Hardcopy-Auftrag scheitert: Wiederholung holt ihn nach (Adresse aus dem ge
   expect(rec('gc:pi_1').shipping).toBeUndefined();
 });
 
+// ── Versand 4,95 € und Motiv (28.10.2026) ──
+test('Stripe Hardcopy neu: 4,95 € Versand aus der Zahlung, Motiv Weihnachten im Versandauftrag', async () => {
+  mockPI.retrieve.mockResolvedValue({ ...stripePI({ giftType: 'hardcopy', shippingCents: '495', giftMotif: 'xmas' }), amount: 5495 });
+  const r = await call({ paymentIntentId: 'pi_1', type: 'hardcopy', buyer, shipping: { street: 'A 1', zip: '50321', city: 'Brühl' } });
+  expect(r.code).toBe(201);
+  const hc = mockSend.mock.calls.find(c => c[0].subject.includes('Hardcopy-Gutschein versenden'));
+  expect(hc[0].subject).toContain('Motiv Weihnachten');
+  expect(hc[0].html).toContain('Gameshow zum Auspacken');
+});
+
+test('Stripe Hardcopy von vor der Umstellung (ohne shippingCents, 2,95 €) wird weiter angenommen', async () => {
+  mockPI.retrieve.mockResolvedValue({ ...stripePI({ giftType: 'hardcopy' }), amount: 5295 });
+  const r = await call({ paymentIntentId: 'pi_1', type: 'hardcopy', buyer, shipping: { street: 'A 1', zip: '50321', city: 'Brühl' } });
+  expect(r.code).toBe(201);
+});
+
+test('Stripe Hardcopy: Betrag passt nicht zu den Versandkosten → abgelehnt, kein Code', async () => {
+  mockPI.retrieve.mockResolvedValue({ ...stripePI({ giftType: 'hardcopy', shippingCents: '495' }), amount: 5295 });
+  const r = await call({ paymentIntentId: 'pi_1', type: 'hardcopy', buyer, shipping: { street: 'A 1', zip: '50321', city: 'Brühl' } });
+  expect(r.code).toBe(400);
+  expect(booklaCreates).toBe(0);
+});
+
+test('PayPal Hardcopy: 54,95 € bezahlt → Gutschein 50 €, unbekanntes Motiv wird Standard', async () => {
+  paypalAuth.amount.value = '54.95';
+  const r = await call({ paypalAuthId: 'A1', type: 'hardcopy', motif: '<script>', buyer, shipping: { street: 'A 1', zip: '50321', city: 'Brühl' } });
+  expect(r.code).toBe(201);
+  expect(r.body.amount).toBe(50);
+  expect(mockSend.mock.calls.find(c => c[0].subject.includes('Hardcopy')).at(0).subject).toContain('Motiv Standard');
+});
+
+test('create-payment Hardcopy: Betrag inkl. 4,95 €, Versand und Motiv in den Stripe-Metadaten', async () => {
+  const create = jest.fn(async () => ({ id: 'pi_new', client_secret: 'cs' }));
+  mockPI.create = create;
+  const res = { code: 0, body: null, setHeader() {}, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; }, end() { return this; } };
+  await handler({ method: 'POST', query: { action: 'create-payment' }, body: { amount: 50, type: 'hardcopy', motif: 'xmas' } }, res);
+  expect(res.code).toBe(200);
+  expect(create.mock.calls[0][0]).toMatchObject({ amount: 5495, metadata: { giftType: 'hardcopy', shippingCents: '495', giftMotif: 'xmas' } });
+});
+
 test('PayPal: schon eingezogen, aber kein Gutschein vermerkt → keiner automatisch, Hinweis an euch', async () => {
   paypalAuth.status = 'CAPTURED';
   const r = await call({ paypalAuthId: 'A1', type: 'digital', buyer });

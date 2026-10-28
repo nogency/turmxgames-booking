@@ -368,6 +368,17 @@ textarea.input{height:96px;padding:12px 14px;resize:vertical}
 .doodle-day .times{display:flex;flex-wrap:wrap;gap:8px}
 .doodle-day .times button{height:40px;min-width:68px;border-radius:var(--r-control);border:1px solid var(--line-2);background:transparent;font-weight:600}
 .doodle-day .times button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+/* Gutschein: Weihnachts-Einstieg in Schritt 1 (dunkel wie die Postkarte) und Motivwahl */
+.gift-promo{display:grid;grid-template-columns:132px 1fr auto;gap:14px;align-items:center;width:100%;margin:0 0 18px;padding:8px 14px 8px 8px;background:#141414;color:#fff;border:0;border-radius:var(--r-control);text-align:left;transition:transform .12s}
+.gift-promo:active{transform:scale(.99)}
+.gift-promo img{width:132px;height:auto;border-radius:8px}
+.gp-text b{display:block;font:400 22px/1.05 var(--font-display);letter-spacing:.4px}
+.gp-text span{display:block;margin-top:4px;font-size:13px;line-height:1.35;color:rgba(255,255,255,.75)}
+.gift-promo>i{font-size:20px;color:rgba(255,255,255,.7)}
+.motifs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.motif{display:grid;gap:6px;padding:6px 6px 8px;border:1px solid var(--line-2);border-radius:var(--r-control);background:var(--surface);font-weight:600;font-size:14px;text-align:center}
+.motif img{width:100%;height:auto;border-radius:8px}
+.motif[aria-pressed="true"]{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
 .gc-code{font:400 34px/1 var(--font-display);letter-spacing:2px;color:var(--accent-text);margin:6px 0 16px}
 @keyframes up{from{transform:translateY(100%)}to{transform:none}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
