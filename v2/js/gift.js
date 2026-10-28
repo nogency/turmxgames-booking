@@ -19,7 +19,11 @@
     $('#gcHardBtn').textContent = `Per Post, + ${TX.comma(GIFT.shipping)} €`;
     $('#gcShip').hidden = G.type !== 'hardcopy';
     $('#gcMotifField').hidden = G.type !== 'hardcopy';
-    $$('[data-motif]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.motif === G.motif)));
+    $$('[data-motif]').forEach(b => {
+      const on = b.dataset.motif === G.motif;
+      b.setAttribute('aria-pressed', String(on));
+      b.closest('.motif').classList.toggle('is-on', on);
+    });
     const custom = !!$('#gcCustom').value;
     $('#gcAmounts').innerHTML = GIFT.presets.map(a => `<button type="button" data-amt="${a}" aria-pressed="${!custom && G.amount === a}">${a} €</button>`).join('');
     $$('#gcAmounts button').forEach(b => b.addEventListener('click', () => { G.amount = +b.dataset.amt; $('#gcCustom').value = ''; render(); }));
@@ -125,6 +129,30 @@
 
   $$('[data-gctype]').forEach(b => b.addEventListener('click', () => { G.type = b.dataset.gctype; render(); }));
   $$('[data-motif]').forEach(b => b.addEventListener('click', () => { G.motif = b.dataset.motif; render(); }));
+
+  // ── Motiv groß ansehen (am Handy sind die Kacheln zu klein) ──
+  const lb = $('#gcLightbox');
+  let lbFrom = null;
+  function openPreview(btn) {
+    const img = btn.querySelector('img');
+    lbFrom = btn;
+    $('#gcLbImg').src = img.src; $('#gcLbImg').alt = img.alt;
+    $('#gcLbPick').dataset.m = btn.dataset.preview;
+    lb.hidden = false;
+    $('#gcLbClose').focus();
+  }
+  function closePreview() {
+    lb.hidden = true;
+    if (lbFrom) lbFrom.focus();
+  }
+  $$('[data-preview]').forEach(b => b.addEventListener('click', () => openPreview(b)));
+  $('#gcLbClose').addEventListener('click', closePreview);
+  lb.addEventListener('click', e => { if (e.target === lb) closePreview(); });   // Tipp neben die Karte schließt
+  $('#gcLbPick').addEventListener('click', () => { G.motif = $('#gcLbPick').dataset.m; render(); closePreview(); });
+  // Escape schließt nur die Großansicht, nicht das ganze Gutschein-Fenster dahinter
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !lb.hidden) { e.stopImmediatePropagation(); closePreview(); }
+  }, true);
   $('#gcCustom').addEventListener('input', e => { const v = parseFloat(e.target.value.replace(',', '.')); G.amount = Number.isFinite(v) ? Math.round(v * 100) / 100 : NaN; render(); });
 
   TX.onSheetOpen('gift', () => {

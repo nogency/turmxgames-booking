@@ -410,8 +410,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <div class="field" id="gcMotifField" hidden>
           <span class="label" id="gcMotifLbl">Motiv der Karte</span>
           <div class="motifs" role="radiogroup" aria-labelledby="gcMotifLbl">
-            <button type="button" class="motif" data-motif="xmas" aria-pressed="true"><img src="/v2/img/gift-xmas.jpg" alt="Weihnachtskarte: Gameshow zum Auspacken" width="400" height="202" loading="lazy"><span>Weihnachten</span></button>
-            <button type="button" class="motif" data-motif="standard" aria-pressed="false"><img src="/v2/img/gift-standard.jpg" alt="Karte: Deine Show. Dein Moment." width="400" height="202" loading="lazy"><span>Standard</span></button>
+            <div class="motif is-on">
+              <button type="button" class="motif-img" data-preview="xmas" aria-label="Weihnachtskarte groß ansehen"><img src="/v2/img/gift-xmas.jpg" alt="Weihnachtskarte: Gameshow zum Auspacken" width="400" height="202" loading="lazy"><span class="motif-zoom" aria-hidden="true"><i class="ph ph-magnifying-glass-plus"></i></span></button>
+              <button type="button" class="motif-pick" data-motif="xmas" aria-pressed="true">Weihnachten</button>
+            </div>
+            <div class="motif">
+              <button type="button" class="motif-img" data-preview="standard" aria-label="Standardkarte groß ansehen"><img src="/v2/img/gift-standard.jpg" alt="Karte: Deine Show. Dein Moment." width="400" height="202" loading="lazy"><span class="motif-zoom" aria-hidden="true"><i class="ph ph-magnifying-glass-plus"></i></span></button>
+              <button type="button" class="motif-pick" data-motif="standard" aria-pressed="false">Standard</button>
+            </div>
           </div>
         </div>
         <div class="field">
@@ -452,6 +458,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       <button class="btn btn-secondary btn-block" type="button" data-close>Schließen</button>
     </div>
   </div>
+</div>
+
+<!-- Gutschein-Karte groß ansehen (außerhalb des Sheets: dessen Panel ist am Desktop transformiert) -->
+<div class="lightbox" id="gcLightbox" role="dialog" aria-modal="true" aria-label="Kartenmotiv groß" hidden>
+  <button class="icon-btn lb-close" type="button" id="gcLbClose" aria-label="Schließen"><i class="ph ph-x"></i></button>
+  <img id="gcLbImg" src="" alt="">
+  <button class="btn btn-primary" type="button" id="gcLbPick">Dieses Motiv nehmen</button>
 </div>
 
 <!-- Großgruppen-Anfrage (API: /api/inquiry, unverändert zu v1) -->
