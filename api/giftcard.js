@@ -231,7 +231,9 @@ module.exports = async function handler(req, res) {
             const rawExisting = await redis.get(idemKey);
             const existing = typeof rawExisting === 'string' ? JSON.parse(rawExisting) : rawExisting;
             if (existing?.status === 'done' && existing.code) {
-              // Doppelklick/Retry: denselben Gutschein zurückgeben, keinen zweiten anlegen
+              // Doppelklick/Retry: denselben Gutschein zurückgeben, keinen zweiten anlegen.
+              // War der Versand noch nicht vollständig (Abbruch/Fehler beim ersten Lauf), jetzt nachholen.
+              if (!isDelivered(existing)) await deliverGiftcard({ redis, idemKey, rec: existing, payRef });
               return res.status(200).json({ code: existing.code, amount: existing.amount, type: existing.type, duplicate: true });
             }
             if (existing?.status === 'failed') {
@@ -291,9 +293,17 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        // ── Gutschein steht: sofort dauerhaft an die Zahlung binden (vor PDF/Mails, die scheitern können) ──
+        // ── Gutschein steht: sofort dauerhaft an die Zahlung binden (vor PDF/Mails, die scheitern können).
+        //    Versand wird getrennt verfolgt (buyerSent/hardcopySent) und bei einer Wiederholung nachgeholt. ──
+        const rec = {
+          status: 'done', code, amount: giftEur, type: giftType, validUntil: validUntilDate.toISOString(),
+          buyerSent: false, hardcopySent: giftType !== 'hardcopy',
+          // Nur bis zum vollständigen Versand gespeichert, danach entfernt
+          buyer: { firstName: buyer.firstName || '', lastName: buyer.lastName || '', email: buyer.email },
+          ...(giftType === 'hardcopy' && { shipping: { street: shipping.street, zip: shipping.zip, city: shipping.city } }),
+        };
         if (redis) {
-          await redis.set(idemKey, JSON.stringify({ status: 'done', code, amount: giftEur, type: giftType })).catch(e =>
+          await redis.set(idemKey, JSON.stringify(rec)).catch(e =>
             console.error('[giftcard] Idempotenz-Eintrag fehlgeschlagen:', e.message));
         }
         if (paymentIntentId) {
@@ -302,30 +312,8 @@ module.exports = async function handler(req, res) {
             console.error('[giftcard] Code an Stripe-Zahlung vermerken fehlgeschlagen:', e.message));
         }
 
-        // ── PDF erzeugen ──
-        const validUntilStr = validUntilDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const pdfBuffer = await generateGiftcardPDF({
-          code,
-          amountEur:  giftEur,
-          validUntil: validUntilStr,
-          buyerName,
-        });
-
-        // ── Archiv + Mails (Fehler hier brechen den Kauf nicht ab) ──
-        const results = await Promise.allSettled([
-          uploadInvoiceToDrive(pdfBuffer, `${code}.pdf`),
-          sendBuyerEmail(buyer, giftEur, giftType, code, pdfBuffer, validUntilStr),
-          giftType === 'hardcopy'
-            ? sendAdminHardcopyEmail(buyer, shipping, giftEur, code, pdfBuffer)
-            : Promise.resolve(),
-        ]);
-        results.forEach((r, i) => {
-          if (r.status === 'rejected') console.error('[giftcard] Nachgelagerter Schritt', i, 'fehlgeschlagen:', r.reason?.message);
-        });
-        if (results[1].status === 'rejected') {
-          // Käufer-Mail ist kritisch → Admin informieren
-          await sendAdminAlert(buyer, giftEur, giftType, payRef, 'Käufer-E-Mail fehlgeschlagen — Code: ' + code).catch(() => {});
-        }
+        // ── PDF + Mails (Fehler hier brechen den Kauf nicht ab, werden aber nachgeholt) ──
+        await deliverGiftcard({ redis, idemKey, rec, payRef, archive: true });
 
         console.log('[giftcard] Erstellt:', code, fmtEur(giftEur), giftType, 'Käufer:', buyer.email);
         return res.status(201).json({ code, amount: giftEur, type: giftType });
@@ -340,14 +328,61 @@ module.exports = async function handler(req, res) {
   }
 };
 
+// ── Versand (PDF + Mails), wiederaufnehmbar ────────────────────────────────
+
+const isDelivered = rec => rec.buyerSent !== false && rec.hardcopySent !== false;
+
+/**
+ * Erzeugt das PDF und verschickt, was laut rec noch fehlt: Käufer-Mail und ggf. Hardcopy-Auftrag an euch.
+ * Merkt sich jeden erfolgreichen Teil in Redis, damit eine Wiederholung nur das Fehlende nachholt
+ * (kein doppelter Hardcopy-Auftrag). Wirft nie.
+ */
+async function deliverGiftcard({ redis, idemKey, rec, payRef, archive = false }) {
+  try {
+    const buyer = rec.buyer || {};
+    const buyerName = [buyer.firstName, buyer.lastName].filter(Boolean).join(' ').trim() || buyer.email;
+    const validUntilStr = new Date(rec.validUntil || Date.now())
+      .toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const pdfBuffer = await generateGiftcardPDF({ code: rec.code, amountEur: rec.amount, validUntil: validUntilStr, buyerName });
+
+    const [drive, buyerMail, hardcopyMail] = await Promise.allSettled([
+      archive ? uploadInvoiceToDrive(pdfBuffer, `${rec.code}.pdf`) : Promise.resolve(),
+      rec.buyerSent === false ? sendBuyerEmail(buyer, rec.amount, rec.type, rec.code, pdfBuffer, validUntilStr) : Promise.resolve(),
+      rec.hardcopySent === false ? sendAdminHardcopyEmail(buyer, rec.shipping || {}, rec.amount, rec.code, pdfBuffer) : Promise.resolve(),
+    ]);
+    if (drive.status === 'rejected') console.error('[giftcard] Archiv fehlgeschlagen:', drive.reason?.message);
+    if (buyerMail.status === 'fulfilled') rec.buyerSent = true;
+    else console.error('[giftcard] Käufer-Mail fehlgeschlagen:', buyerMail.reason?.message);
+    if (hardcopyMail.status === 'fulfilled') rec.hardcopySent = true;
+    else console.error('[giftcard] Hardcopy-Auftrag fehlgeschlagen:', hardcopyMail.reason?.message);
+
+    if (isDelivered(rec)) { delete rec.buyer; delete rec.shipping; }   // persönliche Daten nicht dauerhaft halten
+    if (redis) await redis.set(idemKey, JSON.stringify(rec)).catch(e => console.error('[giftcard] Versandstand nicht gespeichert:', e.message));
+
+    if (!isDelivered(rec)) {
+      const missing = [rec.buyerSent ? null : 'Käufer-E-Mail', rec.hardcopySent ? null : 'Hardcopy-Versandauftrag'].filter(Boolean).join(' + ');
+      await sendAdminAlert(buyer, rec.amount, rec.type, payRef, `${missing} fehlgeschlagen — Code: ${rec.code}`).catch(() => {});
+    }
+  } catch (e) {
+    console.error('[giftcard] Versand fehlgeschlagen:', e && e.message);
+  }
+}
+
 // ── Mails ──────────────────────────────────────────────────────────────────
+
+// Resend wirft bei API-Fehlern nicht, sondern liefert { error } → ausdrücklich in einen Fehler umwandeln
+async function resendSend(resend, msg) {
+  const out = await resend.emails.send(msg);
+  if (out && out.error) throw new Error(`Resend: ${out.error.message || out.error.name || 'Versand abgelehnt'}`);
+  return out;
+}
 
 async function sendBuyerEmail(buyer, eur, type, code, pdfBuffer, validUntilStr) {
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const isHardcopy = type === 'hardcopy';
 
-  await resend.emails.send({
+  await resendSend(resend, {
     from: process.env.INVOICE_FROM_EMAIL || 'games@turmx.de',
     to: buyer.email,
     subject: `🎁 Dein TurmX Games Gutschein über ${fmtEur(eur)}`,
@@ -371,7 +406,7 @@ async function sendAdminHardcopyEmail(buyer, shipping, eur, code, pdfBuffer) {
   const resend = new Resend(process.env.RESEND_API_KEY);
   const buyerName = [buyer.firstName, buyer.lastName].filter(Boolean).join(' ') || '—';
 
-  await resend.emails.send({
+  await resendSend(resend, {
     from: process.env.INVOICE_FROM_EMAIL || 'games@turmx.de',
     to: (process.env.INQUIRY_EMAIL || 'games@turmx.de').split(',').map(e => e.trim()),
     replyTo: buyer.email,
@@ -400,7 +435,7 @@ async function sendAdminHardcopyEmail(buyer, shipping, eur, code, pdfBuffer) {
 async function sendAdminAlert(buyer, eur, type, payRef, reason) {
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
-  await resend.emails.send({
+  await resendSend(resend, {
     from: process.env.INVOICE_FROM_EMAIL || 'games@turmx.de',
     to: (process.env.INQUIRY_EMAIL || 'games@turmx.de').split(',').map(e => e.trim()),
     subject: `⚠️ GUTSCHEIN-PROBLEM: Zahlung erhalten, manuelle Aktion nötig`,

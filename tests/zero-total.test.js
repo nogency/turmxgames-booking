@@ -75,6 +75,23 @@ test('Bestellung passt nicht zur Buchung (4 bestellt, 30 gebucht): abgelehnt', a
   expect(bookings).toBe(0);
 });
 
+test('Wiederholung nach Erfolg (Antwort verloren): bestehende Buchung, obwohl der Code jetzt eingelöst ist', async () => {
+  const first = await call(body());
+  expect(first.code).toBe(201);
+  canApply = false;                                   // Code ist durch die erste Buchung verbraucht
+  const again = await call(body());
+  expect(again.code).toBe(200);
+  expect(again.body.id).toBe(first.body.id);
+  expect(bookings).toBe(1);
+});
+
+test('Abgelehnt: Sperre wird gelöst, ein echter Neuversuch ist möglich', async () => {
+  canApply = false;
+  expect((await call(body())).code).toBe(402);
+  canApply = true;
+  expect((await call(body())).code).toBe(201);
+});
+
 test('Ohne Code: abgelehnt', async () => {
   const r = await call(body({ promoCode: null, order: order({ promoCode: null }) }));
   expect(r.code).toBe(402);

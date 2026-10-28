@@ -201,15 +201,6 @@ module.exports = async function handler(req, res) {
         const startTime = berlinDt.toISO();
         const utcTimeKey = berlinDt.toUTC().toISO().substring(0, 16);
 
-        // ── Gutschein deckt den ganzen Betrag (0 €): Buchung ohne Zahlung NUR, wenn der Server das selbst
-        //    nachrechnet und Bookla den Code für genau diese Buchung als einlösbar bestätigt ──
-        if (zeroTotal && !paymentIntentId && !paypalAuthId) {
-          if (!(await zeroTotalAllowed({ order, date, time, spots, promoCode, serviceId, startTime, companyId, apiKey }))) {
-            console.warn('[create-booking] 0-€-Buchung abgelehnt:', date, time, spots, promoCode || '(kein Code)');
-            return res.status(402).json({ error: 'Der Gutschein deckt den Betrag nicht vollständig. Bitte lade die Seite neu und wähle eine Zahlungsart.' });
-          }
-        }
-
         // ── Idempotenz-Lock gegen Mehrfachbuchungen ──────────────────────────
         // Verhindert, dass dieselbe Buchung (Kunde + Slot + Personenzahl) mehrfach
         // angelegt wird — z.B. bei Timeout-Retry, Seiten-Reload oder Doppel-Tab/-Gerät.
@@ -244,6 +235,18 @@ module.exports = async function handler(req, res) {
           // Redis-Problem darf den Kunden NICHT blockieren — lieber buchen als abweisen.
           console.error('[Idempotenz] Lock fehlgeschlagen, fahre ohne Lock fort:', e.message);
           idemRedis = null;
+        }
+
+        // ── Gutschein deckt den ganzen Betrag (0 €): Buchung ohne Zahlung NUR, wenn der Server das selbst
+        //    nachrechnet und Bookla den Code für genau diese Buchung als einlösbar bestätigt.
+        //    Bewusst NACH der Idempotenz: Eine Wiederholung einer schon erfolgreichen Buchung bekommt oben
+        //    die bestehende Buchung zurück und scheitert nicht am inzwischen eingelösten Code. ──
+        if (zeroTotal && !paymentIntentId && !paypalAuthId) {
+          if (!(await zeroTotalAllowed({ order, date, time, spots, promoCode, serviceId, startTime, companyId, apiKey }))) {
+            console.warn('[create-booking] 0-€-Buchung abgelehnt:', date, time, spots, promoCode || '(kein Code)');
+            if (idemRedis) await idemRedis.del(idemKey).catch(() => {});   // nichts gebucht → echter Neuversuch möglich
+            return res.status(402).json({ error: 'Der Gutschein deckt den Betrag nicht vollständig. Bitte lade die Seite neu und wähle eine Zahlungsart.' });
+          }
         }
 
         // ── Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN): läuft parallel, blockiert und ändert nichts ──
