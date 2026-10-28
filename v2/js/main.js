@@ -2,7 +2,7 @@
  * Start: Schlüssel laden, Einstiegslinks auswerten (kompatibel zu v1).
  *   /?event=jga|firma|friends|kinder|schule|verein[&step=…]  → Event vorgewählt, weiter zum Termin
  *   /?b=ID                                                    → Admin-Link (vorbereitete Buchung)
- *   /#gutschein                                               → Gutschein-Kauf öffnen
+ *   /#gutschein oder /#gift                                   → Gutschein-Kauf öffnen
  */
 (function () {
   'use strict';
@@ -39,6 +39,9 @@
   (async function boot() {
     TX.initCalendar();
     TX.renderTrust();
+    // Weihnachtszeit: Gutschein oben bewerben, der Eintrag unten entfällt dann (kein doppelter Einstieg)
+    $('#giftPromo').hidden = !TX.xmasSeason();
+    $('#giftRow').hidden = TX.xmasSeason();
     TX.renderEvents();
     history.replaceState({ step: 1 }, '', `${location.pathname}${location.search}#event`);
     await TX.api.config();   // Stripe- und PayPal-Schlüssel (ohne: Hinweis statt Zahlungsfeld)
@@ -49,6 +52,6 @@
     else { TX.go(1, true); }
 
     TX.bindSheetButtons(document);
-    if (startHash === '#gutschein') setTimeout(() => TX.openSheet('gift'), 300);
+    if (startHash === '#gutschein' || startHash === '#gift') setTimeout(() => TX.openSheet('gift'), 300);
   })();
 })();

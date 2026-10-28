@@ -23,7 +23,11 @@ const PAYPAL_API = process.env.PAYPAL_API_BASE || 'https://api-m.paypal.com';
 
 const MIN_EUR = 10;
 const MAX_EUR = 500;
-const SHIPPING_EUR = 2.95;
+const SHIPPING_EUR = 4.95;            // seit 28.10.2026 (vorher 2,95)
+const OLD_SHIPPING_CENTS = 295;       // Stripe-Zahlungen von vor der Umstellung (ohne metadata.shippingCents)
+// Druckmotiv der Postkarte (nur Hardcopy)
+const MOTIFS = { standard: 'Standard („Deine Show. Dein Moment.“)', xmas: 'Weihnachten („Gameshow zum Auspacken.“)' };
+const motifOf = m => (MOTIFS[m] ? m : 'standard');
 const VALID_YEARS = 3;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -115,7 +119,7 @@ module.exports = async function handler(req, res) {
       //    der Client liefert nur Wunschbetrag + Typ.
       // ─────────────────────────────────────────────
       case 'create-payment': {
-        const { amount, type } = req.body || {};
+        const { amount, type, motif } = req.body || {};
         const eur = Math.round(parseFloat(amount) * 100) / 100;
 
         if (!Number.isFinite(eur) || eur < MIN_EUR || eur > MAX_EUR) {
@@ -136,6 +140,10 @@ module.exports = async function handler(req, res) {
             kind:            'giftcard',
             giftAmountCents: String(Math.round(eur * 100)),
             giftType:        type,
+            ...(type === 'hardcopy' && {
+              shippingCents: String(Math.round(SHIPPING_EUR * 100)),   // Versandkosten zum Zeitpunkt der Zahlung
+              giftMotif:     motifOf(motif),
+            }),
           },
         });
 
@@ -151,7 +159,7 @@ module.exports = async function handler(req, res) {
       //    PDF + Mails. Idempotent pro Zahlung.
       // ─────────────────────────────────────────────
       case 'finalize': {
-        const { paymentIntentId, paypalAuthId, type, buyer, shipping } = req.body || {};
+        const { paymentIntentId, paypalAuthId, type, buyer, shipping, motif } = req.body || {};
 
         if (!paymentIntentId && !paypalAuthId) {
           return res.status(400).json({ error: 'Zahlungsreferenz fehlt.' });
@@ -172,6 +180,7 @@ module.exports = async function handler(req, res) {
         let giftType = null;
         let payRef = null;
         let authStatus = null;
+        let giftMotif = motifOf(motif);   // PayPal: aus dem Request (nur zwei erlaubte Werte); Stripe: aus der Zahlung
 
         if (paymentIntentId) {
           const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -188,8 +197,11 @@ module.exports = async function handler(req, res) {
           if (pi.metadata.giftCode) {
             return res.status(200).json({ code: pi.metadata.giftCode, amount: giftEur, type: giftType, duplicate: true });
           }
-          // Konsistenz: bezahlter Betrag muss Gutschein + ggf. Versand entsprechen
-          const expected = Math.round((giftEur + (giftType === 'hardcopy' ? SHIPPING_EUR : 0)) * 100);
+          if (pi.metadata.giftMotif) giftMotif = motifOf(pi.metadata.giftMotif);
+          // Konsistenz: bezahlter Betrag muss Gutschein + ggf. Versand entsprechen. Versand so, wie er bei der
+          // Zahlung galt (metadata.shippingCents); Zahlungen von vor der Umstellung haben das Feld nicht → 2,95 €.
+          const shipCents = giftType === 'hardcopy' ? (parseInt(pi.metadata.shippingCents, 10) || OLD_SHIPPING_CENTS) : 0;
+          const expected = Math.round(giftEur * 100) + shipCents;
           if (pi.amount !== expected) {
             console.error('[giftcard] Betragsabweichung:', pi.amount, '≠', expected, paymentIntentId);
             return res.status(400).json({ error: 'Zahlungsbetrag stimmt nicht überein.' });
@@ -275,7 +287,7 @@ module.exports = async function handler(req, res) {
           await booklaFetch(`/companies/${companyId}/plugins/promocodes/list`, 'POST', {
             code,
             title:          `Gutschein ${fmtEur(giftEur)} — ${buyerName}`,
-            description:    `Gekaufter Geschenkgutschein (${giftType}) · Käufer: ${buyer.email} · Zahlung: ${payRef}`,
+            description:    `Gekaufter Geschenkgutschein (${giftType}${giftType === 'hardcopy' ? ', Motiv ' + giftMotif : ''}) · Käufer: ${buyer.email} · Zahlung: ${payRef}`,
             discountType:   'amount',
             discountAmount: Math.round(giftEur * 100),
             usageType:      'single_use',
@@ -298,6 +310,7 @@ module.exports = async function handler(req, res) {
         const rec = {
           status: 'done', code, amount: giftEur, type: giftType, validUntil: validUntilDate.toISOString(),
           buyerSent: false, hardcopySent: giftType !== 'hardcopy',
+          ...(giftType === 'hardcopy' && { motif: giftMotif }),
           // Nur bis zum vollständigen Versand gespeichert, danach entfernt
           buyer: { firstName: buyer.firstName || '', lastName: buyer.lastName || '', email: buyer.email },
           ...(giftType === 'hardcopy' && { shipping: { street: shipping.street, zip: shipping.zip, city: shipping.city } }),
@@ -347,8 +360,8 @@ async function deliverGiftcard({ redis, idemKey, rec, payRef, archive = false })
 
     const [drive, buyerMail, hardcopyMail] = await Promise.allSettled([
       archive ? uploadInvoiceToDrive(pdfBuffer, `${rec.code}.pdf`) : Promise.resolve(),
-      rec.buyerSent === false ? sendBuyerEmail(buyer, rec.amount, rec.type, rec.code, pdfBuffer, validUntilStr) : Promise.resolve(),
-      rec.hardcopySent === false ? sendAdminHardcopyEmail(buyer, rec.shipping || {}, rec.amount, rec.code, pdfBuffer) : Promise.resolve(),
+      rec.buyerSent === false ? sendBuyerEmail(buyer, rec.amount, rec.type, rec.code, pdfBuffer, validUntilStr, rec.motif) : Promise.resolve(),
+      rec.hardcopySent === false ? sendAdminHardcopyEmail(buyer, rec.shipping || {}, rec.amount, rec.code, pdfBuffer, rec.motif) : Promise.resolve(),
     ]);
     if (drive.status === 'rejected') console.error('[giftcard] Archiv fehlgeschlagen:', drive.reason?.message);
     if (buyerMail.status === 'fulfilled') rec.buyerSent = true;
@@ -377,7 +390,7 @@ async function resendSend(resend, msg) {
   return out;
 }
 
-async function sendBuyerEmail(buyer, eur, type, code, pdfBuffer, validUntilStr) {
+async function sendBuyerEmail(buyer, eur, type, code, pdfBuffer, validUntilStr, motif) {
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const isHardcopy = type === 'hardcopy';
@@ -390,7 +403,7 @@ async function sendBuyerEmail(buyer, eur, type, code, pdfBuffer, validUntilStr) 
       <p>Hallo${buyer.firstName ? ' ' + escapeHtml(buyer.firstName) : ''},</p>
       <p>vielen Dank für deinen Gutschein-Kauf bei TurmX Games!</p>
       ${isHardcopy
-        ? `<p>Dein Gutschein über <strong>${fmtEur(eur)}</strong> wird jetzt für dich gedruckt und <strong>per Post versendet</strong>. Als Vorschau findest du ihn bereits im Anhang.</p>`
+        ? `<p>Dein Gutschein über <strong>${fmtEur(eur)}</strong> kommt als Karte mit dem Motiv <strong>${motif === 'xmas' ? 'Weihnachten' : 'Standard'}</strong> <strong>per Post</strong>. Den Code findest du schon hier und im Anhang.</p>`
         : `<p>Im Anhang findest du deinen Gutschein über <strong>${fmtEur(eur)}</strong> als PDF — zum Weiterleiten oder Ausdrucken.</p>`}
       <p>Gutschein-Code: <strong style="font-family:monospace;font-size:16px">${escapeHtml(code)}</strong><br>
       Einlösbar auf <a href="https://booking.turmxgames.de">booking.turmxgames.de</a> im Feld „Rabatt-Code" · gültig bis ${validUntilStr} · einmalig einlösbar.</p>
@@ -401,16 +414,17 @@ async function sendBuyerEmail(buyer, eur, type, code, pdfBuffer, validUntilStr) 
   });
 }
 
-async function sendAdminHardcopyEmail(buyer, shipping, eur, code, pdfBuffer) {
+async function sendAdminHardcopyEmail(buyer, shipping, eur, code, pdfBuffer, motif) {
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const buyerName = [buyer.firstName, buyer.lastName].filter(Boolean).join(' ') || '—';
+  const motifLabel = MOTIFS[motifOf(motif)];
 
   await resendSend(resend, {
     from: process.env.INVOICE_FROM_EMAIL || 'games@turmx.de',
     to: (process.env.INQUIRY_EMAIL || 'games@turmx.de').split(',').map(e => e.trim()),
     replyTo: buyer.email,
-    subject: `📮 Hardcopy-Gutschein versenden: ${fmtEur(eur)} · ${buyerName}`,
+    subject: `📮 Hardcopy-Gutschein versenden: ${fmtEur(eur)} · Motiv ${motifOf(motif) === 'xmas' ? 'Weihnachten' : 'Standard'} · ${buyerName}`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
         <div style="background:#C0392B;padding:20px 24px;border-radius:8px 8px 0 0">
@@ -421,10 +435,11 @@ async function sendAdminHardcopyEmail(buyer, shipping, eur, code, pdfBuffer) {
           <table style="width:100%;border-collapse:collapse;font-size:14px">
             <tr><td style="padding:7px 0;color:#888;width:140px">Betrag</td><td style="padding:7px 0;font-size:18px;font-weight:700;color:#C0392B">${fmtEur(eur)}</td></tr>
             <tr><td style="padding:7px 0;color:#888">Code</td><td style="padding:7px 0;font-family:monospace;font-weight:700">${escapeHtml(code)}</td></tr>
+            <tr><td style="padding:7px 0;color:#888">Motiv</td><td style="padding:7px 0;font-weight:700">${escapeHtml(motifLabel)}</td></tr>
             <tr><td style="padding:7px 0;color:#888">Käufer</td><td style="padding:7px 0">${escapeHtml(buyerName)} · <a href="mailto:${escapeHtml(buyer.email)}">${escapeHtml(buyer.email)}</a></td></tr>
             <tr><td style="padding:7px 0;color:#888;vertical-align:top">Versandadresse</td><td style="padding:7px 0;font-weight:600">${escapeHtml(shipping.street)}<br>${escapeHtml(shipping.zip)} ${escapeHtml(shipping.city)}</td></tr>
           </table>
-          <p style="margin-top:16px;font-size:13px;color:#666">Versandkosten (2,95 €) wurden bezahlt. PDF anbei ausdrucken und versenden.</p>
+          <p style="margin-top:16px;font-size:13px;color:#666">Versandkosten wurden bezahlt. Karte mit dem genannten Motiv und dem Code versenden (PDF mit Code anbei).</p>
         </div>
       </div>
     `,

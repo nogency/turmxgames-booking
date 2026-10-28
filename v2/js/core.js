@@ -62,6 +62,8 @@
   TX.isoDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   TX.today = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
   TX.minDate = () => { const t = TX.today(); t.setDate(t.getDate() + TX.config.MIN_LEAD_DAYS); return t; };
+  // Weihnachtszeit (15.10. bis 24.12.): Gutschein oben in Schritt 1, Weihnachtsmotiv vorgewählt
+  TX.xmasSeason = () => { const t = TX.today(), m = t.getMonth(), d = t.getDate(); return (m === 9 && d >= 15) || m === 10 || (m === 11 && d <= 24); };
 
   // ── Abgeleitete Werte ──
   // Admin-Link bringt eigenen Eventnamen mit (wie v1: S.eventName = d.eventName)
