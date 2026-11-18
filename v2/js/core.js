@@ -98,6 +98,9 @@
       companyZip: TX.needsOrg() ? v('zip') || null : null,
       companyCity: TX.needsOrg() ? v('city') || null : null,
       ustId: TX.S.event === 'firma' ? v('vat') || null : null,
+      country: TX.needsOrg() ? v('country') || null : null,
+      invoiceEmail: v('invEmail') || null,   // nur bei "Auf Rechnung" relevant
+      invoiceRef: v('invRef') || null,
       wishes: v('wish'),
     };
   };

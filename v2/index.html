@@ -191,6 +191,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             <div class="field"><label for="zip">PLZ</label><input class="input" id="zip" inputmode="numeric" autocomplete="postal-code"><p class="ferr"><i class="ph ph-warning-circle"></i> PLZ fehlt</p></div>
             <div class="field"><label for="city">Ort</label><input class="input" id="city" autocomplete="address-level2"><p class="ferr"><i class="ph ph-warning-circle"></i> Ort fehlt</p></div>
           </div>
+          <div class="field"><label for="country">Land</label><input class="input" id="country" autocomplete="country-name" value="Deutschland"></div>
           <div class="field" id="vatField"><label for="vat">USt-IdNr. <span class="opt-l">(optional)</span></label><input class="input" id="vat" autocapitalize="characters"></div>
           <p class="note" id="proofNote" hidden><i class="ph ph-identification-card"></i><span>Für den Sonderpreis bringt bitte beim Check-in einen Nachweis mit, zum Beispiel Schul- oder Vereinsausweis.</span></p>
         </fieldset>
@@ -248,7 +249,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           </div>
           <div class="pay-opt" id="payInvoice">
             <label class="pay-head"><input type="radio" name="pay" value="invoice"><span><span class="pay-name">Rechnung</span><br><span class="pay-sub" id="invoiceSub">Für Firmen, Schulen und Vereine</span></span><i class="ph ph-receipt pay-ico"></i></label>
-            <div class="pay-body"><p class="mandate" style="margin:0">Ihr bekommt sofort eine Auftragsbestätigung mit Bankverbindung. Die Rechnung mit ausgewiesener MwSt. folgt nach dem Event, Zahlungsziel 14 Tage.</p></div>
+            <div class="pay-body">
+              <p class="mandate" style="margin:0 0 12px">Ihr bekommt sofort eine Auftragsbestätigung mit Bankverbindung. Die Rechnung mit ausgewiesener MwSt. folgt nach dem Event, Zahlungsziel 14 Tage.</p>
+              <div class="field"><label for="invEmail">Rechnung an andere E-Mail <span class="opt-l">(optional)</span></label><input class="input" id="invEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="z. B. buchhaltung@firma.de"><p class="help">Leer lassen, dann geht sie an eure Kontakt-E-Mail.</p><p class="ferr"><i class="ph ph-warning-circle"></i> Bitte prüft die E-Mail-Adresse</p></div>
+              <div class="field" style="margin-top:12px"><label for="invRef">Bestellnummer oder Referenz <span class="opt-l">(optional)</span></label><input class="input" id="invRef" maxlength="80" placeholder="z. B. Kostenstelle oder PO-Nummer"></div>
+            </div>
           </div>
         </div>
       </fieldset>
