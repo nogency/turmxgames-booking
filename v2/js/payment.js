@@ -210,6 +210,8 @@
   }
 
   async function submitInvoice() {
+    // Abweichende Rechnungs-E-Mail ist optional, muss aber stimmen, wenn angegeben
+    if (!TX.validate([['#invEmail', v => !v || TX.isEmail(v)]])) throw new Error('Bitte prüft die E-Mail-Adresse für die Rechnung.');
     if (S.fc && S.bookingId) return confirmAdmin(null);
     const c = TX.contact(), q = TX.quote();
     const { ok, status, data } = await TX.api.createBookingInvoice({
@@ -256,6 +258,18 @@
       .catch(e => console.error('[KRITISCH] Auftragsbestätigung fehlgeschlagen', e && e.message, 'bookingId:', bookingId));
   }
 
+  /**
+   * Rechnungsadresse für Invoice Ninja (Wunsch Marco, 18.11.2026): genau dieses Format, eine Angabe pro Zeile,
+   * direkt unter "Zahlung:". Leere optionale Felder entfallen. Rechnungs-E-Mail = abweichende Adresse, sonst Kontakt-E-Mail.
+   */
+  const oneLine = s => String(s || '').replace(/\s+/g, ' ').trim();
+  function invoiceLines(c) {
+    return [
+      ['Firma', c.companyName], ['Straße', c.companyStreet], ['PLZ', c.companyZip], ['Ort', c.companyCity],
+      ['Land', c.country], ['E-Mail', c.invoiceEmail || c.email], ['USt-IdNr', c.ustId], ['Referenz', c.invoiceRef],
+    ].filter(([, v]) => oneLine(v)).map(([k, v]) => `Rechnung ${k}: ${oneLine(v)}`);
+  }
+
   /** Notizen für Bookla: Format 1:1 wie v1 (Team liest diese im Dashboard). */
   TX.bookingNotes = pm => {
     pm = pm || S.payMethod;
@@ -272,6 +286,7 @@
       'Freefall Mutprobe: ' + (S.extras.freefall && S.event === 'jga' ? 'Ja (30,00€)' : 'Nein'),
       q.smallGroupFee ? 'Kleingruppenzuschlag: Ja (' + TX.comma(q.smallGroupFee) + '€)' : null,
       'Zahlung: ' + label,
+      ...(pm === 'invoice' ? invoiceLines(c) : []),
       c.phone ? 'Telefon: ' + c.phone : null,
       S.age ? 'Alter Geburtstagskind: ' + S.age : null,
       c.companyName ? 'Firma: ' + c.companyName : null,
