@@ -2,7 +2,8 @@
  * Testlauf Zwischen-Slots (ab 19.11.2026): eine 4. Bookla-Ressource ("Booking Stream 4") bietet an den
  * nächsten vier Wochenenden zusätzliche Zeiten zwischen den normalen Slots (10/13/16/19 Uhr) an.
  *
- * - Nur aktiv, wenn BOOKLA_EXTRA_RESOURCE_ID in Vercel gesetzt ist (leer = aus, sofort wirksam).
+ * - 4. Ressource "TurmXGamesSlot 4" (DEFAULT_ID). Abschalten ohne Deploy: BOOKLA_EXTRA_RESOURCE_ID=off in Vercel;
+ *   eine andere ID dort ersetzt die Standard-ID.
  * - Nur Fr/Sa/So im Zeitraum EXTRA.from bis EXTRA.until (deutsche Zeit).
  * - Von dieser Ressource zählen NUR die Zeiten in EXTRA.times. Bietet Bookla sie zu anderen Zeiten an,
  *   werden die ignoriert – normale Buchungen landen nie auf der 4. Ressource.
@@ -17,7 +18,13 @@ const EXTRA = {
   until: '2026-12-13',               // vier Wochenenden: 20.–22.11., 27.–29.11., 4.–6.12., 11.–13.12.
 };
 
-const extraResourceId = (env = process.env) => String(env.BOOKLA_EXTRA_RESOURCE_ID || '').trim() || null;
+const DEFAULT_ID = 'fbac8cf5-8ce5-40db-ac70-534853dd09e1';   // Bookla: TurmXGamesSlot 4
+
+function extraResourceId(env = process.env) {
+  const v = String(env.BOOKLA_EXTRA_RESOURCE_ID || '').trim();
+  if (v.toLowerCase() === 'off') return null;
+  return v || DEFAULT_ID;
+}
 
 /** Gilt der Testlauf an diesem Tag ('YYYY-MM-DD')? */
 function extraActiveOn(date) {
@@ -42,4 +49,4 @@ function allowedTime(rid, time, env = process.env) {
 /** Wie allowedTime, für einen Bookla-Slot mit startTime in UTC. */
 const allowedSlot = (rid, startTime, env = process.env) => allowedTime(rid, berlinTime(startTime), env);
 
-module.exports = { EXTRA, extraResourceId, extraActiveOn, resourcesFor, allowedTime, allowedSlot, berlinTime };
+module.exports = { EXTRA, DEFAULT_ID, extraResourceId, extraActiveOn, resourcesFor, allowedTime, allowedSlot, berlinTime };

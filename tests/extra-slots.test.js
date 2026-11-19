@@ -9,9 +9,11 @@ const BASE = [R1, R2, R3];
 describe('Regeln', () => {
   const on = { BOOKLA_EXTRA_RESOURCE_ID: R4 };
 
-  test('ohne Env-Variable: nie dabei', () => {
-    expect(X.resourcesFor(BASE, '2026-11-21', {})).toEqual(BASE);
-    expect(X.allowedTime(R4, '11:30', {})).toBe(true);           // ohne ID gibt es keine 4. Ressource zu filtern
+  test('ohne Env-Variable: Standard-ID (Slot 4); "off" schaltet ab', () => {
+    expect(X.resourcesFor(BASE, '2026-11-21', {})).toEqual([...BASE, X.DEFAULT_ID]);
+    expect(X.resourcesFor(BASE, '2026-11-21', { BOOKLA_EXTRA_RESOURCE_ID: 'off' })).toEqual(BASE);
+    expect(X.allowedTime(X.DEFAULT_ID, '10:00', {})).toBe(false);
+    expect(X.allowedTime(X.DEFAULT_ID, '10:00', { BOOKLA_EXTRA_RESOURCE_ID: 'off' })).toBe(true);   // aus = nichts zu filtern
   });
 
   test.each([
@@ -96,8 +98,8 @@ test('Montag im Testlauf: 4. Ressource wird gar nicht gefragt', async () => {
   expect(queried).not.toContain(R4);
 });
 
-test('Ohne Env-Variable: alles wie bisher', async () => {
-  delete process.env.BOOKLA_EXTRA_RESOURCE_ID;
+test('Abgeschaltet (BOOKLA_EXTRA_RESOURCE_ID=off): alles wie bisher', async () => {
+  process.env.BOOKLA_EXTRA_RESOURCE_ID = 'off';
   const r = await call('available-times', { serviceId: SERVICE, date: '2026-11-21', groupSize: 8 });
   expect(times(r)).toEqual(['10:00 frei:3']);
 });
