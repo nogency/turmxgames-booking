@@ -27,6 +27,15 @@ try {
   notifyCrew = async () => null;
 }
 
+// Zwischen-Slots (4. Ressource, Testlauf): lädt das Modul nicht, bleibt alles bei den 3 normalen Ressourcen
+let extra;
+try {
+  extra = require('./_lib/extra-slots');
+} catch (e) {
+  console.error('[Zwischen-Slots] Modul nicht geladen, nur normale Slots:', e && e.message);
+  extra = { resourcesFor: ids => ids, allowedTime: () => true, allowedSlot: () => true };
+}
+
 const BOOKLA_BASE = 'https://eu.bookla.com/api/v1';
 // PayPal: Live wie bisher; für Vorschau/Test per PAYPAL_API_BASE=https://api-m.sandbox.paypal.com
 const PAYPAL_API = process.env.PAYPAL_API_BASE || 'https://api-m.paypal.com';
@@ -111,9 +120,11 @@ module.exports = async function handler(req, res) {
         const from  = `${date}T00:00:00Z`;
         const to    = `${date}T23:59:59Z`;
         const spots = parseInt(groupSize) || 1;
+        // An Testtagen kommt die 4. Ressource dazu (nur ihre Zwischen-Zeiten zählen)
+        const rids = extra.resourcesFor(RESOURCE_IDS, date);
 
         const slotResults = await Promise.all(
-          RESOURCE_IDS.map(rid =>
+          rids.map(rid =>
             booklaFetch(
               `/client/companies/${companyId}/services/${serviceId}/times`,
               'POST',
@@ -127,8 +138,9 @@ module.exports = async function handler(req, res) {
 
         const slotArrays = slotResults.map((data, i) => {
           if (!data || !data.times) return [];
-          const rid = RESOURCE_IDS[i];
-          return data.times[rid] || Object.values(data.times).flat() || [];
+          const rid = rids[i];
+          return (data.times[rid] || Object.values(data.times).flat() || [])
+            .filter(s => s && extra.allowedSlot(rid, s.startTime));
         });
 
         const allSlots = slotArrays.flat().filter(Boolean);
@@ -257,8 +269,10 @@ module.exports = async function handler(req, res) {
         const from = `${date}T00:00:00Z`;
         const to   = `${date}T23:59:59Z`;
 
+        // Normale Ressourcen; an Testtagen zur Zwischen-Zeit auch die 4. (sonst nie)
+        const rids = extra.resourcesFor(RESOURCE_IDS, date).filter(rid => extra.allowedTime(rid, time));
         const currentAvailability = await Promise.all(
-          RESOURCE_IDS.map(rid =>
+          rids.map(rid =>
             booklaFetch(
               `/client/companies/${companyId}/services/${serviceId}/times`,
               'POST',
@@ -271,7 +285,7 @@ module.exports = async function handler(req, res) {
         const freeResourceIds = [];
         currentAvailability.forEach((data, i) => {
           if (!data || !data.times) return;
-          const rid = RESOURCE_IDS[i];
+          const rid = rids[i];
           const slotArr = data.times[rid] || Object.values(data.times).flat() || [];
           const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === utcTimeKey);
           if (match && match.spotsAvailable === match.totalSpots && match.totalSpots > 0) {
@@ -417,8 +431,10 @@ module.exports = async function handler(req, res) {
         const from = `${date}T00:00:00Z`;
         const to   = `${date}T23:59:59Z`;
 
+        // wie create-booking: 4. Ressource nur an Testtagen zur Zwischen-Zeit
+        const rids = extra.resourcesFor(RESOURCE_IDS, date).filter(rid => extra.allowedTime(rid, time));
         const currentAvailability = await Promise.all(
-          RESOURCE_IDS.map(rid =>
+          rids.map(rid =>
             booklaFetch(
               `/client/companies/${companyId}/services/${serviceId}/times`,
               'POST', { from, to, spots, resourceIDs: [rid] }, apiKey
@@ -429,7 +445,7 @@ module.exports = async function handler(req, res) {
         const freeResourceIds = [];
         currentAvailability.forEach((data, i) => {
           if (!data || !data.times) return;
-          const rid = RESOURCE_IDS[i];
+          const rid = rids[i];
           const slotArr = data.times[rid] || Object.values(data.times).flat() || [];
           const match = slotArr.find(t => (t.startTime || '').substring(0, 16) === utcTimeKey);
           if (match && match.spotsAvailable === match.totalSpots && match.totalSpots > 0) {
