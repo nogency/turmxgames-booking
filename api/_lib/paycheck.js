@@ -189,7 +189,28 @@ async function finish(promise, { stage, bookingId = null, deps = {}, timeoutMs =
   }
 }
 
+/**
+ * STUFE 2 – Server bestimmt den Betrag. Entscheidet aus einer Prüfung (evaluate mit clientAmount):
+ *   { mode: 'server', cents }     Server-Betrag verwenden (= Browser-Betrag, bestätigt)
+ *   { mode: 'mismatch', ... }     Browser-Betrag weicht ab → NICHT still anders belasten, Kunde lädt neu
+ *   { mode: 'fallback', reason }  Server kann nicht sicher rechnen → wie bisher Browser-Betrag
+ * Admin-Links sind bewusst ausgenommen (eigene Preise, separat zu klären).
+ */
+function decideAmount(e) {
+  if (!e || e.timeout) return { mode: 'fallback', reason: 'zeitlimit' };
+  if (e.order && e.order.link) return { mode: 'fallback', reason: 'admin-link' };
+  if (e.result === 'ohne-bestellung' || e.result === 'fehler') return { mode: 'fallback', reason: e.result };
+  if (e.notes && e.notes.length) return { mode: 'fallback', reason: 'code-definition' };   // Code bekannt, Definition fehlt
+  if (!Number.isFinite(e.expectedCents) || e.expectedCents <= 0) return { mode: 'fallback', reason: 'kein-betrag' };
+  if (e.result === 'ok') return { mode: 'server', cents: e.expectedCents };
+  if (e.result === 'abweichung') return { mode: 'mismatch', expectedCents: e.expectedCents, actualCents: e.actualCents };
+  return { mode: 'fallback', reason: e.result || 'unbekannt' };
+}
+
+/** Schalter: PAYCHECK_SERVER_AMOUNT=off stellt sofort auf Stufe 1 zurück (Browser-Betrag, nur beobachten). */
+const serverAmountOn = (env = process.env) => String(env.PAYCHECK_SERVER_AMOUNT || '').trim().toLowerCase() !== 'off';
+
 module.exports = {
   normalizeOrder, orderHash, expectedQuote, classifyAmount, classifyStripe, classifyPaypal,
-  evaluate, record, finish, withTimeout, toCents, LOG_KEY, STATS_KEY,
+  evaluate, record, finish, withTimeout, toCents, decideAmount, serverAmountOn, LOG_KEY, STATS_KEY,
 };

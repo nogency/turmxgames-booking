@@ -41,6 +41,10 @@
     createPaymentIntent(amount, paymentMethodType) {
       return bookla('create-payment-intent', { amount, description: 'TurmX Games – ' + TX.eventName(), ...(paymentMethodType && { paymentMethodType }), order: TX.order() });
     },
+    // Zahlungsprüfung Stufe 2: PayPal-Order legt der Server mit seinem Betrag an
+    createPaypalOrder(amount) {
+      return bookla('create-paypal-order', { amount, description: 'TurmX Games – ' + TX.eventName(), order: TX.order() });
+    },
     createBooking(payload) { return bookla('create-booking', payload); },
     createBookingInvoice(payload) { return bookla('create-booking-invoice', payload); },
     confirmAdminBooking(payload) { return bookla('confirm-admin-booking', payload); },

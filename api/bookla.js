@@ -14,6 +14,7 @@ try {
   paycheck = {
     evaluate: async () => ({}), finish: async () => {},
     normalizeOrder: () => ({}), orderHash: () => null,
+    serverAmountOn: () => false, decideAmount: () => ({ mode: 'fallback', reason: 'modul' }), withTimeout: p => p,
     STATS_KEY: 'paycheck:stats', LOG_KEY: 'paycheck:log',
   };
 }
@@ -428,6 +429,17 @@ module.exports = async function handler(req, res) {
           idemRedis = null;
         }
 
+        // ── Zahlungsprüfung Stufe 2: Rechnungsbetrag muss zum Server-Preis passen, sonst gar nicht buchen.
+        //    Nach der Idempotenz: eine Wiederholung einer schon erfolgreichen Buchung kam oben schon zurück. ──
+        const invDeps = paycheckDeps(companyId, apiKey);
+        const invCheck = paycheck.evaluate({ stage: 'rechnung', rawOrder: order, clientAmount: amount, deps: invDeps });
+        const invDecision = await amountDecision(invCheck);
+        if (invDecision.mode === 'mismatch') {
+          if (idemRedis) await idemRedis.del(idemKey).catch(() => {});
+          await paycheck.finish(withStageNote(invCheck, invDecision), { stage: 'rechnung', deps: invDeps });
+          return res.status(409).json(PRICE_CHANGED);
+        }
+
         const from = `${date}T00:00:00Z`;
         const to   = `${date}T23:59:59Z`;
 
@@ -530,16 +542,11 @@ module.exports = async function handler(req, res) {
           await idemRedis.set(idemKey, JSON.stringify({ status: 'done', booking: result }), { ex: 180 }).catch(() => {});
         }
 
-        // Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN) und Crew melden, parallel; beides wirft nie, max. 1,5 s
-        let crew = null;
-        {
-          const pcDeps = paycheckDeps(companyId, apiKey);
-          [, crew] = await Promise.all([
-            paycheck.finish(paycheck.evaluate({ stage: 'rechnung', rawOrder: order, clientAmount: amount, deps: pcDeps }),
-              { stage: 'rechnung', bookingId: bookingData.id, deps: pcDeps }),
-            notifyCrew({ bookingIds: [bookingData.id], date, time, groupSize: spots, eventKey: (order && order.event) || undefined, notes, firstName, email }),
-          ]);
-        }
+        // Zahlungsprüfung protokollieren (Prüfung lief schon vor der Buchung) und Crew melden, parallel; wirft nie
+        const [, crew] = await Promise.all([
+          paycheck.finish(withStageNote(invCheck, invDecision), { stage: 'rechnung', bookingId: bookingData.id, deps: invDeps }),
+          notifyCrew({ bookingIds: [bookingData.id], date, time, groupSize: spots, eventKey: (order && order.event) || undefined, notes, firstName, email }),
+        ]);
 
         // Auftragsbestätigung: Ein Fehler hier darf die bereits angelegte Buchung NICHT als
         // gescheitert melden — sonst versucht der Kunde es erneut und bucht doppelt.
@@ -729,16 +736,23 @@ module.exports = async function handler(req, res) {
         const { amount, description, paymentMethodType, order } = req.body || {};
         if (!amount) return res.status(400).json({ error: 'amount required' });
 
-        // Zahlungsprüfung Stufe 1 (NUR BEOBACHTEN): Betrag bleibt der vom Browser.
-        // Neu nur: Fingerabdruck der Bestellung als Stripe-Notiz (bindet die Zahlung an die Buchung).
+        // Fingerabdruck der Bestellung als Stripe-Notiz (bindet die Zahlung an die Buchung)
         let orderHashValue = null;
         try { const n = paycheck.normalizeOrder(order); if (n.order) orderHashValue = paycheck.orderHash(n.order); } catch (e) { /* nur Beobachtung */ }
         const pcDeps = paycheckDeps(companyId, apiKey);
         const payCheck = paycheck.evaluate({ stage: 'zahlung-anlegen', rawOrder: order, clientAmount: amount, deps: pcDeps });
 
+        // Zahlungsprüfung Stufe 2: Server bestimmt den Betrag (Schalter PAYCHECK_SERVER_AMOUNT=off → Stufe 1)
+        const decision = await amountDecision(payCheck);
+        if (decision.mode === 'mismatch') {
+          await paycheck.finish(withStageNote(payCheck, decision), { stage: 'zahlung-anlegen', deps: pcDeps });
+          return res.status(409).json(PRICE_CHANGED);
+        }
+        const amountCents = decision.mode === 'server' ? decision.cents : Math.round(parseFloat(amount) * 100);
+
         const isSepa = paymentMethodType === 'sepa_debit';
         const paymentIntent = await stripe.paymentIntents.create({
-          amount:   Math.round(parseFloat(amount) * 100),
+          amount:   amountCents,
           currency: 'eur',
           description: description || 'TurmX Games Booking',
           metadata: { kind: 'booking', ...(orderHashValue && { orderHash: orderHashValue }) },
@@ -748,8 +762,38 @@ module.exports = async function handler(req, res) {
           ),
         });
 
-        await paycheck.finish(payCheck.then(e => ({ ...e, ref: paymentIntent.id })), { stage: 'zahlung-anlegen', deps: pcDeps });   // wirft nie, max. 1,5 s
+        await paycheck.finish(withStageNote(payCheck, decision).then(e => ({ ...e, ref: paymentIntent.id })), { stage: 'zahlung-anlegen', deps: pcDeps });   // wirft nie, max. 1,5 s
         return res.status(200).json({ clientSecret: paymentIntent.client_secret });
+      }
+
+      // ─────────────────────────────────────────────
+      // 6b. PayPal-Order serverseitig anlegen (Zahlungsprüfung Stufe 2)
+      //     Betrag vom Server; der Browser autorisiert die Order nur noch.
+      //     Eingezogen wird wie bisher erst nach erfolgreicher Buchung.
+      // ─────────────────────────────────────────────
+      case 'create-paypal-order': {
+        const { amount, description, order } = req.body || {};
+        if (!amount) return res.status(400).json({ error: 'amount required' });
+
+        const pcDeps = paycheckDeps(companyId, apiKey);
+        const payCheck = paycheck.evaluate({ stage: 'paypal-anlegen', rawOrder: order, clientAmount: amount, deps: pcDeps });
+        const decision = await amountDecision(payCheck);
+        if (decision.mode === 'mismatch') {
+          await paycheck.finish(withStageNote(payCheck, decision), { stage: 'paypal-anlegen', deps: pcDeps });
+          return res.status(409).json(PRICE_CHANGED);
+        }
+        const amountCents = decision.mode === 'server' ? decision.cents : Math.round(parseFloat(amount) * 100);
+
+        let ppOrder;
+        try {
+          ppOrder = await createPaypalOrder(amountCents, String(description || 'TurmX Games').slice(0, 120));
+        } catch (e) {
+          console.error('[PayPal] Order anlegen fehlgeschlagen:', e.message);
+          await paycheck.finish(withStageNote(payCheck, decision), { stage: 'paypal-anlegen', deps: pcDeps });
+          return res.status(502).json({ error: 'PayPal ist gerade nicht erreichbar.' });
+        }
+        await paycheck.finish(withStageNote(payCheck, decision).then(e => ({ ...e, ref: ppOrder.id })), { stage: 'paypal-anlegen', deps: pcDeps });
+        return res.status(200).json({ id: ppOrder.id });
       }
 
       // ─────────────────────────────────────────────
@@ -863,6 +907,47 @@ async function voidPaypalAuth(authorizationId) {
   }
   console.log('[PayPal] Authorization voided:', authorizationId);
 }
+
+// PayPal-Order serverseitig anlegen (intent AUTHORIZE wie das Browser-SDK: einziehen erst nach der Buchung)
+async function createPaypalOrder(cents, description) {
+  const token = await getPaypalAccessToken();
+  const res = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      intent: 'AUTHORIZE',
+      purchase_units: [{ amount: { currency_code: 'EUR', value: (cents / 100).toFixed(2) }, description }],
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.id) throw new Error(`PayPal order failed: ${res.status} ${data.name || ''}`);
+  return data;
+}
+
+// ─────────────────────────────────────────────
+// Zahlungsprüfung Stufe 2: Betrag vom Server (siehe api/_lib/paycheck.js decideAmount)
+// ─────────────────────────────────────────────
+const PRICE_CHANGED = {
+  error: 'Der Preis hat sich geändert. Bitte ladet die Seite neu und prüft eure Auswahl.',
+  priceChanged: true,
+};
+
+/** Wartet höchstens 2,5 s auf die Server-Rechnung. Im Zweifel 'fallback' (Browser-Betrag wie bisher). */
+async function amountDecision(payCheck) {
+  if (!paycheck.serverAmountOn()) return { mode: 'fallback', reason: 'aus' };
+  try {
+    return paycheck.decideAmount(await paycheck.withTimeout(payCheck, 2500));
+  } catch (e) {
+    return { mode: 'fallback', reason: 'fehler' };
+  }
+}
+
+/** Vermerkt im Bericht, wie Stufe 2 entschieden hat. */
+const withStageNote = (payCheck, d) => payCheck.then(e => ({
+  ...e,
+  notes: [...((e && e.notes) || []), d.mode === 'server' ? 'Stufe 2: Server-Betrag'
+    : d.mode === 'mismatch' ? 'Stufe 2: abgelehnt (Preis geändert)' : `Stufe 2: Browser-Betrag (${d.reason})`],
+}));
 
 async function getPaypalAuthorization(authorizationId) {
   const token = await getPaypalAccessToken();
