@@ -130,3 +130,15 @@ describe('Stornostaffel mit Daten', () => {
     expect(P.STORNO_NOTES.join(' ')).toMatch(/Nichterscheinen/);
   });
 });
+
+// 25.11.2026: Siegerpokal 20 € als Extra (vorher "immer inklusive")
+describe('Siegerpokal', () => {
+  test('+20 €, als eigene Zeile, bei allen Events', () => {
+    const qq = P.quote({ event: 'kinder', dow: SA, qty: 8, extras: { trophy: true } });
+    expect(qq.total).toBe(60 + 8 * 30 + 20);
+    expect(qq.lines.find(l => l.key === 'trophy').amount).toBe(20);
+  });
+  test('nicht rabattierbar', () => {
+    expect(q('firma', MO, 10, { trophy: true }, pct(10))).toBe(r2(390 - 39 + 20));
+  });
+});

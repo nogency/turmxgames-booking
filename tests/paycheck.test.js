@@ -113,3 +113,14 @@ describe('Abschluss: doppelt verwendete Zahlung', () => {
     expect(redis.log[0].result).toBe('zeitlimit');
   });
 });
+
+describe('Siegerpokal in der Zahlungsprüfung', () => {
+  test('Server rechnet den Pokal mit', () => {
+    expect(pc.expectedQuote(norm({ qty: 8, extras: { trophy: true } })).total).toBe(40 + 8 * 28 + 20);
+  });
+  test('Fingerabdruck ohne Pokal bleibt wie vorher, mit Pokal anders', () => {
+    const without = pc.orderHash(norm({ qty: 8 }));
+    expect(pc.orderHash(norm({ qty: 8, extras: { trophy: false } }))).toBe(without);
+    expect(pc.orderHash(norm({ qty: 8, extras: { trophy: true } }))).not.toBe(without);
+  });
+});

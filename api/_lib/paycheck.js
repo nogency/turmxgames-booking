@@ -33,7 +33,7 @@ function normalizeOrder(raw) {
   const qty = parseInt(raw.qty, 10);
   if (!(qty >= P.MIN_QTY && qty <= P.MAX_QTY)) return { error: 'Personenzahl ungültig' };
   const ex = raw.extras || {};
-  const extras = { drinks: !!ex.drinks, insurance: !!ex.insurance, freefall: !!ex.freefall && event === 'jga' };
+  const extras = { drinks: !!ex.drinks, insurance: !!ex.insurance, freefall: !!ex.freefall && event === 'jga', trophy: !!ex.trophy };
   const promoCode = raw.promoCode ? String(raw.promoCode).trim().toUpperCase().slice(0, 40) : null;
   const adminLinkId = raw.adminLinkId ? String(raw.adminLinkId).trim().slice(0, 12) : null;
   return { order: { event, date, time, qty, extras, promoCode, adminLinkId } };
@@ -41,7 +41,9 @@ function normalizeOrder(raw) {
 
 /** Fingerabdruck einer Bestellung: bindet eine Zahlung an genau diese Buchung. */
 function orderHash(o) {
-  const canon = [o.event, o.date, o.time, o.qty, o.extras.drinks ? 1 : 0, o.extras.insurance ? 1 : 0, o.extras.freefall ? 1 : 0, o.promoCode || '', o.adminLinkId || ''].join('|');
+  // Siegerpokal nur anhängen, wenn gebucht: Fingerabdrücke ohne Pokal bleiben wie vor dem 25.11.2026
+  const canon = [o.event, o.date, o.time, o.qty, o.extras.drinks ? 1 : 0, o.extras.insurance ? 1 : 0, o.extras.freefall ? 1 : 0, o.promoCode || '', o.adminLinkId || '']
+    .concat(o.extras.trophy ? ['pokal'] : []).join('|');
   return crypto.createHash('sha256').update(canon).digest('hex').slice(0, 24);
 }
 
@@ -101,7 +103,7 @@ function classifyPaypal(auth, expectedCents) {
 /** Kurzfassung der Bestellung fürs Protokoll (keine persönlichen Daten). */
 const summarize = o => ({
   event: o.event, date: o.date, time: o.time, qty: o.qty,
-  extras: ['drinks', 'insurance', 'freefall'].filter(k => o.extras[k]).join(',') || '-',
+  extras: ['drinks', 'insurance', 'freefall', 'trophy'].filter(k => o.extras[k]).join(',') || '-',
   promo: o.promoCode || null, link: o.adminLinkId || null,
 });
 

@@ -117,3 +117,9 @@ test('buildInvoiceData assembles all required fields', () => {
   expect(data.isCompany).toBe(false);
   expect(data.bankIban).toBe('DE12345678901234567890');
 });
+
+test('AB mit Siegerpokal: eigene Position 1× 20 €', () => {
+  const d = buildInvoiceData({ ...abBase, amount: 322.4, trophy: true });
+  expect(d.items.map(i => [i.name, i.qtyLabel, i.tax.brutto])).toContainEqual(['Siegerpokal', '1×', 20]);
+  expect(d.tax.brutto).toBe(322.4);
+});
