@@ -8,7 +8,7 @@ describe('Bestellung prüfen', () => {
   test('gültige Bestellung wird vereinheitlicht', () => {
     expect(norm({ promoCode: ' turmx10 ', extras: { drinks: 1 } })).toEqual({
       event: 'jga', date: '2026-10-05', time: '16:00', qty: 4,
-      extras: { drinks: true, insurance: false, freefall: false }, promoCode: 'TURMX10', adminLinkId: null,
+      extras: { drinks: true, insurance: false, freefall: false, trophy: false }, promoCode: 'TURMX10', adminLinkId: null,
     });
   });
   test.each([
