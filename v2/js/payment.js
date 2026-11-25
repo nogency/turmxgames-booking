@@ -225,7 +225,7 @@
       serviceId: cfg.SERVICE_ID, date: S.dateStr, time: S.time, groupSize: S.qty,
       firstName: c.firstName, lastName: c.lastName, email: c.email, phone: c.phone || null,
       serviceName: TX.eventName(), amount: q.total, notes: TX.bookingNotes('invoice'),
-      drinksFlat: S.extras.drinks, insurance: S.extras.insurance,
+      drinksFlat: S.extras.drinks, insurance: S.extras.insurance, trophy: !!S.extras.trophy,
       baseAmount: P.round2(q.baseOnly - q.discount),
       companyName: c.companyName, companyStreet: c.companyStreet, companyZip: c.companyZip, companyCity: c.companyCity, ustId: c.ustId,
       promoCode: S.promo.code || null,
@@ -255,7 +255,7 @@
     TX.api.sendConfirmation({
       bookingId, serviceName: TX.eventName(), groupSize: S.qty,
       amount: q.total, baseAmount: P.round2(q.total - q.extrasTotal - q.smallGroupFee),
-      drinksFlat: S.extras.drinks, drinksPrice: q.drinksUnit, insurance: S.extras.insurance, freefall: S.extras.freefall && S.event === 'jga',
+      drinksFlat: S.extras.drinks, drinksPrice: q.drinksUnit, insurance: S.extras.insurance, freefall: S.extras.freefall && S.event === 'jga', trophy: !!S.extras.trophy,
       paymentMethod: S.payMethod, date: S.dateStr, time: S.time,
       firstName: c.firstName, lastName: c.lastName, email: c.email, phone: c.phone || null,
       companyName: c.companyName, companyStreet: c.companyStreet, companyZip: c.companyZip, companyCity: c.companyCity, ustId: c.ustId,
@@ -291,6 +291,7 @@
       'Getränkeflat: ' + (S.extras.drinks ? 'Ja (' + S.qty + ' × ' + TX.comma(q.drinksUnit) + '€)' : 'Nein'),
       'Versicherung: ' + (S.extras.insurance ? 'Ja (14,90€)' : 'Nein'),
       'Freefall Mutprobe: ' + (S.extras.freefall && S.event === 'jga' ? 'Ja (30,00€)' : 'Nein'),
+      'Siegerpokal: ' + (S.extras.trophy ? 'Ja (' + TX.comma(P.TROPHY) + '€)' : 'Nein'),   // neue Zeile seit 25.11.2026
       q.smallGroupFee ? 'Kleingruppenzuschlag: Ja (' + TX.comma(q.smallGroupFee) + '€)' : null,
       'Zahlung: ' + label,
       ...(pm === 'invoice' ? invoiceLines(c) : []),

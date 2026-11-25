@@ -12,6 +12,7 @@
     drinks: l => `Getränkeflat, ${l.qty} × ${TX.eur(l.unit)}`,
     insurance: () => 'Flex-Versicherung',
     freefall: () => 'Freefall-Mutprobe',
+    trophy: () => 'Siegerpokal',
   };
 
   TX.priceRowsHtml = q => q.lines.map(l => `<div class="pr"><span>${LABEL[l.key](l)}</span><span class="num">${TX.eur(l.amount)}</span></div>`).join('')
@@ -22,7 +23,7 @@
   TX.summaryHtml = withEdit => {
     const q = TX.quote(); if (!q) return '<p class="small" style="margin:0">Noch nichts ausgewählt.</p>';
     const edit = withEdit && !S.fc;   // Admin-Link: vorbereitete Angaben sind gesperrt
-    const ex = [S.extras.drinks && 'Getränkeflat', S.extras.insurance && 'Flex-Versicherung', S.extras.freefall && S.event === 'jga' && 'Freefall-Mutprobe'].filter(Boolean);
+    const ex = [S.extras.drinks && 'Getränkeflat', S.extras.trophy && 'Siegerpokal', S.extras.insurance && 'Flex-Versicherung', S.extras.freefall && S.event === 'jga' && 'Freefall-Mutprobe'].filter(Boolean);
     const row = (k, v, step) => `<div class="sum-row"><div><div class="sum-k">${k}</div><div class="sum-v">${v}</div></div>${edit && step ? `<button class="link" type="button" data-go="${step}">Ändern</button>` : ''}</div>`;
     const c = TX.contact();
     const contact = S.detailsOk ? [`${c.firstName} ${c.lastName}`.trim(), c.email, c.companyName].filter(Boolean).map(TX.esc).join('<br>') : '';

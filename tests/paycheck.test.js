@@ -8,7 +8,7 @@ describe('Bestellung prüfen', () => {
   test('gültige Bestellung wird vereinheitlicht', () => {
     expect(norm({ promoCode: ' turmx10 ', extras: { drinks: 1 } })).toEqual({
       event: 'jga', date: '2026-10-05', time: '16:00', qty: 4,
-      extras: { drinks: true, insurance: false, freefall: false }, promoCode: 'TURMX10', adminLinkId: null,
+      extras: { drinks: true, insurance: false, freefall: false, trophy: false }, promoCode: 'TURMX10', adminLinkId: null,
     });
   });
   test.each([
@@ -134,5 +134,15 @@ describe('Stufe 2: Betrag entscheiden', () => {
     expect(pc.serverAmountOn({})).toBe(true);
     expect(pc.serverAmountOn({ PAYCHECK_SERVER_AMOUNT: 'off' })).toBe(false);
     expect(pc.serverAmountOn({ PAYCHECK_SERVER_AMOUNT: ' OFF ' })).toBe(false);
+  });
+});
+describe('Siegerpokal in der Zahlungsprüfung', () => {
+  test('Server rechnet den Pokal mit', () => {
+    expect(pc.expectedQuote(norm({ qty: 8, extras: { trophy: true } })).total).toBe(40 + 8 * 28 + 20);
+  });
+  test('Fingerabdruck ohne Pokal bleibt wie vorher, mit Pokal anders', () => {
+    const without = pc.orderHash(norm({ qty: 8 }));
+    expect(pc.orderHash(norm({ qty: 8, extras: { trophy: false } }))).toBe(without);
+    expect(pc.orderHash(norm({ qty: 8, extras: { trophy: true } }))).not.toBe(without);
   });
 });
