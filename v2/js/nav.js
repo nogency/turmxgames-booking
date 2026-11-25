@@ -25,6 +25,14 @@
     const h = $(`#h1-${n}`); if (h) h.focus({ preventScroll: true });
   };
 
+  // Extras einmal gesehen? (Desktop meist sofort, am Handy erst nach dem Scrollen)
+  let extrasSeen = !('IntersectionObserver' in window);
+  if (!extrasSeen) {
+    new IntersectionObserver(es => { if (S.step === 3 && es.some(e => e.isIntersecting)) extrasSeen = true; }, { threshold: 0.4 })
+      .observe($('#extrasBlock'));
+  }
+  TX._extrasSeen = v => { if (v !== undefined) extrasSeen = v; return extrasSeen; };   // für Tests
+
   // Fehlt etwas: Hinweis am Button, Fehlendes zeigen und kurz aufleuchten lassen
   const missing = (msg, scrollTo, nudge) => {
     TX.ctaHint(msg);
@@ -39,7 +47,11 @@
       if (!S.time) { $('#err-2t').classList.add('show'); missing('Bitte wählt eine Uhrzeit.', $('#slotBlock'), $$('#slots button:not(:disabled)')); return; }
       TX.go(3);
     }
-    else if (S.step === 3) TX.go(4);
+    else if (S.step === 3) {
+      // Am Handy liegen die Extras unter dem Knopf: einmal hinführen, der nächste Tipp geht weiter
+      if (!extrasSeen) { extrasSeen = true; missing('Noch kurz: Extras für eure Show.', $('#extrasBlock'), $$('#extras .extra')); return; }
+      TX.go(4);
+    }
     else if (S.step === 4) { if (TX.validateDetails()) { S.detailsOk = true; TX.go(5); } else TX.ctaHint('Bitte füllt die markierten Felder aus.'); }
     else if (S.step === 5) TX.pay();
   };

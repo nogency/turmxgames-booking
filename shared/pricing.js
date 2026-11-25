@@ -19,6 +19,7 @@
   const DRINKS = { default: 12.9, kinder: 7.9 };
   const INSURANCE = 14.9;
   const FREEFALL = 30;
+  const TROPHY = 20;        // Siegerpokal zum Mitnehmen (seit 25.11.2026 Extra, vorher "immer inklusive")
   const MIN_QTY = 4;
   const MAX_QTY = 32;
   // Kleingruppenzuschlag: pauschal bei weniger als 6 Personen (also 4–5). Nicht rabattierbar,
@@ -95,9 +96,10 @@
     if (extras.insurance) lines.push({ key: 'insurance', amount: INSURANCE });
     const ff = extras.freefall && opts.event === 'jga';
     if (ff) lines.push({ key: 'freefall', amount: FREEFALL });
+    if (extras.trophy) lines.push({ key: 'trophy', amount: TROPHY });
 
     // Gleicher Rechenweg wie v1 getTotal(): (Basis - Rabatt) + Extras, auf Cent gerundet; dazu der Zuschlag
-    const extrasTotal = (extras.drinks ? dp * qty : 0) + (extras.insurance ? INSURANCE : 0) + (ff ? FREEFALL : 0);
+    const extrasTotal = (extras.drinks ? dp * qty : 0) + (extras.insurance ? INSURANCE : 0) + (ff ? FREEFALL : 0) + (extras.trophy ? TROPHY : 0);
     const total = round2(baseOnly - discount + extrasTotal + smallGroupFee);
     const vat = round2(total - total / (1 + VAT_RATE));
     return { base, pp, qty, baseOnly, discount, lines, extrasTotal: round2(extrasTotal), smallGroupFee, total, vat, drinksUnit: dp };
@@ -145,7 +147,7 @@
   }
 
   return {
-    VAT_RATE, PRICES, KINDER_PRICES, SOCIAL_PRICE, DRINKS, INSURANCE, FREEFALL, MIN_QTY, MAX_QTY, SMALL_GROUP,
+    VAT_RATE, PRICES, KINDER_PRICES, SOCIAL_PRICE, DRINKS, INSURANCE, FREEFALL, TROPHY, MIN_QTY, MAX_QTY, SMALL_GROUP,
     EVENTS, ppForDay, minPP, drinksPrice, promoDiscount, quote, isSocial, round2,
     STORNO, STORNO_NOTES, stornoTiers, stornoLines,
   };

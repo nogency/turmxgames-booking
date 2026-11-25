@@ -32,7 +32,7 @@
     event: null,            // jga | firma | friends | kinder | schule | verein
     date: null, dateStr: null, time: null,
     qty: 8, qtySeen: false, age: null,
-    extras: { drinks: false, insurance: false, freefall: false },
+    extras: { drinks: false, insurance: false, freefall: false, trophy: false },
     promo: { code: null, def: null },
     payMethod: 'cc',        // cc | sepa | paypal | invoice (Werte wie v1, landen im Tracking)
     detailsOk: false,
@@ -83,7 +83,7 @@
   // Bestellung für die serverseitige Preisprüfung (der Server rechnet damit selbst nach)
   TX.order = () => ({
     event: TX.S.event, date: TX.S.dateStr, time: TX.S.time, qty: TX.S.qty,
-    extras: { drinks: !!TX.S.extras.drinks, insurance: !!TX.S.extras.insurance, freefall: !!TX.S.extras.freefall },
+    extras: { drinks: !!TX.S.extras.drinks, insurance: !!TX.S.extras.insurance, freefall: !!TX.S.extras.freefall, trophy: !!TX.S.extras.trophy },
     promoCode: TX.S.promo.code || null,
     adminLinkId: TX.S.fc ? TX.S.linkId : null,
   });

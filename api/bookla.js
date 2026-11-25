@@ -385,7 +385,7 @@ module.exports = async function handler(req, res) {
           serviceId, date, time, groupSize, firstName, lastName,
           email, phone, notes, promoCode, serviceName, amount,
           companyName, companyStreet, companyZip, companyCity, ustId,
-          drinksFlat, drinksPrice, insurance, baseAmount, discountAmount, smallGroupFee, order,
+          drinksFlat, drinksPrice, insurance, trophy, baseAmount, discountAmount, smallGroupFee, order,
         } = req.body || {};
 
         if (!serviceId || !date || !time || !email || !amount) {
@@ -515,6 +515,7 @@ module.exports = async function handler(req, res) {
           drinksFlat: drinksFlat || false,
           drinksPrice: drinksPrice || 12.90,
           insurance: insurance || false,
+          trophy: !!trophy,            // Siegerpokal als eigene AB-Position
           paymentMethod: 'invoice',
           date, time,
           firstName, lastName, email, phone,

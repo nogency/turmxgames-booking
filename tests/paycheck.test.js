@@ -8,7 +8,7 @@ describe('Bestellung prüfen', () => {
   test('gültige Bestellung wird vereinheitlicht', () => {
     expect(norm({ promoCode: ' turmx10 ', extras: { drinks: 1 } })).toEqual({
       event: 'jga', date: '2026-10-05', time: '16:00', qty: 4,
-      extras: { drinks: true, insurance: false, freefall: false }, promoCode: 'TURMX10', adminLinkId: null,
+      extras: { drinks: true, insurance: false, freefall: false, trophy: false }, promoCode: 'TURMX10', adminLinkId: null,
     });
   });
   test.each([
@@ -111,5 +111,16 @@ describe('Abschluss: doppelt verwendete Zahlung', () => {
     const redis = fakeRedis();
     await pc.finish(new Promise(() => {}), { stage: 'buchung', bookingId: 'b3', deps: { redis }, timeoutMs: 20 });
     expect(redis.log[0].result).toBe('zeitlimit');
+  });
+});
+
+describe('Siegerpokal in der Zahlungsprüfung', () => {
+  test('Server rechnet den Pokal mit', () => {
+    expect(pc.expectedQuote(norm({ qty: 8, extras: { trophy: true } })).total).toBe(40 + 8 * 28 + 20);
+  });
+  test('Fingerabdruck ohne Pokal bleibt wie vorher, mit Pokal anders', () => {
+    const without = pc.orderHash(norm({ qty: 8 }));
+    expect(pc.orderHash(norm({ qty: 8, extras: { trophy: false } }))).toBe(without);
+    expect(pc.orderHash(norm({ qty: 8, extras: { trophy: true } }))).not.toBe(without);
   });
 });

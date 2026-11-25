@@ -64,6 +64,7 @@
     const drinksIcon = { kinder: 'ph-orange-slice', schule: 'ph-pint-glass', verein: 'ph-pint-glass' }[S.event] || 'ph-beer-stein';
     const items = [
       { k: 'drinks', icon: drinksIcon, track: 'getraenkeflat', name: 'Getränkeflat', meta: S.event === 'kinder' ? 'Softdrinks und Wasser, so viel ihr wollt' : 'So viel ihr wollt, ab 18 auch Bier', price: `${S.qty} × ${TX.eur(dp)} = ${TX.eur(P.round2(dp * S.qty))}`, value: () => dp * S.qty },
+      { k: 'trophy', icon: 'ph-trophy', track: 'siegerpokal', name: 'Siegerpokal', meta: 'Für euer Siegerteam zum Mitnehmen', price: `${TX.eurShort(P.TROPHY)} einmalig`, value: () => P.TROPHY },
       { k: 'insurance', icon: 'ph-shield-check', track: 'versicherung', name: 'Flex-Versicherung', meta: 'Personenzahl bis kurz vorher anpassen', price: '14,90 € einmalig', value: () => P.INSURANCE },
     ];
     if (S.event === 'jga') items.push({ k: 'freefall', icon: 'ph-arrow-fat-lines-down', track: 'freefall_mutprobe', name: 'Freefall-Mutprobe', meta: 'Blind vom Turm, für Braut oder Bräutigam', price: '30 € einmalig', value: () => P.FREEFALL, more: true });

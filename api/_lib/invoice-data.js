@@ -36,7 +36,7 @@ function buildInvoiceData(params, opts = {}) {
     bookingId, serviceName, groupSize, amount, paymentMethod,
     date, time, firstName, lastName, email, phone,
     companyName, companyStreet, companyZip, companyCity, ustId,
-    drinksFlat, drinksPrice, insurance, freefall, baseAmount,
+    drinksFlat, drinksPrice, insurance, freefall, trophy, baseAmount,
     promoCode, discountAmount, smallGroupFee,
   } = params;
 
@@ -103,6 +103,15 @@ function buildInvoiceData(params, opts = {}) {
       name: 'Blindfold Freefall – Die Mutprobe',
       qtyLabel: '1×',
       tax: calculateTax(30.00),
+    });
+  }
+
+  // 5. Siegerpokal (20,00 € pauschal, seit 25.11.2026)
+  if (trophy) {
+    items.push({
+      name: 'Siegerpokal',
+      qtyLabel: '1×',
+      tax: calculateTax(20.00),
     });
   }
 
