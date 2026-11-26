@@ -15,18 +15,24 @@
   ];
   TX.cardFor = ev => CARDS.find(c => c.key === (P.isSocial(ev) ? 'schule' : ev));
 
+  // Saison-Hervorhebung (Lichterkette + Hinweis), Zeiträume in TX.season (ui.js)
+  const SEASON = {
+    firma: { key: 'firma', tag: 'Ideal für eure Weihnachtsfeier', icon: 'ph-tree-evergreen' },
+    between: { key: 'friends', tag: 'Perfekt für zwischen den Tagen', icon: 'ph-sparkle' },
+  };
+
   TX.renderEvents = () => {
-    const xmas = TX.isXmas();
+    const season = SEASON[TX.season()];
     $('#eventOpts').innerHTML = CARDS.map(c => {
       const fixed = c.key === 'firma' || c.key === 'schule';
       const base = P.EVENTS[c.key].base;
-      const isX = xmas && c.key === 'firma';
+      const isX = !!season && c.key === season.key;
       const checked = S.event && TX.cardFor(S.event).key === c.key;
       return `<label class="opt${isX ? ' xmas' : ''}">
         ${isX ? TX.garlandHtml() : ''}
-        <input type="radio" name="event" value="${c.key}" ${checked ? 'checked' : ''} aria-label="${c.name}, ${fixed ? '' : 'ab '}${P.minPP(c.key)} Euro ${c.unit || 'pro Person'}${isX ? ', ideal für eure Weihnachtsfeier' : ''}">
+        <input type="radio" name="event" value="${c.key}" ${checked ? 'checked' : ''} aria-label="${c.name}, ${fixed ? '' : 'ab '}${P.minPP(c.key)} Euro ${c.unit || 'pro Person'}${isX ? ', ' + season.tag.toLowerCase() : ''}">
         <span class="opt-ico"><i class="ph ${c.icon}"></i></span>
-        <span><span class="opt-name">${c.name}</span><span class="opt-meta">${c.meta}<br>${base ? `+ ${base} € Grundgebühr` : 'Keine Grundgebühr'}</span>${isX ? '<span class="xmas-tag"><i class="ph ph-tree-evergreen"></i>Ideal für eure Weihnachtsfeier</span>' : ''}</span>
+        <span><span class="opt-name">${c.name}</span><span class="opt-meta">${c.meta}<br>${base ? `+ ${base} € Grundgebühr` : 'Keine Grundgebühr'}</span>${isX ? `<span class="xmas-tag"><i class="ph ${season.icon}"></i>${season.tag}</span>` : ''}</span>
         <span class="opt-price"><span>${fixed ? '' : 'ab'}</span><b class="num">${P.minPP(c.key)} €</b><span>${c.unit || 'pro Person'}</span></span>
       </label>`;
     }).join('');
