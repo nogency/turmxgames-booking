@@ -114,6 +114,28 @@ describe('Abschluss: doppelt verwendete Zahlung', () => {
   });
 });
 
+// Stufe 2 (19.11.2026): Server bestimmt den Betrag
+describe('Stufe 2: Betrag entscheiden', () => {
+  const ok = { result: 'ok', expectedCents: 26400, actualCents: 26400, order: { event: 'friends' } };
+  test('ok → Server-Betrag', () => expect(pc.decideAmount(ok)).toEqual({ mode: 'server', cents: 26400 }));
+  test('Abweichung → ablehnen', () => expect(pc.decideAmount({ ...ok, result: 'abweichung', actualCents: 100 }).mode).toBe('mismatch'));
+  test.each([
+    ['Zeitlimit', { timeout: true }, 'zeitlimit'],
+    ['nichts', null, 'zeitlimit'],
+    ['Admin-Link', { ...ok, order: { link: 'abc123' } }, 'admin-link'],
+    ['alte Seite', { result: 'ohne-bestellung' }, 'ohne-bestellung'],
+    ['Fehler', { result: 'fehler' }, 'fehler'],
+    ['Code-Definition fehlt', { ...ok, result: 'abweichung', notes: ['Code-Definition nicht gefunden'] }, 'code-definition'],
+    ['0 €', { ...ok, expectedCents: 0 }, 'kein-betrag'],
+  ])('%s → Browser-Betrag wie bisher', (_, e, reason) => {
+    expect(pc.decideAmount(e)).toEqual({ mode: 'fallback', reason });
+  });
+  test('Schalter', () => {
+    expect(pc.serverAmountOn({})).toBe(true);
+    expect(pc.serverAmountOn({ PAYCHECK_SERVER_AMOUNT: 'off' })).toBe(false);
+    expect(pc.serverAmountOn({ PAYCHECK_SERVER_AMOUNT: ' OFF ' })).toBe(false);
+  });
+});
 describe('Siegerpokal in der Zahlungsprüfung', () => {
   test('Server rechnet den Pokal mit', () => {
     expect(pc.expectedQuote(norm({ qty: 8, extras: { trophy: true } })).total).toBe(40 + 8 * 28 + 20);

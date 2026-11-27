@@ -101,7 +101,14 @@
       fundingSource: window.paypalSDK.FUNDING.PAYPAL,
       style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal', height: 48 },
       onClick: (d, actions) => (guard() ? actions.resolve() : actions.reject()),
-      createOrder: (d, a) => a.order.create({ purchase_units: [{ amount: { value: TX.total().toFixed(2), currency_code: 'EUR' }, description: 'TurmX Games – ' + TX.eventName() }] }),
+      // Stufe 2: Order mit Server-Betrag. Preis geändert (409) → abbrechen; Server/PayPal gestört → wie bisher im Browser
+      createOrder: async (d, a) => {
+        let r = null;
+        try { r = await TX.api.createPaypalOrder(TX.total()); } catch (e) { r = null; }
+        if (r && r.ok && r.data && r.data.id) return r.data.id;
+        if (r && r.status === 409) throw new Error((r.data && r.data.error) || 'Der Preis hat sich geändert. Bitte ladet die Seite neu.');
+        return a.order.create({ purchase_units: [{ amount: { value: TX.total().toFixed(2), currency_code: 'EUR' }, description: 'TurmX Games – ' + TX.eventName() }] });
+      },
       onApprove: async (d, a) => {
         if (isSubmitting) return; isSubmitting = true;
         hidePayError();

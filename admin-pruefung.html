@@ -33,7 +33,7 @@
 <body>
 <div class="wrap">
   <h1>Zahlungsprüfung</h1>
-  <p class="lead">Stufe 1, nur beobachten: Der Server rechnet bei jeder Zahlung und Buchung den Preis selbst nach und vergleicht. Hier wird nichts blockiert. „ohne-bestellung" heißt: Anfrage von der alten Seite /v1.html.</p>
+  <p class="lead">Stufe 2: Der Server bestimmt den Betrag von Karte, SEPA, Wallet und PayPal und prüft Rechnungen vor der Buchung. Weicht der Browser-Betrag ab, wird nicht gebucht („abweichung“, Hinweis „abgelehnt“). Kann der Server nicht rechnen, gilt wie bisher der Browser-Betrag (Hinweis „Browser-Betrag“). „ohne-bestellung“ heißt: Anfrage von der alten Seite /v1.html.</p>
   <form id="f"><input id="pw" type="password" autocomplete="current-password" placeholder="Admin-Passwort" aria-label="Admin-Passwort"><button type="submit">Bericht laden</button></form>
   <div id="out"></div>
 </div>
