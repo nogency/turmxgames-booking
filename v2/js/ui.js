@@ -91,13 +91,18 @@
     $$('[data-paylogos]').forEach(el => { el.innerHTML = logos; });
   };
 
-  // ── Saison Weihnachtsfeier: 1.10. bis 22.12. (Vorschau mit ?xmas=1 / ?xmas=0) ──
-  TX.isXmas = () => {
-    const p = new URLSearchParams(location.search).get('xmas');
-    if (p === '1') return true; if (p === '0') return false;
+  // ── Saison-Hervorhebung in Schritt 1 (Vorschau: ?season=firma | between | off) ──
+  //    Weihnachtsfeier (Firmen & Teams): 1.10. bis 25.11.
+  //    Zwischen den Tagen (Freunde & Familie): 26.11. bis 30.12. – ab 26.12. wieder geöffnet
+  TX.season = () => {
+    const p = new URLSearchParams(location.search).get('season');
+    if (p) return p === 'off' ? null : p;
     const t = new Date(), m = t.getMonth(), d = t.getDate();
-    return m === 9 || m === 10 || (m === 11 && d <= 22);
+    if (m === 9 || (m === 10 && d <= 25)) return 'firma';
+    if ((m === 10 && d >= 26) || (m === 11 && d <= 30)) return 'between';
+    return null;
   };
+  TX.isXmas = () => TX.season() === 'firma';
   TX.garlandHtml = (n = 9) => {
     const seg = 100 / n; let d = 'M0,3';
     for (let i = 0; i < n; i++) d += ` Q${(i + .5) * seg},13 ${(i + 1) * seg},3`;

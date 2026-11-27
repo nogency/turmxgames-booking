@@ -8,14 +8,16 @@
   let timesReq = 0;
 
   TX.renderDayHint = () => {
+    const between = TX.season() === 'between';   // Saison "zwischen den Tagen" (ui.js)
     const txt = {
       jga: 'Montag bis Donnerstag nur 28 € statt 35 € pro Person.',
-      friends: 'Montag bis Donnerstag nur 28 € statt 35 € pro Person.',
+      friends: between ? 'Zwischen den Tagen: ab 26.12. geöffnet, Mo 28. bis Mi 30.12. nur 28 € pro Person.' : 'Montag bis Donnerstag nur 28 € statt 35 € pro Person.',
       kinder: 'Montag bis Freitag 24 €, am Wochenende 30 € pro Kind.',
       firma: TX.isXmas() ? 'Weihnachtsfeier geplant? Termine im Dezember am besten früh sichern.' : '',
     }[S.event];
     const h = $('#dayHint'); h.hidden = !txt;
-    h.innerHTML = txt ? `<i class="ph ${S.event === 'firma' ? 'ph-tree-evergreen' : 'ph-tag'}"></i><span>${txt}</span>` : '';
+    const icon = S.event === 'firma' && TX.isXmas() ? 'ph-tree-evergreen' : S.event === 'friends' && between ? 'ph-sparkle' : 'ph-tag';
+    h.innerHTML = txt ? `<i class="ph ${icon}"></i><span>${txt}</span>` : '';
   };
 
   TX.initCalendar = () => {
